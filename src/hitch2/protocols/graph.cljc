@@ -1,7 +1,7 @@
 (ns hitch2.protocols.graph)
 
 (defprotocol GraphManagerSync
-  (transact! ([graph-manager v command])
+  (-transact! ([graph-manager v command])
 
     "Apply a transaction to a graph manager and mutate the graph.
 
@@ -12,7 +12,7 @@
 
      It must return a promise:
          derefing the promise returns a graph value or throws an exception")
-  (transact-commands! [graph-manager cmds]
+  (-transact-commands! [graph-manager cmds]
     "Apply a transaction to a graph manager and mutate the graph.
 
      This operation should mutate the graph manager so it contains the result
@@ -23,7 +23,7 @@
              derefing the promise returns a graph value or throws an exception"))
 
 (defprotocol GraphManagerAsync
-  (transact-async! ([graph-manager v command])
+  (-transact-async! ([graph-manager v command])
 
     "Apply a transaction to a graph manager and mutate the graph.
 
@@ -34,7 +34,7 @@
 
      It must return a promise:
          derefing the promise returns a graph value or throws an exception")
-  (transact-commands-async! [graph-manager cmds]
+  (-transact-commands-async! [graph-manager cmds]
     "Apply a transaction to a graph manager and mutate the graph.
 
      This operation should mutate the graph manager so it contains the result
