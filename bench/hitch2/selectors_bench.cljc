@@ -55,9 +55,9 @@
   (let [f        (fn [gv-tracker customer-id encounter-date] :do-stuff)
         gv       {:fake :gv-tracker}]
     #?(:cljs (simple-benchmark []
-               (s/-invoke-halting (s/Selector2. :name 4 (date)) f gv)
+               (s/-invoke-halting (s/->Selector2 :name 4 (date)) f gv)
                bench-times)
-       :clj (bench (s/-invoke-halting (s/Selector2. :name 4 (date)) f gv)))))
+       :clj (bench (s/-invoke-halting (s/->Selector2 :name 4 (date)) f gv)))))
 
 (defn bench-maps-with-construction []
   (println "benchmarking maps invoked with the map: ")
