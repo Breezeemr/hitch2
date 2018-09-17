@@ -1,6 +1,5 @@
 (ns hitch2.protocols.selector
-  (:require [clojure.spec.alpha :as s])
-  #?(:cljs (:require-macros [hitch2.protocols.selector :refer [m->selector]])))
+  (:require [clojure.spec.alpha :as s]))
 
 (s/def :hitch.selector.spec/specs any?)
 (s/def :hitch.selector.spec/name keyword?)
