@@ -89,7 +89,7 @@
 
 
 (defn bench-graphlike-vectors []
-  (println "benchmarking vectors: ")
+  (test-header "benchmarking vectors: ")
   (let [graph-dispatch {}
         selector-impl {:name :name :halting (fn [gv-tracker customer-id encounter-date] :do-stuff)}
         selector [selector-impl 4 (date)]
@@ -103,7 +103,7 @@
        :clj (bench (s/-invoke-halting selector f gv)))))
 
 (defn bench-graphlike-records []
-  (println "benchmarking records: ")
+  (test-header "benchmarking records: ")
   (let [graph-dispatch {}
         selector-impl {:name :name :halting (fn [gv-tracker customer-id encounter-date] :do-stuff)}
         selector (s/->Selector2 selector-impl 4 (date))
@@ -117,7 +117,7 @@
        :clj (bench (s/-invoke-halting selector f gv)))))
 
 (defn bench-graphlike-maps []
-  (println "benchmarking maps invoked with the map: ")
+  (test-header "benchmarking maps invoked with the map: ")
   (let [graph-dispatch {}
         selector-impl {:name :name :halting (fn [gv-tracker {:keys [customer-id encounter-date]}] :do-stuff)}
         selector {:s-name         selector-impl
