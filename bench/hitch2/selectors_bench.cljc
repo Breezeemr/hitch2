@@ -17,6 +17,16 @@
                                bench-times)
        :clj (bench (s/-invoke-halting [:name 4 (date)] f gv)))))
 
+(defn bench-records []
+  (println "benchmarking records: ")
+  (let [selector (s/->Selector2 :name 4 (date))
+        f        (fn [customer-id encounter-date] :do-stuff)
+        gv       {:fake :gv-tracker}]
+    #?(:cljs (simple-benchmark [selector selector]
+               (s/-invoke-halting selector f gv)
+               bench-times)
+       :clj (bench (s/-invoke-halting bench-records f gv)))))
+
 (defn bench-maps []
   (println "benchmarking maps invoked with the map: ")
   (let [selector {:s-name         :thing
@@ -33,4 +43,5 @@
 
 (defn -main []
   (bench-vectors)
+  (bench-records)
   (bench-maps))
