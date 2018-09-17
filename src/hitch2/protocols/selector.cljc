@@ -1,5 +1,6 @@
 (ns hitch2.protocols.selector
-  (:require [clojure.spec.alpha :as s]))
+  (:require [clojure.spec.alpha :as s])
+  #?(:cljs (:require-macros [hitch2.protocols.selector :refer [m->selector]])))
 
 (s/def :hitch.selector.spec/specs any?)
 (s/def :hitch.selector.spec/name keyword?)
@@ -59,6 +60,11 @@
   easiest way to do that is to have selector protocols. We will very likely
   settle on only one implementation because we need it to always hash
   consistently.
+
+  When is invoke-halting called and for what purpose? It was mentioned that
+  it is hot path but during what circumstances? Is this when something is not found?
+  Or when it is found? Is this called while polling for the found data? Should there be
+  an opaque function that someone constructs
   )
 
 (defprotocol SelectorName
@@ -87,4 +93,32 @@
   (-invoke-halting [_ f gv-tracker]
     (f gv-tracker a b)))
 
-;is gv-tracker the best name?
+;;is gv-tracker the best name?
+
+
+(extend-protocol SelectorName
+  #?@(:cljs
+      [cljs.core/PersistentVector
+       (-sname [sel] (first sel))
+       cljs.core/PersistentHashMap
+       (-sname [sel] (:s-name sel))
+       cljs.core/PersistentArrayMap
+       (-sname [sel] (:s-name sel))]))
+
+(extend-protocol InvokeHalting
+  #?@(:cljs
+      [cljs.core/PersistentVector
+       (-invoke-halting [sel f gv-tracker] (apply f (rest sel)))
+       cljs.core/PersistentHashMap
+       (-invoke-halting [sel f gv-tracker]
+                        (f (dissoc sel :s-name)))
+       cljs.core/PersistentArrayMap
+       (-invoke-halting [sel f gv-tracker]
+                        (f (dissoc sel :s-name)))]
+      :clj
+      ;; todo probably missing another map type
+      [clojure.lang.PersistentArrayMap
+       (-invoke-halting [sel f gv-tracker]
+                        (f (dissoc sel :s-name)))
+       clojure.lang.PersistentVector
+       (-invoke-halting [sel f gv-tracker] (apply f (rest sel)))]))

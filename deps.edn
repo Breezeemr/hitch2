@@ -2,8 +2,11 @@
            org.clojure/clojurescript {:mvn/version "1.10.339"}}
  :paths   ["src" "resources"]
  :aliases {:fig       {:extra-deps
-                       {com.bhauman/figwheel-main {:mvn/version "0.1.9"}}
-                       :extra-paths ["test"]}
+                       {com.bhauman/figwheel-main {:mvn/version "0.1.9"}
+                        criterium                 {:mvn/version "0.4.4"}}
+                       :extra-paths ["test" "target" "bench"]}
+           :bench     {:extra-paths ["bench"]
+                       :extra-deps  {criterium {:mvn/version "0.4.4"}}}
            :clj       {:extra-paths ["test"]}
            :clj-rebel {:extra-deps  {com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
                        :extra-paths ["test" "target"]
