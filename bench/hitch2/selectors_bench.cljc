@@ -15,7 +15,7 @@
     #?(:cljs (simple-benchmark [selector selector]
                                (s/-invoke-halting selector f gv)
                                bench-times)
-       :clj (bench (s/-invoke-halting [:name 4 (date)] f gv)))))
+       :clj (bench (s/-invoke-halting selector f gv)))))
 
 (defn bench-records []
   (println "benchmarking records: ")
