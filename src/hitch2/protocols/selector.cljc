@@ -102,6 +102,11 @@
        cljs.core/PersistentHashMap
        (-sname [sel] (:s-name sel))
        cljs.core/PersistentArrayMap
+       (-sname [sel] (:s-name sel))]
+      :clj
+      [clojure.lang.PersistentVector
+       (-sname [sel] (first sel))
+       clojure.lang.PersistentArrayMap
        (-sname [sel] (:s-name sel))]))
 
 (extend-protocol InvokeHalting
