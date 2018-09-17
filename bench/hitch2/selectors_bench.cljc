@@ -100,7 +100,10 @@
                  (when-not (graph-dispatch name)
                    (s/-invoke-halting selector f gv)))
                bench-times)
-       :clj (bench (s/-invoke-halting selector f gv)))))
+       :clj (bench (let [{name :name
+                          f :halting} (s/-sname selector)]
+                     (when-not (graph-dispatch name)
+                       (s/-invoke-halting selector f gv)))))))
 
 (defn bench-graphlike-records []
   (test-header "benchmarking records: ")
@@ -114,7 +117,11 @@
                  (when-not (graph-dispatch name)
                    (s/-invoke-halting selector f gv)))
                bench-times)
-       :clj (bench (s/-invoke-halting selector f gv)))))
+       :clj (bench
+             (let [{name :name
+                    f :halting} (s/-sname selector)]
+               (when-not (graph-dispatch name)
+                 (s/-invoke-halting selector f gv)))))))
 
 (defn bench-graphlike-maps []
   (test-header "benchmarking maps invoked with the map: ")
@@ -130,7 +137,10 @@
                  (when-not (graph-dispatch name)
                    (s/-invoke-halting selector f gv)))
                bench-times)
-       :clj (bench (s/-invoke-halting selector f gv)))))
+       :clj (bench (let [{name :name
+                          f :halting} (s/-sname selector)]
+                     (when-not (graph-dispatch name)
+                       (s/-invoke-halting selector f gv)))))))
 
 
 (defn -main []
