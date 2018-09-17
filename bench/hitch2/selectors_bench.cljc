@@ -39,6 +39,16 @@
                                bench-times)
        :clj (bench (s/-invoke-halting selector f gv)))))
 
+(defn bench-types []
+  (println "benchmarking deftype selector")
+  (let [selector (s/->TypeSelector1 :name :value)
+        f        (fn [gv-tracker value] :do-stuff)
+        gv       {:fake :gv-tracker}]
+    #?(:cljs (simple-benchmark [selector selector]
+                               (s/-invoke-halting selector f gv)
+                               bench-times)
+       :clj (bench (s/-invoke-halting selector f gv)))))
+
 
 
 (defn bench-vectors-with-construction []
@@ -79,4 +89,5 @@
   (bench-maps-with-construction)
   (bench-vectors)
   (bench-records)
-  (bench-maps))
+  (bench-maps)
+  (bench-types))

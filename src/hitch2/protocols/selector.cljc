@@ -129,3 +129,8 @@
            1 (f gv-tracker)
            2 (let [[a] sel] (f gv-tracker a))
            3 (let [[a b] sel] (f gv-tracker a b))))]))
+
+(deftype TypeSelector1 [name a]
+  InvokeHalting
+  (-invoke-halting [sel f gv-tracker]
+    (f gv-tracker a)))
