@@ -25,7 +25,7 @@
     #?(:cljs (simple-benchmark [selector selector]
                (s/-invoke-halting selector f gv)
                bench-times)
-       :clj (bench (s/-invoke-halting bench-records f gv)))))
+       :clj (bench (s/-invoke-halting selector f gv)))))
 
 (defn bench-maps []
   (println "benchmarking maps invoked with the map: ")
