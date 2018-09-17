@@ -107,17 +107,25 @@
 (extend-protocol InvokeHalting
   #?@(:cljs
       [cljs.core/PersistentVector
-       (-invoke-halting [sel f gv-tracker] (apply f gv-tracker (rest sel)))
+       (-invoke-halting [sel f gv-tracker]
+         (case (count sel)
+           1 (f gv-tracker)
+           2 (let [[a] sel] (f gv-tracker a))
+           3 (let [[a b] sel] (f gv-tracker a b))))
        cljs.core/PersistentHashMap
        (-invoke-halting [sel f gv-tracker]
-                        (f gv-tracker (dissoc sel :s-name)))
+                        (f gv-tracker sel))
        cljs.core/PersistentArrayMap
        (-invoke-halting [sel f gv-tracker]
-                        (f gv-tracker (dissoc sel :s-name)))]
+                        (f gv-tracker sel))]
       :clj
       ;; todo probably missing another map type
       [clojure.lang.PersistentArrayMap
        (-invoke-halting [sel f gv-tracker]
-                        (f gv-tracker (dissoc sel :s-name)))
+                        (f gv-tracker sel))
        clojure.lang.PersistentVector
-       (-invoke-halting [sel f gv-tracker] (apply f gv-tracker (rest sel)))]))
+       (-invoke-halting [sel f gv-tracker]
+         (case (count sel)
+           1 (f gv-tracker)
+           2 (let [[a] sel] (f gv-tracker a))
+           3 (let [[a b] sel] (f gv-tracker a b))))]))
