@@ -3,7 +3,8 @@
       #?(:cljs [cljs.test :refer [deftest is testing]]
          :clj [clojure.test :refer [deftest is testing]])
       [hitch2.machine.dependent-get :refer [dget-machine]]
-     [hitch2.protocols.machine :as machine-proto]))
+      [hitch2.protocols.machine :as machine-proto]
+      [clojure.data :as diff]))
 
 (def sel-impl {:s-name :hi
                :kind :hitch.selector.kind/halting
@@ -18,7 +19,7 @@
     (let [node (machine-proto/-apply-command dget-machine
                   {}  node #{} #{}
                   [:dget-subscribe sel :target])
-          [f s both] (clojure.data/diff node
+          [f s both] (diff/diff node
                        (machine-proto/->node-state {sel #{:target}} {sel true} nil [] []))]
       (is (nil? f))
       (is (nil? s)))
