@@ -37,14 +37,16 @@
 (defn apply-parent-change-commands [graph-value changes]
   (reduce
     (fn [acc [parent changes]]
-      (update-in acc [:node-state parent] apply-parent-change-command
+      (update-in acc
+        [:node-state parent]
+        apply-parent-change-command
         parent
         (-> graph-value :value)
-        (-> graph-value :children #(get % parent))
-        (-> graph-value :parents #(get % parent))
+        (-> graph-value :children (get parent))
+        (-> graph-value :parents (get parent))
         changes))
     graph-value
-    (group-by n1 changes))
+    (group-by n1 changes)))
 
 (defn apply-var-reset [graph-value [parent sel value]]
   (update-in graph-value [:value sel] value))
@@ -68,8 +70,8 @@
       (update-in acc [:node-state parent] apply-child-change-command
         parent
         (-> graph-value :value)
-        (-> graph-value :children #(get % parent))
-        (-> graph-value :parents #(get % parent))
+        (-> graph-value :children (get parent))
+        (-> graph-value :parents (get parent))
         changes))
     graph-value
     (group-by n1 changes))
@@ -113,7 +115,7 @@
   (let [nstates (:node-state graph-value)]
     (into []
       (mapcat (fn [machine]
-                (let [{changes :parent-changes} (get nstates child)]
+                (let [{changes :parent-changes} (get nstates machine)]
                   (map
                     (fn [[sel value]]
                       [machine sel value])
@@ -165,7 +167,7 @@
 (deftype gm [state]
   g/GraphManagerSync
   (-transact! [graph-manager machine command]
-    (swap! state apply-command machine command tx-state))
+    (:value (swap! state apply-command machine command)))
   (-transact-commands! [graph-manager cmds])
   g/GraphManagerAsync
   (-transact-async! [graph-manager v command])
@@ -173,7 +175,7 @@
   )
 
 (defn make-gm []
-  (->gm (atom {:values {}
+  (->gm (atom {:value {}
                :nodestate {}
                :parents {}
                :children {}})))
