@@ -1,7 +1,30 @@
 (ns hitch2.graph-manager.atom
-  (:require [hitch2.protocols.graph-manager :as g]
-            [hitch2.protocols.machine :as machine-proto]))
+  (:require  [clojure.spec.alpha :as s]
+             [hitch2.protocols.graph-manager :as g]
+             [hitch2.protocols.machine :as machine-proto]
+             [hitch2.protocols.selector :as selector-proto]))
 
+
+(s/def ::selector any?)
+(s/def ::value (s/map-of ::selector any?))
+(s/def ::derivation-state any?)
+(s/def ::node-state (s/map-of
+                      ::selector
+                      (s/or
+                        :machine-state
+                        :hitch2.protocols.machine/node-state
+                        :derivation-state
+                        ::derivation-state)))
+
+(s/def ::parents (s/map-of ::selector (s/coll-of ::selector)))
+(s/def ::children (s/map-of ::selector (s/coll-of ::selector)))
+
+(s/def ::graph-value
+  (s/keys
+    :req-un [::value
+             ::node-state
+             ::parents
+             ::children]))
 
 (defn ensure-machine-init [state machine]
   (if-some [m (get-in state [:node-state machine])]
@@ -55,6 +78,7 @@
 (defn apply-var-resets [graph-value changes]
   (reduce
     apply-var-reset
+    (apply-parent-change-commands graph-value changes)
     graph-value
     changes))
 
@@ -74,8 +98,8 @@
         (-> graph-value :parents (get parent))
         changes))
     graph-value
-    (group-by n1 changes))
-  )
+    (group-by n1 changes)))
+
 (defn apply-parent-change [graph-value [child parent add|remove]]
   (if add|remove
     (-> graph-value
@@ -88,7 +112,8 @@
 (defn apply-parent-changes [graph-value changes]
   (reduce
     apply-parent-change
-    graph-value changes))
+    (apply-child-change-commands graph-value changes)
+    changes))
 
 (defn remove-parent-changes [graph-value children]
   (reduce (fn [gv child]
@@ -122,47 +147,72 @@
                     changes))))
       machines)))
 
+(s/fdef propagate-changes
+  :args (s/cat
+          :graph-value  ::graph-value
+          :dirty-list (s/coll-of ::selectors))
+  :ret ::graph-value)
 
 (defn propagate-changes [graph-value dirty-list]
   (loop [graph-value        graph-value
-         change-parents     dirty-list
-         reset-vars         dirty-list
+         dirty-list         dirty-list
          disturbed-machines (into #{} dirty-list)]
-    (let [parent-changes (not-empty (get-parent-changes graph-value change-parents))
-          new-graph      (remove-parent-changes graph-value change-parents)
-          var-resets     (not-empty (get-var-resets new-graph reset-vars))
-          new-graph      (remove-var-resets new-graph reset-vars)]
-      (if (or parent-changes var-resets)
+    (let [parent-changes (not-empty (get-parent-changes graph-value dirty-list))
+          new-graph      (remove-parent-changes graph-value dirty-list)
+          var-resets     (not-empty (get-var-resets new-graph dirty-list))
+          new-graph      (remove-var-resets new-graph dirty-list)
+          new-dirty      (-> #{}
+                             (into (map n1) parent-changes)
+                             (into (map n1) var-resets))]
+      (if new-dirty
         (recur
           (-> new-graph
-              (apply-child-change-commands parent-changes )
               (apply-parent-changes parent-changes)
-              (apply-parent-change-commands parent-changes )
               (apply-var-resets var-resets))
-          parent-changes
-          var-resets
+          new-dirty
           (-> disturbed-machines
-              (into (map n1) parent-changes)
-              (into (map n0) var-resets)))
-        new-graph)))
-  )
+              (into new-dirty)))
+        [new-graph disturbed-machines]))))
+
+(s/fdef -apply-command
+  :args (s/cat
+          :machine-state  :hitch2.protocols.machine/node-state
+          :machine any?
+          :command vector?
+          :value ::value
+          :children (s/coll-of ::selector)
+          :parents (s/coll-of ::selector))
+  :ret :hitch2.protocols.machine/node-state)
 
 (defn -apply-command [machine-state machine command value children parents]
   (machine-proto/-apply-command machine
     value machine-state children parents
     command))
 
-(defn apply-effects [graph-value disturbed-machines])
+(defn apply-effects
+  ""
+  [graph-value disturbed-machines])
 
-(defn apply-command [graph-value machine command]
+
+
+(s/fdef apply-command
+  :args (s/cat
+          :graph-value  ::graph-value
+          :machine any?
+          :command vector?)
+  :ret ::graph-value)
+
+(defn apply-command
+  ""
+  [graph-value machine command]
   (let [{:keys [value parents children] :as initalized-graph}
         (ensure-machine-init graph-value machine)
         ;init-tx
         command-applied-graph (update initalized-graph :node-state -apply-command  machine command value children parents)
-        propagated-graph      (propagate-changes command-applied-graph [machine])
+        [propagated-graph disturbed-machines] (propagate-changes command-applied-graph [machine])
         ;flush-tx
         ]
-    (apply-effects propagated-graph [])))
+    (apply-effects propagated-graph disturbed-machines)))
 
 (deftype gm [state]
   g/GraphManagerSync
@@ -176,7 +226,7 @@
 
 (defn make-gm []
   (->gm (atom {:value {}
-               :nodestate {}
+               :node-state {}
                :parents {}
                :children {}})))
 
