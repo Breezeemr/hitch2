@@ -158,7 +158,7 @@
   (let [{:keys [value parents children] :as initalized-graph}
         (ensure-machine-init graph-value machine)
         ;init-tx
-        command-applied-graph (update :node-state -apply-command  machine command value children parents)
+        command-applied-graph (update initalized-graph :node-state -apply-command  machine command value children parents)
         propagated-graph      (propagate-changes command-applied-graph [machine])
         ;flush-tx
         ]
