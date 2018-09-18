@@ -16,7 +16,7 @@
 (defrecord node-state [state change-parent reset-vars
                        async-effects sync-effects])
 
-(def initial-node (->node-state {} nil nil [] []))
+(def initial-node (->node-state nil {} {} [] []))
 
 (defprotocol Init
   (-initialize [machine-instance]))
@@ -25,7 +25,7 @@
   #?(:clj  Object
      :cljs default)
   (-initialize [machine-instance]
-    (->node-state nil nil nil nil nil)))
+    initial-node))
 
 (defprotocol Deinit
   (-uninitialize [machine-instance ^node-state node]

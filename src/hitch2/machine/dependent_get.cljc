@@ -4,10 +4,12 @@
 
 (defrecord node-state [state change-parent reset-vars
                        async-effects sync-effects])
+(def initial-node (assoc machine-proto/initial-node :state {}))
+
 (def dget-machine
   (reify
     machine-proto/Init
-    (-initialize [machine-instance] machine-proto/initial-node)
+    (-initialize [machine-instance] initial-node)
     machine-proto/ParentChanges
     (-parent-value-changes [_ graph-value node children parents parent-selectors]
       (let [selector->targets (:state node)]
