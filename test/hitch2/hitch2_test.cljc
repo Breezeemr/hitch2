@@ -13,9 +13,7 @@
 (deftest dget-machine-test
   (let [node (machine-proto/-initialize dget-machine)
         sel {:s-name sel-impl}]
-    (is (=
-         node
-         (machine-proto/initial-node)))
+    (is (= node machine-proto/initial-node))
     (let [node (machine-proto/-apply-command dget-machine
                   {}  node #{} #{}
                   [:dget-subscribe sel :target])
