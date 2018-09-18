@@ -13,8 +13,8 @@
   (let [node (machine-proto/-initialize dget-machine)
         sel {:s-name sel-impl}]
     (is (=
-          node
-          (machine-proto/->node-state {} nil nil [] [])))
+         node
+         (machine-proto/initial-node)))
     (let [node (machine-proto/-apply-command dget-machine
                   {}  node #{} #{}
                   [:dget-subscribe sel :target])

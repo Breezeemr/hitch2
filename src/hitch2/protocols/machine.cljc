@@ -16,6 +16,8 @@
 (defrecord node-state [state change-parent reset-vars
                        async-effects sync-effects])
 
+(def initial-node (->node-state {} nil nil [] []))
+
 (defprotocol Init
   (-initialize [machine-instance]))
 

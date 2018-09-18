@@ -7,8 +7,7 @@
 (def dget-machine
   (reify
     machine-proto/Init
-    (-initialize [machine-instance]
-      (machine-proto/->node-state {} nil nil [] []))
+    (-initialize [machine-instance] machine-proto/initial-node)
     machine-proto/ParentChanges
     (-parent-value-changes [_ graph-value node children parents parent-selectors]
       (let [selector->targets (:state node)]
