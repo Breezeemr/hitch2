@@ -1,4 +1,6 @@
-(ns hitch2.graph)
+(ns hitch2.graph
+  (:require [hitch2.protocols.graph-manager :as graph-proto]
+            [hitch2.machine.dependent-get :refer [dget-machine]]))
 
 
 (defn hook-sel
@@ -22,12 +24,15 @@
   previous call's value."
   [graph cb selector]
   )
+(defn get-target-for-tx-context [tx]
+  :target)
 
 (defn dget-sel!
   "Return the value (or `nf` if not yet known) for a selector from graph
   transaction context `tx`."
   [tx selector nf]
-  )
+  (let [graph (graph-proto/-transact! tx dget-machine [:dget-subscribe selector (get-target-for-tx-context tx)])]
+    (get graph selector nf)))
 
 (defn hook
   "Call fn `cb` once with the value of selector returned from

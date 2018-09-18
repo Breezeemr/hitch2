@@ -8,6 +8,8 @@
            :bench     {:extra-paths ["bench"]
                        :extra-deps  {criterium {:mvn/version "0.4.4"}}}
            :clj       {:extra-paths ["test"]}
+           :clj-test  {:extra-paths ["test"]
+                       :main-opts   ["-m" "hitch2.clojure-runner"]}
            :clj-rebel {:extra-deps  {com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
                        :extra-paths ["test" "target"]
                        :main-opts   ["-m" "rebel-readline.main"]}
@@ -15,4 +17,5 @@
            :build     {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
            :min       {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]}
            :test      {:extra-paths ["test"]
+                       :extra-deps {com.bhauman/figwheel-main {:mvn/version "0.1.9"}}
                        :main-opts   ["-m" "figwheel.main" "-co" "test.cljs.edn" "-m" hitch2.test-runner]}}}

@@ -23,7 +23,7 @@
   #?(:clj  Object
      :cljs default)
   (-initialize [machine-instance]
-    (node-state nil nil nil nil nil)))
+    (->node-state nil nil nil nil nil)))
 
 (defprotocol Deinit
   (-uninitialize [machine-instance ^node-state node]

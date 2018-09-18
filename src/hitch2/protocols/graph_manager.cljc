@@ -1,8 +1,8 @@
-(ns hitch2.protocols.graph)
+(ns hitch2.protocols.graph-manager)
 
 (defprotocol GraphManagerSync
   (-transact!
-    [graph-manager v command]
+    [graph-manager machine command]
 
     "Apply a transaction to a graph manager and mutate the graph.
 
@@ -47,4 +47,7 @@
      any external-children are recalculated.
     It must return a promise:
              derefing the promise returns a graph value or throws an exception"))
+
+
+(defmulti run-effect :type)
 
