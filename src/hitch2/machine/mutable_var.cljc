@@ -12,7 +12,7 @@
 
 (defrecord mutable-machine [ns]
   sel-proto/SelectorImplementation
-  (-imp [machine-instance] impl)
+  (-imp [machine-instance] machine-impl)
   machine-proto/Init
   (-initialize [machine-instance] initial-node)
   machine-proto/ParentChanges
