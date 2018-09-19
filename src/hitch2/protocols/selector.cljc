@@ -54,17 +54,17 @@
 (s/def :selector/impl
   (s/multi-spec impliementation-kind :kind))
 
-(comment
-  we want to experiment with many different implementations of selectors. The
-  easiest way to do that is to have selector protocols. We will very likely
-  settle on only one implementation because we need it to always hash
-  consistently.
 
-  When is invoke-halting called and for what purpose? It was mentioned that
-  it is hot path but during what circumstances? Is this when something is not found?
-  Or when it is found? Is this called while polling for the found data? Should there be
-  an opaque function that someone constructs
-  )
+;; selector kind? what generalizes selector and machine? Graphable?
+;; Hitchable? HitchKind Hitchtype?
+(defprotocol ImplementationKind
+  (-imp-kind [sel]
+    "Returns the kind of selector or machine.
+Should be a keyword for dispatching. Values are from:
+:hitch.selector.kind/var-singleton-machine
+:hitch.selector.kind/var-machine
+:hitch.selector.kind/sentinel
+:hitch.selector.kind/halting"))
 
 (defprotocol SelectorName
   (-sname [sel] "returns the selector name"))
@@ -108,6 +108,19 @@
        (-sname [sel] (first sel))
        clojure.lang.PersistentArrayMap
        (-sname [sel] (:s-name sel))]))
+
+;; todo: what does a vector do?
+;; cljs.core/PersistentVector
+;; clojure.lang.PersistentVector
+(extend-protocol ImplementationKind
+  #?@(:cljs
+      [cljs.core/PersistentHashMap
+       (-imp-kind [sel] (:kind sel))
+       cljs.core/PersistentArrayMap
+       (-imp-kind [sel] (:kind sel))]
+      :clj
+      [clojure.lang.PersistentArrayMap
+       (-imp-kind [sel] (:kind sel))]))
 
 (extend-protocol InvokeHalting
   #?@(:cljs
