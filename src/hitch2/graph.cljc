@@ -8,6 +8,8 @@
   available. `cb` may be called synchronously if the selector's value is already
   known."
   [graph cb selector]
+  (let [graph (graph-proto/-transact! tx dget-machine [:hook-subscribe selector (get-target-for-tx-context tx)])]
+    (get graph selector nf))
   
   nil)
 
