@@ -193,6 +193,9 @@
     (apply-effects propagated-graph disturbed-machines)))
 
 (deftype gm [state]
+  g/Snapshot
+  (-get-graph [graph-manager]
+    (:value @state))
   g/GraphManagerSync
   (-transact! [graph-manager machine command]
     (:value (swap! state apply-command machine command)))

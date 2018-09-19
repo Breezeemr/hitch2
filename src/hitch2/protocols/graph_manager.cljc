@@ -48,6 +48,10 @@
     It must return a promise:
              derefing the promise returns a graph value or throws an exception"))
 
+(defprotocol Snapshot
+  (-get-graph [x] "gets a snapshot from a graph-manger"))
 
-(defmulti run-effect :type)
+
+
+(defmulti run-effect (fn [graph-manager effect] (:type effect)))
 
