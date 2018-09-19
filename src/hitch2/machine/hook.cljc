@@ -11,6 +11,9 @@
             sel-proto/ImplementationKind
             (-imp-kind [machine] :hitch.selector.kind/machine)))
 
+(defn remove-called-hooks [state selectors]
+  (reduce dissoc state selectors))
+
 (def hook-machine
   (reify
     sel-proto/SelectorImplementation
@@ -20,15 +23,17 @@
     machine-proto/ParentChanges
     (-parent-value-changes [_ graph-value node children parents parent-selectors]
       (let [selector->targets (:state node)]
-        (update node :async-effects
-          into
-          (mapcat (fn [selector]
+        (-> node
+            (update :async-effects
+              into
+              (mapcat (fn [selector]
 
-                    (for [target (selector->targets selector)]
-                      {:type   :hook-call
-                       :target target
-                       :value  selector})))
-          parent-selectors)))
+                        (for [target (selector->targets selector)]
+                          {:type   :hook-call
+                           :target target
+                           :value  selector})))
+              parent-selectors)
+            (update :state remove-called-hooks parent-selectors))))
     machine-proto/Commandable
     (-apply-command [_ graph-value node children parents command]
       (case (nth command 0)
