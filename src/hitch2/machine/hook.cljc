@@ -45,8 +45,10 @@
               (update :change-parent assoc selector false))))))))
 
 
-(defmethod graph-proto/run-effect :hook-call [{:as effect
-                                               f target}]
+(defmethod graph-proto/run-effect :hook-call [graph-manager
+                                              {:as effect
+                                               f :target
+                                               sel :selector}]
   (prn effect)
   (f target))
 
