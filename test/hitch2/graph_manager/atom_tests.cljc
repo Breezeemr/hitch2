@@ -25,11 +25,14 @@
       )))
 
 (deftest atom-tests
-  (let [graph-manager (g/make-gm)]
+  (let [graph-manager (g/make-gm)
+        test-atom (atom nil)]
     ;needs to be async
-    (hitch/hook-sel graph-manager (fn [gm val] (prn "yay! I got value " val)) (mv/v-sel :test-name))
+    (hitch/hook-sel graph-manager (fn [gm val]
+                                    (reset! test-atom val)
+                                    (prn "yay! I got value " val)) (mv/v-sel :test-name))
     (gm-proto/-transact! graph-manager (mv/->mutable-machine :test-name) [:set-value 5])
-
+    (is (= @test-atom 5))
     ;; what goes here?
     #_(gm-proto/-transact! graph-manager hook/hook-machine
                          [:hook-subscribe ])))
