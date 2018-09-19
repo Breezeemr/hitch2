@@ -6,7 +6,7 @@
 
 
 (s/def ::selector any?)
-(s/def ::value (s/map-of ::selector any?))
+(s/def ::graph-value (s/map-of ::selector any?))
 (s/def ::derivation-state any?)
 (s/def ::node-state (s/map-of
                       ::selector
@@ -21,7 +21,7 @@
 
 (s/def ::graph-manager-value
   (s/keys
-    :req-un [::value
+    :req-un [::graph-value
              ::node-state
              ::parents
              ::children]))
@@ -47,7 +47,7 @@
 
 (defn populate-new-var-values [graph-manager-value var-resets]
   (reduce (fn [gv [_parent sel value]]
-            (update-in graph-manager-value [:value sel] value))
+            (update-in graph-manager-value [:graph-value sel] value))
           graph-manager-value
           var-resets))
 
@@ -57,7 +57,7 @@
               :hitch.selector.kind/machine
               (update-in g [:node-state parent] apply-parent-change-command
                 parent
-                (-> graph-manager-value :value)
+                (-> graph-manager-value :graph-value)
                 (get-in g [:children parent])
                 (get-in g [:parents parent])
                 changes-for-parent)))
@@ -77,7 +77,7 @@
               :hitch.selector.kind/machine
               (update-in acc [:node-state parent] apply-child-change-command
                 parent
-                (-> graph-manager-value :value)
+                (-> graph-manager-value :graph-value)
                 (-> graph-manager-value :children (get parent))
                 (-> graph-manager-value :parents (get parent))
                 changes)))
@@ -154,13 +154,13 @@
           :machine-state  :hitch2.protocols.machine/node-state
           :machine any?
           :command vector?
-          :value ::value
+          :graph-value ::graph-value
           :children (s/coll-of ::selector)
           :parents (s/coll-of ::selector))
   :ret :hitch2.protocols.machine/node-state)
 
 (defn -apply-command [machine-state machine command graph-value children parents]
-  ;; what is value here? it's called with :value from the gv but we've
+  ;; what is value here? it's called with :graph-value from the gv but we've
   ;; been calling graph-manager-value the map value of the graph atom. Can
   ;; this function be called as an update to :node-state as it is?
   (machine-proto/-apply-command machine graph-value machine-state children parents command))
@@ -181,8 +181,7 @@
 (defn apply-command
   ""
   [graph-manager-value machine command]
-  (let [{:keys [parents children]
-         graph-value :value
+  (let [{:keys [graph-value parents children]
          :as initalized-graph}
         (ensure-machine-init graph-manager-value machine)
         ;;init-tx node-state contains _all_ machine states. do we need
@@ -197,10 +196,10 @@
 (deftype gm [state]
   g/Snapshot
   (-get-graph [graph-manager]
-    (:value @state))
+    (:graph-value @state))
   g/GraphManagerSync
   (-transact! [graph-manager machine command]
-    (:value (swap! state apply-command machine command)))
+    (:graph-value (swap! state apply-command machine command)))
   (-transact-commands! [graph-manager cmds])
   g/GraphManagerAsync
   (-transact-async! [graph-manager v command])
@@ -208,7 +207,7 @@
   )
 
 (defn make-gm []
-  (->gm (atom {:value {}
+  (->gm (atom {:graph-value {}
                :node-state {}
                :parents {}
                :children {}})))
