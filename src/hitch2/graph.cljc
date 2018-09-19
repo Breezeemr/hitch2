@@ -14,7 +14,7 @@
   (let [graph-value (graph-proto/-get-graph graph-manager)
         val  (get graph-value selector NOT-IN-GRAPH-SENTINEL)]
     (if (identical? val NOT-IN-GRAPH-SENTINEL)
-      (graph-proto/-transact! tx dget-machine [:hook-subscribe selector cb])
+      (graph-proto/-transact! graph-manager dget-machine [:hook-subscribe selector cb])
       (cb graph-manager val)))
   nil)
 
@@ -37,7 +37,7 @@
   "Return the value (or `nf` if not yet known) for a selector from graph
   transaction context `tx`."
   [graph-manager selector nf]
-  (let [graph (graph-proto/-transact! tx dget-machine [:dget-subscribe selector (get-target-for-tx-context tx)])]
+  (let [graph (graph-proto/-transact! graph-manager dget-machine [:dget-subscribe selector (get-target-for-tx-context graph-manager)])]
     (get graph selector nf)))
 
 (defn hook
@@ -45,26 +45,26 @@
   selector-constructor and remaining arguments in `graph` as soon as it is
   available. `cb` may be called synchronously if the selector's value is already
   known."
-  ([graph-manager cb selector-constructor] (hook-sel graph cb (selector-constructor)))
-  ([graph-manager cb selector-constructor a] (hook-sel graph cb (selector-constructor a)))
-  ([graph-manager cb selector-constructor a b] (hook-sel graph cb (selector-constructor a b)))
-  ([graph-manager cb selector-constructor a b c] (hook-sel graph cb (selector-constructor a b c)))
-  ([graph-manager cb selector-constructor a b c d] (hook-sel graph cb (selector-constructor a b c d)))
-  ([graph-manager cb selector-constructor a b c d f] (hook-sel graph cb (selector-constructor a b c d f)))
-  ([graph-manager cb selector-constructor a b c d f g] (hook-sel graph cb (selector-constructor a b c d f g)))
-  ([graph-manager cb selector-constructor a b c d f g h] (hook-sel graph cb (selector-constructor a b c d f g h))))
+  ([graph-manager cb selector-constructor] (hook-sel graph-manager cb (selector-constructor)))
+  ([graph-manager cb selector-constructor a] (hook-sel graph-manager cb (selector-constructor a)))
+  ([graph-manager cb selector-constructor a b] (hook-sel graph-manager cb (selector-constructor a b)))
+  ([graph-manager cb selector-constructor a b c] (hook-sel graph-manager cb (selector-constructor a b c)))
+  ([graph-manager cb selector-constructor a b c d] (hook-sel graph-manager cb (selector-constructor a b c d)))
+  ([graph-manager cb selector-constructor a b c d f] (hook-sel graph-manager cb (selector-constructor a b c d f)))
+  ([graph-manager cb selector-constructor a b c d f g] (hook-sel graph-manager cb (selector-constructor a b c d f g)))
+  ([graph-manager cb selector-constructor a b c d f g h] (hook-sel graph-manager cb (selector-constructor a b c d f g h))))
 
 (defn hook-change
   "Like hook-change-sel, but receives a selector-constructor plus arguments
   instead of a selector."
-  ([graph-manager cb selector-constructor] (hook-change-sel graph cb (selector-constructor)))
-  ([graph-manager cb selector-constructor a] (hook-change-sel graph cb (selector-constructor a)))
-  ([graph-manager cb selector-constructor a b] (hook-change-sel graph cb (selector-constructor a b)))
-  ([graph-manager cb selector-constructor a b c] (hook-change-sel graph cb (selector-constructor a b c)))
-  ([graph-manager cb selector-constructor a b c d] (hook-change-sel graph cb (selector-constructor a b c d)))
-  ([graph-manager cb selector-constructor a b c d f] (hook-change-sel graph cb (selector-constructor a b c d f)))
-  ([graph-manager cb selector-constructor a b c d f g] (hook-change-sel graph cb (selector-constructor a b c d f g)))
-  ([graph-manager cb selector-constructor a b c d f g h] (hook-change-sel graph cb (selector-constructor a b c d f g h))))
+  ([graph-manager cb selector-constructor] (hook-change-sel graph-manager cb (selector-constructor)))
+  ([graph-manager cb selector-constructor a] (hook-change-sel graph-manager cb (selector-constructor a)))
+  ([graph-manager cb selector-constructor a b] (hook-change-sel graph-manager cb (selector-constructor a b)))
+  ([graph-manager cb selector-constructor a b c] (hook-change-sel graph-manager cb (selector-constructor a b c)))
+  ([graph-manager cb selector-constructor a b c d] (hook-change-sel graph-manager cb (selector-constructor a b c d)))
+  ([graph-manager cb selector-constructor a b c d f] (hook-change-sel graph-manager cb (selector-constructor a b c d f)))
+  ([graph-manager cb selector-constructor a b c d f g] (hook-change-sel graph-manager cb (selector-constructor a b c d f g)))
+  ([graph-manager cb selector-constructor a b c d f g h] (hook-change-sel graph-manager cb (selector-constructor a b c d f g h))))
 
 (defn dget!
   "Return the value (or `nf` if not yet known) for a selector-constructor and
