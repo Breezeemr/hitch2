@@ -160,9 +160,10 @@
   :ret :hitch2.protocols.machine/node-state)
 
 (defn -apply-command [machine-state machine command value children parents]
-  (machine-proto/-apply-command machine
-    value machine-state children parents
-    command))
+  ;; what is value here? it's called with :value from the gv but we've
+  ;; been calling graph-value the map value of the graph atom. Can
+  ;; this function be called as an update to :node-state as it is?
+  (machine-proto/-apply-command machine value machine-state children parents command))
 
 (defn apply-effects
   ""
@@ -182,10 +183,12 @@
   [graph-value machine command]
   (let [{:keys [value parents children] :as initalized-graph}
         (ensure-machine-init graph-value machine)
-        ;init-tx
-        command-applied-graph (update initalized-graph :node-state -apply-command  machine command value children parents)
+        ;;init-tx node-state contains _all_ machine states. do we need
+        ;; an update-in [:node-state machine]?
+        command-applied-graph (update-in initalized-graph [:node-state machine]
+                                         -apply-command machine command value children parents)
         [propagated-graph disturbed-machines] (propagate-changes command-applied-graph [machine])
-        ;flush-tx
+        ;;flush-tx
         ]
     (apply-effects propagated-graph disturbed-machines)))
 
