@@ -1,10 +1,11 @@
 (ns hitch2.machine.mutable-var
-  (:require [hitch2.protocols.machine :as machine-proto]
+  (:require [hitch2.protocols :refer [NOT-FOUND-SENTINEL]]
+            [hitch2.protocols.machine :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.protocols.selector :as sel-proto]))
 
-
-(def initial-node (assoc machine-proto/initial-node :state {}))
+(declare v-sel)
+(def initial-node (assoc machine-proto/initial-node :state NOT-FOUND-SENTINEL))
 
 (def machine-impl (reify
             sel-proto/ImplementationKind
@@ -15,13 +16,13 @@
   (-imp [machine-instance] machine-impl)
   machine-proto/Init
   (-initialize [machine-instance] initial-node)
-  machine-proto/ParentChanges
-  (-parent-value-changes [_ graph-value node children parents parent-selectors]
-    )
   machine-proto/Commandable
   (-apply-command [_ graph-value node children parents command]
     (case (nth command 0)
-      )))
+      :set-value (let [[_ val] command]
+                   (-> node
+                       (assoc :state val)
+                       (update :reset-vars assoc (v-sel ns) val))))))
 
 (def var-impl
   (reify
