@@ -16,13 +16,7 @@ Should be a keyword for dispatching. Values are from:
 
 (defprotocol SelectorImplementation
   (-imp [sel]
-    "Returns the kind of selector or machine.
-Should be a keyword for dispatching. Values are from:
-:hitch.selector.kind/var-singleton-machine
-:hitch.selector.kind/var-machine
-:hitch.selector.kind/machine
-:hitch.selector.kind/sentinel
-:hitch.selector.kind/halting"))
+    "Returns the selector implementation"))
 
 (defprotocol SelectorName
   (-sname [imp] "returns the selector name"))
