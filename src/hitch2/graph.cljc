@@ -1,6 +1,7 @@
 (ns hitch2.graph
   (:require [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.machine.dependent-get :refer [dget-machine]]
+            [hitch2.machine.hook :refer [hook-machine]]
             [hitch2.protocols :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]))
 
 (defn get-target-for-tx-context [tx]
@@ -14,7 +15,7 @@
   (let [graph-value (graph-proto/-get-graph graph-manager)
         val  (get graph-value selector NOT-IN-GRAPH-SENTINEL)]
     (if (identical? val NOT-IN-GRAPH-SENTINEL)
-      (graph-proto/-transact! graph-manager dget-machine [:hook-subscribe selector cb])
+      (graph-proto/-transact! graph-manager hook-machine [:hook-subscribe selector cb])
       (cb graph-manager val)))
   nil)
 
