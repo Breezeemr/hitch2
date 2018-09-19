@@ -113,24 +113,6 @@
           (apply-child-change-commands graph-value changes)
           changes))
 
-(defn pop-parent-changes [graph-value children]
-  (reduce (fn [[graph changes] child]
-            [(update-in graph [:node-state child :parent-changes] {})
-             (into changes (map (fn [[parent add|remove]
-                                     [child parent add|remove]])
-                                (-> graph :node-states (get child) :parent-changes)))])
-          [graph-value []]
-          children))
-
-(defn pop-var-resets [graph-value machines]
-  (reduce (fn [[graph-value changes] machine]
-            [(assoc-in graph-value [:node-state machine :reset-vars] {})
-             (into changes (map (fn [[sel value]]
-                                  [machine sel value])
-                                (-> graph-value :node-state (get machine) :reset-vars)))])
-          [graph-value []]
-          machines))
-
 (defn pop-vars&parents [graph-value machines]
   (reduce (fn [[graph-value resets changes] machine]
             (let [{:keys [reset-vars parent-changes]} (get-in graph-value
@@ -145,17 +127,6 @@
                                   parent-changes))]))
           [graph-value [] []]
           machines))
-
-(defn get-var-resets [graph-value machines]
-  (let [nstates (:node-state graph-value)]
-    (into []
-      (mapcat (fn [machine]
-                (let [{changes :parent-changes} (get nstates machine)]
-                  (map
-                    (fn [[sel value]]
-                      [machine sel value])
-                    changes))))
-      machines)))
 
 (s/fdef propagate-changes
   :args (s/cat
