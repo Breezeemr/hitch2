@@ -47,7 +47,7 @@
 
 (defn populate-new-var-values [graph-manager-value var-resets]
   (reduce (fn [gv [_parent sel value]]
-            (update-in graph-manager-value [:graph-value sel] value))
+            (assoc-in graph-manager-value [:graph-value sel] value))
           graph-manager-value
           var-resets))
 
@@ -60,7 +60,9 @@
                 (-> graph-manager-value :graph-value)
                 (get-in g [:children parent])
                 (get-in g [:parents parent])
-                changes-for-parent)))
+                changes-for-parent)
+              :hitch.selector.kind/var-singleton-machine
+              g))
           (populate-new-var-values graph-manager-value changes)
           (group-by n1 changes)))
 
