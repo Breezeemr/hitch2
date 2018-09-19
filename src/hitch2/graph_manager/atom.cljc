@@ -45,26 +45,22 @@
     (machine-proto/-parent-value-changes machine-instance graph-value node-state children
                                          parents parent-selectors)))
 
-(defn apply-parent-change-commands [graph-value changes]
-  (reduce (fn [acc [parent changes]]
-            (update-in acc [:node-state parent]
-                       apply-parent-change-command
-                       parent
-                       (-> graph-value :value)
-                       (-> graph-value :children (get parent))
-                       (-> graph-value :parents (get parent))
-                       changes))
+(defn populate-new-var-values [graph-value var-resets]
+  (reduce (fn [gv [_parent sel value]]
+            (update-in graph-value [:value sel] value))
           graph-value
-          (group-by n1 changes)))
-
-(defn apply-var-reset [graph-value [parent sel value]]
-  (update-in graph-value [:value sel] value))
-
+          var-resets))
 
 (defn apply-var-resets [graph-value changes]
-  (reduce apply-var-reset
-          (apply-parent-change-commands graph-value changes)
-          changes))
+  (reduce (fn [g [parent changes-for-parent]]
+            (update-in g [:node-state parent] apply-parent-change-command
+                       parent
+                       (-> graph-value :value)
+                       (get-in g [:children parent])
+                       (get-in g [:parents parent])
+                       changes-for-parent))
+          (populate-new-var-values graph-value changes)
+          (group-by n1 changes)))
 
 (defn apply-child-change-command [node-state machine-instance graph-value children parents changes]
   (let [{children-added   true
