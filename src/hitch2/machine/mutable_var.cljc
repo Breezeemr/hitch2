@@ -29,11 +29,9 @@
     (-imp-kind [var]
       :hitch.selector.kind/var-singleton-machine)
     sel-proto/GetMachine
-    (-get-machine [var sel]
-      (->mutable-machine (:namspace sel)))))
+    (-get-machine [var [_ var-name]]
+      (->mutable-machine var-name))))
 
-(def base-selector {:impl var-impl})
-
-(defn v-sel [ns]
-  (assoc base-selector :namespace ns))
+(defn v-sel [var-name]
+  (sel-proto/->Selector1 var-impl var-name))
 
