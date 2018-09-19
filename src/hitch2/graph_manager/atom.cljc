@@ -120,7 +120,7 @@
                                    [machine sel value])
                                  reset-vars))
                (into changes (map (fn [[parent add|remove]
-                                       [child parent add|remove]])
+                                       [machine parent add|remove]])
                                   parent-changes))]))
           [graph-value [] []]
           machines))
