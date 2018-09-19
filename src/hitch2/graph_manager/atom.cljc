@@ -32,6 +32,61 @@
     (assoc-in state [:node-state machine]
       (machine-proto/-initialize machine))))
 
+(defn n0 [x]
+  (nth x 0))
+(defn n1 [x]
+  (nth x 1))
+(defn n2 [x]
+  (nth x 1))
+
+
+(defn apply-parent-change-command [node-state machine-instance graph-value children parents changes]
+  (let [parent-selectors (into #{} (map n0) changes)]
+    (machine-proto/-parent-value-changes machine-instance graph-value node-state children
+                                         parents parent-selectors)))
+
+
+;; this updates note-state parent
+(defn apply-parent-change-commands [graph-value changes]
+  (reduce (fn [acc [parent changes]]
+            (update-in acc [:node-state parent]
+                       apply-parent-change-command
+                       parent
+                       (-> graph-value :value)
+                       (-> graph-value :children (get parent))
+                       (-> graph-value :parents (get parent))
+                       changes))
+          graph-value
+          (group-by n1 changes)))
+
+(defn apply-var-reset [graph-value [parent sel value]]
+  (update-in graph-value [:value sel] value))
+
+
+(defn apply-var-resets [graph-value changes]
+  (reduce apply-var-reset
+          (apply-parent-change-commands graph-value changes)
+          graph-value
+          changes))
+
+(defn apply-child-change-command [node-state machine-instance graph-value children parents changes]
+  (let [{children-added   true
+         children-removed false}
+        (group-by n2 changes)]
+    (machine-proto/-child-changes machine-instance graph-value node-state children parents
+                                  children-added children-removed)))
+
+(defn apply-child-change-commands [graph-value changes]
+  (reduce (fn [acc [parent changes]]
+            (update-in acc [:node-state parent] apply-child-change-command
+                       parent
+                       (-> graph-value :value)
+                       (-> graph-value :children (get parent))
+                       (-> graph-value :parents (get parent))
+                       changes))
+          graph-value
+          (group-by n1 changes)))
+
 (defn addval [x k v]
   (if-some [a (get x k)]
     (assoc x k (conj a v))
@@ -44,97 +99,52 @@
       (dissoc x k))
     x))
 
-(defn n0 [x]
-  (nth x 0))
-(defn n1 [x]
-  (nth x 1))
-(defn n2 [x]
-  (nth x 1))
-
-
-(defn apply-parent-change-command [node-state machine-instance graph-value children parents changes]
-  (let [parent-selectors (into #{} (map n0) changes)]
-    (machine-proto/-parent-value-changes machine-instance graph-value node-state children parents parent-selectors)
-    ))
-
-(defn apply-parent-change-commands [graph-value changes]
-  (reduce
-    (fn [acc [parent changes]]
-      (update-in acc
-        [:node-state parent]
-        apply-parent-change-command
-        parent
-        (-> graph-value :value)
-        (-> graph-value :children (get parent))
-        (-> graph-value :parents (get parent))
-        changes))
-    graph-value
-    (group-by n1 changes)))
-
-(defn apply-var-reset [graph-value [parent sel value]]
-  (update-in graph-value [:value sel] value))
-
-
-(defn apply-var-resets [graph-value changes]
-  (reduce
-    apply-var-reset
-    (apply-parent-change-commands graph-value changes)
-    graph-value
-    changes))
-
-(defn apply-child-change-command [node-state machine-instance graph-value children parents changes]
-  (let [{children-added   true
-         children-removed false}
-        (group-by n2 changes)]
-    (machine-proto/-child-changes machine-instance graph-value node-state children parents children-added children-removed)))
-
-(defn apply-child-change-commands [graph-value changes]
-  (reduce
-    (fn [acc [parent changes]]
-      (update-in acc [:node-state parent] apply-child-change-command
-        parent
-        (-> graph-value :value)
-        (-> graph-value :children (get parent))
-        (-> graph-value :parents (get parent))
-        changes))
-    graph-value
-    (group-by n1 changes)))
-
 (defn apply-parent-change [graph-value [child parent add|remove]]
   (if add|remove
     (-> graph-value
-        (update  :parents addval child parent)
-        (update  :children addval parent child))
+        (update :parents addval child parent)
+        (update :children addval parent child))
     (-> graph-value
-        (update  :parents removeval child parent)
-        (update  :children removeval parent child))))
+        (update :parents removeval child parent)
+        (update :children removeval parent child))))
 
 (defn apply-parent-changes [graph-value changes]
-  (reduce
-    apply-parent-change
-    (apply-child-change-commands graph-value changes)
-    changes))
+  (reduce apply-parent-change
+          (apply-child-change-commands graph-value changes)
+          changes))
 
-(defn remove-parent-changes [graph-value children]
-  (reduce (fn [gv child]
-            (assoc-in gv [:node-state child :parent-changes] {}))
-    graph-value children))
+(defn pop-parent-changes [graph-value children]
+  (reduce (fn [[graph changes] child]
+            [(update-in graph [:node-state child :parent-changes] {})
+             (into changes (map (fn [[parent add|remove]
+                                     [child parent add|remove]])
+                                (-> graph :node-states (get child) :parent-changes)))])
+          [graph-value []]
+          children))
 
-(defn get-parent-changes [graph-value children]
-  (let [nstates (:node-state graph-value)]
-    (into []
-      (mapcat (fn [child]
-                (let [{changes :parent-changes} (get nstates child)]
-                  (map
-                    (fn [[parent add|remove]]
-                      [child parent add|remove])
-                    changes))))
-      children)))
+(defn pop-var-resets [graph-value machines]
+  (reduce (fn [[graph-value changes] machine]
+            [(assoc-in graph-value [:node-state machine :reset-vars] {})
+             (into changes (map (fn [[sel value]]
+                                  [machine sel value])
+                                (-> graph-value :node-state (get machine) :reset-vars)))])
+          [graph-value []]
+          machines))
 
-(defn remove-var-resets [graph-value machines]
-  (reduce (fn [gv child]
-            (assoc-in gv [:node-state child :reset-vars] {}))
-    graph-value machines))
+(defn pop-vars&parents [graph-value machines]
+  (reduce (fn [[graph-value resets changes] machine]
+            (let [{:keys [reset-vars parent-changes]} (get-in graph-value
+                                                              [:node-state machine])]
+              [(update-in graph-value [:node-state machine]
+                          merge {:reset-vars {} :parent-changes {}})
+               (into resets (map (fn [[sel value]]
+                                   [machine sel value])
+                                 reset-vars))
+               (into changes (map (fn [[parent add|remove]
+                                       [child parent add|remove]])
+                                  parent-changes))]))
+          [graph-value [] []]
+          machines))
 
 (defn get-var-resets [graph-value machines]
   (let [nstates (:node-state graph-value)]
@@ -157,22 +167,19 @@
   (loop [graph-value        graph-value
          dirty-list         dirty-list
          disturbed-machines (into #{} dirty-list)]
-    (let [parent-changes (not-empty (get-parent-changes graph-value dirty-list))
-          new-graph      (remove-parent-changes graph-value dirty-list)
-          var-resets     (not-empty (get-var-resets new-graph dirty-list))
-          new-graph      (remove-var-resets new-graph dirty-list)
-          new-dirty      (-> #{}
-                             (into (map n1) parent-changes)
-                             (into (map n1) var-resets))]
-      (if new-dirty
+    (let [[graph-value var-resets parent-changes] (pop-vars&parents graph-value dirty-list)
+          new-dirty                    (-> #{}
+                                           (into (map n1) parent-changes)
+                                           (into (map n1) var-resets))]
+      (if (seq new-dirty)
         (recur
-          (-> new-graph
+          (-> graph-value
               (apply-parent-changes parent-changes)
               (apply-var-resets var-resets))
           new-dirty
           (-> disturbed-machines
               (into new-dirty)))
-        [new-graph disturbed-machines]))))
+        [graph-value disturbed-machines]))))
 
 (s/fdef -apply-command
   :args (s/cat
