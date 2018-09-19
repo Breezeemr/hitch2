@@ -21,6 +21,10 @@ Should be a keyword for dispatching. Values are from:
 (defprotocol SelectorName
   (-sname [imp] "returns the selector name"))
 
+(defprotocol GetMachine
+  (-get-machine [impl sel]
+    "return a machine selector from impl"))
+
 (s/def :hitch.selector.spec/specs any?)
 (s/def :hitch.selector.spec/name keyword?)
 (s/def :hitch.selector.spec/args :hitch.selector.spec/specs)
@@ -129,14 +133,14 @@ Should be a keyword for dispatching. Values are from:
       [cljs.core/PersistentVector
        (-imp [sel] (first sel))
        cljs.core/PersistentHashMap
-       (-imp [sel] (:s-name sel))
+       (-imp [sel] (:impl sel))
        cljs.core/PersistentArrayMap
-       (-imp [sel] (:s-name sel))]
+       (-imp [sel] (:impl sel))]
       :clj
       [clojure.lang.PersistentVector
        (-imp [sel] (first sel))
        clojure.lang.PersistentArrayMap
-       (-imp [sel] (:s-name sel))]))
+       (-imp [sel] (:impl sel))]))
 
 ;; todo: what does a vector do?
 ;; cljs.core/PersistentVector
