@@ -1,6 +1,7 @@
 (ns hitch2.machine.dependent-get
   (:require [hitch2.protocols.machine :as machine-proto]
-            [hitch2.protocols.graph-manager :as graph-proto]))
+            [hitch2.protocols.graph-manager :as graph-proto]
+            [hitch2.protocols.selector :as sel-proto]))
 
 (defrecord node-state [state change-parent reset-vars
                        async-effects sync-effects])
@@ -35,7 +36,9 @@
           (let [new-node (update-in node [:state selector] (fnil disj #{}) target)]
             (if (not-empty (get-in new-node [:state selector]))
               new-node
-              (update :change-parent assoc selector false))))))))
+              (update :change-parent assoc selector false))))))
+    sel-proto/ImplementationKind
+    (-imp-kind [machine] :hitch.selector.kind/var-machine)))
 
 
 (defmethod graph-proto/run-effect :notify [effect]
