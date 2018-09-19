@@ -1,6 +1,32 @@
 (ns hitch2.protocols.selector
   (:require [clojure.spec.alpha :as s]))
 
+
+;; selector kind? what generalizes selector and machine? Graphable?
+;; Hitchable? HitchKind Hitchtype?
+(defprotocol ImplementationKind
+  (-imp-kind [impl]
+    "Returns the kind of selector or machine.
+Should be a keyword for dispatching. Values are from:
+:hitch.selector.kind/var-singleton-machine
+:hitch.selector.kind/var-machine
+:hitch.selector.kind/machine
+:hitch.selector.kind/sentinel
+:hitch.selector.kind/halting"))
+
+(defprotocol SelectorImplementation
+  (-imp [sel]
+    "Returns the kind of selector or machine.
+Should be a keyword for dispatching. Values are from:
+:hitch.selector.kind/var-singleton-machine
+:hitch.selector.kind/var-machine
+:hitch.selector.kind/machine
+:hitch.selector.kind/sentinel
+:hitch.selector.kind/halting"))
+
+(defprotocol SelectorName
+  (-sname [imp] "returns the selector name"))
+
 (s/def :hitch.selector.spec/specs any?)
 (s/def :hitch.selector.spec/name keyword?)
 (s/def :hitch.selector.spec/args :hitch.selector.spec/specs)
@@ -22,7 +48,7 @@
 (s/def :hitch.selector.impl/dependent-value fn?)
 
 
-(defmulti impliementation-kind :kind)
+(defmulti impliementation-kind -imp-kind)
 
 (defmethod impliementation-kind :hitch.selector.kind/var-singleton-machine
   [_]
@@ -54,40 +80,49 @@
 (s/def :selector/impl
   (s/multi-spec impliementation-kind :kind))
 
+(defn selector-kind [sel]
+  (some-> sel -imp -imp-kind))
 
-;; selector kind? what generalizes selector and machine? Graphable?
-;; Hitchable? HitchKind Hitchtype?
-(defprotocol ImplementationKind
-  (-imp-kind [sel]
-    "Returns the kind of selector or machine.
-Should be a keyword for dispatching. Values are from:
-:hitch.selector.kind/var-singleton-machine
-:hitch.selector.kind/var-machine
-:hitch.selector.kind/sentinel
-:hitch.selector.kind/halting"))
+(defn selector-name [sel]
+  (some-> sel -imp -sname))
 
-(defprotocol SelectorName
-  (-sname [sel] "returns the selector name"))
+(defn has-impl? [selector]
+  (and (satisfies? SelectorImplementation selector)
+    (-imp selector)))
+
+(defn has-name? [selector]
+  (selector-name selector))
+
+(defn has-kind? [selector]
+  (selector-kind selector))
+
+(s/def :selector/selector (s/and
+                            has-impl?
+                            (s/or
+                              :full-impl has-kind?
+                              :name has-name?)))
+
+
 
 (defprotocol InvokeHalting
   (-invoke-halting [_ f gv-tracker]))
 ;;f first?
 
-(defrecord Selector0 [name]
-  SelectorName
-  (-sname [_] name)
+(defrecord Selector0 [impl]
+  SelectorImplementation
+  (-imp [_] impl)
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
     (f gv-tracker)))
 (defrecord Selector1 [name a]
-  SelectorName
-  (-sname [_] name)
+  SelectorImplementation
+  (-imp [_] name)
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
     (f gv-tracker a)))
 (defrecord Selector2 [name a b]
-  SelectorName
-  (-sname [_] name)
+  SelectorImplementation
+  (-imp [_] name)
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
     (f gv-tracker a b)))
@@ -95,19 +130,19 @@ Should be a keyword for dispatching. Values are from:
 ;;is gv-tracker the best name?
 
 
-(extend-protocol SelectorName
+(extend-protocol SelectorImplementation
   #?@(:cljs
       [cljs.core/PersistentVector
-       (-sname [sel] (first sel))
+       (-imp [sel] (first sel))
        cljs.core/PersistentHashMap
-       (-sname [sel] (:s-name sel))
+       (-imp [sel] (:s-name sel))
        cljs.core/PersistentArrayMap
-       (-sname [sel] (:s-name sel))]
+       (-imp [sel] (:s-name sel))]
       :clj
       [clojure.lang.PersistentVector
-       (-sname [sel] (first sel))
+       (-imp [sel] (first sel))
        clojure.lang.PersistentArrayMap
-       (-sname [sel] (:s-name sel))]))
+       (-imp [sel] (:s-name sel))]))
 
 ;; todo: what does a vector do?
 ;; cljs.core/PersistentVector

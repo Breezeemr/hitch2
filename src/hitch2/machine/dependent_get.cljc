@@ -7,8 +7,14 @@
                        async-effects sync-effects])
 (def initial-node (assoc machine-proto/initial-node :state {}))
 
+(def impl (reify
+            sel-proto/ImplementationKind
+            (-imp-kind [machine] :hitch.selector.kind/machine)))
+
 (def dget-machine
   (reify
+    sel-proto/SelectorImplementation
+    (-imp [machine-instance] impl)
     machine-proto/Init
     (-initialize [machine-instance] initial-node)
     machine-proto/ParentChanges
@@ -36,9 +42,7 @@
           (let [new-node (update-in node [:state selector] (fnil disj #{}) target)]
             (if (not-empty (get-in new-node [:state selector]))
               new-node
-              (update :change-parent assoc selector false))))))
-    sel-proto/ImplementationKind
-    (-imp-kind [machine] :hitch.selector.kind/var-machine)))
+              (update :change-parent assoc selector false))))))))
 
 
 (defmethod graph-proto/run-effect :notify [effect]
