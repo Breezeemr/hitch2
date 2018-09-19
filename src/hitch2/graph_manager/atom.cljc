@@ -53,12 +53,14 @@
 
 (defn apply-var-resets [graph-value changes]
   (reduce (fn [g [parent changes-for-parent]]
-            (update-in g [:node-state parent] apply-parent-change-command
-                       parent
-                       (-> graph-value :value)
-                       (get-in g [:children parent])
-                       (get-in g [:parents parent])
-                       changes-for-parent))
+            (case (selector-proto/selector-kind parent)
+              :hitch.selector.kind/machine
+              (update-in g [:node-state parent] apply-parent-change-command
+                parent
+                (-> graph-value :value)
+                (get-in g [:children parent])
+                (get-in g [:parents parent])
+                changes-for-parent)))
           (populate-new-var-values graph-value changes)
           (group-by n1 changes)))
 
@@ -71,12 +73,14 @@
 
 (defn apply-child-change-commands [graph-value changes]
   (reduce (fn [acc [parent changes]]
-            (update-in acc [:node-state parent] apply-child-change-command
-                       parent
-                       (-> graph-value :value)
-                       (-> graph-value :children (get parent))
-                       (-> graph-value :parents (get parent))
-                       changes))
+            (case (selector-proto/selector-kind parent)
+              :hitch.selector.kind/machine
+              (update-in acc [:node-state parent] apply-child-change-command
+                parent
+                (-> graph-value :value)
+                (-> graph-value :children (get parent))
+                (-> graph-value :parents (get parent))
+                changes)))
           graph-value
           (group-by n1 changes)))
 
