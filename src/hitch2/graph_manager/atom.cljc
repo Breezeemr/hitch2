@@ -45,8 +45,6 @@
     (machine-proto/-parent-value-changes machine-instance graph-value node-state children
                                          parents parent-selectors)))
 
-
-;; this updates note-state parent
 (defn apply-parent-change-commands [graph-value changes]
   (reduce (fn [acc [parent changes]]
             (update-in acc [:node-state parent]
@@ -66,7 +64,6 @@
 (defn apply-var-resets [graph-value changes]
   (reduce apply-var-reset
           (apply-parent-change-commands graph-value changes)
-          graph-value
           changes))
 
 (defn apply-child-change-command [node-state machine-instance graph-value children parents changes]
