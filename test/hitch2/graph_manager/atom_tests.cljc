@@ -1,11 +1,13 @@
 (ns hitch2.graph-manager.atom-tests
   (:require [hitch2.graph-manager.atom :as g]
+            [hitch2.protocols.graph-manager :as gm-proto]
             [hitch2.protocols.machine :as machine-proto]
             [hitch2.protocols.selector :as sel-proto]
             #?(:cljs [cljs.test :refer [deftest is testing]]
                :clj [clojure.test :refer [deftest is testing]])))
 
 (def initial-node (assoc machine-proto/initial-node :state {}))
+
 (defn no-op-machine [state]
   (reify
     sel-proto/ImplementationKind
@@ -20,4 +22,7 @@
       )))
 
 (deftest atom-tests
-  )
+  (let [graph-manager (g/make-gm)]
+    ;; what goes here?
+    #_(gm-proto/-transact! graph-manager hook/hook-machine
+                         [:hook-subscribe ])))
