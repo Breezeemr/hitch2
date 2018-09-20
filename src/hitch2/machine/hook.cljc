@@ -23,6 +23,7 @@
     machine-proto/ParentChanges
     (-parent-value-changes [_ graph-value node children parents parent-selectors]
       (let [selector->targets (:state node)]
+        (prn "selector->targets" selector->targets)
         (-> node
             (update :async-effects
               into
@@ -31,7 +32,7 @@
                         (for [target (selector->targets selector)]
                           {:type   :hook-call
                            :target target
-                           :value  selector})))
+                           :selector selector})))
               parent-selectors)
             (update :state remove-called-hooks parent-selectors))))
     machine-proto/Commandable
@@ -56,6 +57,7 @@
                                                sel :selector}]
   (let [graph-value (graph-proto/-get-graph graph-manager)
         v (get graph-value sel)]
-    (prn effect)
+    ;(prn :graph @(.-state graph-manager))
+    (prn :effect effect)
     (f graph-manager v)))
 

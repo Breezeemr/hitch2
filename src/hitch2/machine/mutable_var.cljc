@@ -18,6 +18,7 @@
   (-initialize [machine-instance] initial-node)
   machine-proto/Commandable
   (-apply-command [_ graph-value node children parents command]
+    (prn "command apply" command)
     (case (nth command 0)
       :set-value (let [[_ val] command]
                    (-> node
