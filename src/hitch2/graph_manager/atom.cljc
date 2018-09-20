@@ -241,7 +241,8 @@
         (let [[graph-manager-value var-resets1 parent-changes1 value-changes1 disturbed-machines1]
               (apply-parent-changes graph-manager-value parent-changes)
 
-              [graph-manager-value value-changes2] (apply-var-resets graph-manager-value var-resets)
+              [graph-manager-value value-changes2]
+              (apply-var-resets graph-manager-value var-resets)
 
               [graph-manager-value var-resets3 parent-changes3 value-changes3 disturbed-machines3]
               (apply-value-changes graph-manager-value value-changes)]
@@ -273,6 +274,7 @@
       (update acc machine assoc :sync-effects {} :async-effects {}))
     node-state
     machines))
+
 (defn apply-effects
   ""
   [graph-manager-value graph-manager disturbed-machines]
