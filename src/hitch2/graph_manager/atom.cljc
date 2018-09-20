@@ -73,7 +73,8 @@
      {}
      changes)])
 
-(defn apply-child-change-command [node-state machine-instance graph-manager-value children parents changes]
+(defn apply-child-change-command [node-state machine-instance graph-manager-value
+                                  children parents changes]
   (let [{children-added   true
          children-removed false}
         (group-by n2 changes)]
@@ -81,43 +82,46 @@
                                   children-added children-removed)))
 
 (defn apply-child-change-commands [graph-manager-value changes]
-  (reduce (fn [[graph-manager-value var-resets parent-changes value-changes disturbed-machines1] [parent changes]]
+  (reduce (fn [[graph-manager-value var-resets parent-changes value-changes disturbed-machines1]
+               [parent changes]]
             (let [sel-impl (selector-proto/-imp parent)
                   sel-kind (selector-proto/-imp-kind sel-impl)
                   node-state (get-in graph-manager-value [:node-state parent])]
               (case sel-kind
                 :hitch.selector.kind/machine
-                (let [{new-var-resets :var-resets
+                (let [{new-var-resets     :var-resets
                        new-parent-changes :parent-changes
-                       :as new-node-state} (apply-child-change-command
-                                       node-state
-                                       parent
-                                       (-> graph-manager-value :graph-value)
-                                       (-> graph-manager-value :children (get parent))
-                                       (-> graph-manager-value :parents (get parent))
-                                       changes)]
+                       :as                new-node-state}
+                      (apply-child-change-command node-state parent
+                                                  (-> graph-manager-value :graph-value)
+                                                  (-> graph-manager-value :children (get parent))
+                                                  (-> graph-manager-value :parents (get parent))
+                                                  changes)]
                   [(assoc-in graph-manager-value [:node-state parent] (assoc new-node-state
-                                                                        :var-resets {}
-                                                                        :parent-changes {}))
+                                                                             :var-resets {}
+                                                                             :parent-changes {}))
                    (into var-resets new-var-resets)
-                   (into parent-changes new-parent-changes )
+                   (into parent-changes new-parent-changes)
+                   ;; always untouched
                    value-changes disturbed-machines1])
                 :hitch.selector.kind/var-singleton-machine
                 (let []
                   [graph-manager-value
                    var-resets
-                   ;tell machines of dependency only if new
+                   ;;tell machines of dependency only if new
                    parent-changes
-                   value-changes
+                   value-changes ;; always untouched
                    disturbed-machines1])
                 :hitch.selector.kind/halting
                 [graph-manager-value
                  var-resets
                  parent-changes
-                 value-changes
+                 value-changes  ;; always untouched
                  disturbed-machines1])))
-    [graph-manager-value {} {} {} #{}]
-    (group-by n1 changes)))
+          ;; the last two value-changes and disturbed-machines1 (???)
+          ;; is never modified and remain empty.
+          [graph-manager-value {} {} {} #{}]
+          (group-by n1 changes)))
 
 (defn addval [x k v]
   (if-some [a (get x k)]
@@ -141,11 +145,10 @@
         (update :children removeval parent child))))
 
 (defn apply-parent-changes [graph-manager-value changes]
-  (apply-child-change-commands
-    (reduce apply-parent-change
-      graph-manager-value
-      changes)
-    changes))
+  (apply-child-change-commands (reduce apply-parent-change
+                                       graph-manager-value
+                                       changes)
+                               changes))
 
 (defn pop-vars&parents [graph-manager-value machines]
   (reduce (fn [[graph-manager-value resets changes] machine]
@@ -172,11 +175,10 @@
         (update :children removeval parent child))))
 
 (defn apply-value-changes [graph-manager-value changes]
-  (apply-child-change-commands
-    (reduce apply-value-change
-      graph-manager-value
-      changes)
-    changes))
+  (apply-child-change-commands (reduce apply-value-change
+                                       graph-manager-value
+                                       changes)
+                               changes))
 
 (s/fdef propagate-changes
   :args (s/cat
@@ -185,16 +187,22 @@
   :ret ::graph-manager-value)
 
 (defn propagate-changes [graph-manager-value dirty-list]
-  (let [[graph-manager-value var-resets parent-changes] (pop-vars&parents graph-manager-value dirty-list)]
+  (let [[graph-manager-value var-resets parent-changes]
+        (pop-vars&parents graph-manager-value dirty-list)]
     (loop [graph-manager-value graph-manager-value
            var-resets          var-resets
            parent-changes      parent-changes
+           ;; value changes is always empty so the recur is never taken
            value-changes       {}
            disturbed-machines  dirty-list]
       (if (and (not-empty var-resets) (not-empty parent-changes) (not-empty value-changes))
-        (let [[graph-manager-value var-resets1 parent-changes1 value-changes1 disturbed-machines1] (apply-parent-changes graph-manager-value parent-changes)
+        (let [[graph-manager-value var-resets1 parent-changes1 value-changes1 disturbed-machines1]
+              (apply-parent-changes graph-manager-value parent-changes)
+
               [graph-manager-value value-changes2] (apply-var-resets graph-manager-value var-resets)
-              [graph-manager-value var-resets3 parent-changes3 value-changes3 disturbed-machines3] (apply-value-changes graph-manager-value parent-changes)]
+
+              [graph-manager-value var-resets3 parent-changes3 value-changes3 disturbed-machines3]
+              (apply-value-changes graph-manager-value parent-changes)]
           (recur
             graph-manager-value
             (into var-resets1 var-resets3)
