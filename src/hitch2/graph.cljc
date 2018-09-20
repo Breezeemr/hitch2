@@ -2,6 +2,7 @@
   (:require [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.machine.dependent-get :refer [dget-machine]]
             [hitch2.machine.hook :refer [hook-machine]]
+            [hitch2.protocols.tx-manager :as tx-proto]
             [hitch2.protocols :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]))
 
 (defn get-target-for-tx-context [tx]
@@ -33,14 +34,6 @@
   [graph-manager cb selector]
   )
 
-
-(defn dget-sel!
-  "Return the value (or `nf` if not yet known) for a selector from graph
-  transaction context `tx`."
-  [graph-manager selector nf]
-  (let [graph (graph-proto/-transact! graph-manager dget-machine [:dget-subscribe selector (get-target-for-tx-context graph-manager)])]
-    (get graph selector nf)))
-
 (defn hook
   "Call fn `cb` once with the value of selector returned from
   selector-constructor and remaining arguments in `graph` as soon as it is
@@ -67,32 +60,39 @@
   ([graph-manager cb selector-constructor a b c d f g] (hook-change-sel graph-manager cb (selector-constructor a b c d f g)))
   ([graph-manager cb selector-constructor a b c d f g h] (hook-change-sel graph-manager cb (selector-constructor a b c d f g h))))
 
+(defn dget-sel!
+  "Return the value (or `nf` if not yet known) for a selector from graph
+  transaction context `tx`."
+  [tx-manager selector nf]
+  (tx-proto/dget-sel! tx-manager selector nf))
+
 (defn dget!
   "Return the value (or `nf` if not yet known) for a selector-constructor and
   its arguments from graph transaction context `graph-manager`."
-  ([graph-manager nf selector-constructor]
+  ([tx-manager nf selector-constructor]
    )
-  ([graph-manager nf selector-constructor a]
+  ([tx-manager nf selector-constructor a]
    )
-  ([graph-manager nf selector-constructor a b]
+  ([tx-manager nf selector-constructor a b]
    )
-  ([graph-manager nf selector-constructor a b c]
+  ([tx-manager nf selector-constructor a b c]
    )
-  ([graph-manager nf selector-constructor a b c d]
+  ([tx-manager nf selector-constructor a b c d]
    )
-  ([graph-manager nf selector-constructor a b c d e]
+  ([tx-manager nf selector-constructor a b c d e]
    )
-  ([graph-manager nf selector-constructor a b c d e f]
+  ([tx-manager nf selector-constructor a b c d e f]
    )
-  ([graph-manager nf selector-constructor a b c d e f g]
+  ([tx-manager nf selector-constructor a b c d e f g]
    ))
 
 (defn select-sel!
   "Return a box containing the value for a selector from graph transaction
   context `graph-manager`. The returned box is the same as that returned by `select!`."
-  ([graph-manager selector]
-   ;; todo 
-   ))
+  ([tx-manager selector]
+    (let [v (tx-proto/dget-sel! tx-manager selector NOT-IN-GRAPH-SENTINEL)]
+
+      )))
 
 (defn select!
   "Return a box containing the value for a selector-constructor and its
@@ -100,23 +100,23 @@
   (@). If the value is not yet known, deref will throw an exception which the
   transaction context will catch. You can test if a value is available
   using `(realized? box)`."
-  ([graph-manager selector-constructor]
+  ([tx-manager selector-constructor]
    ;; todo
    )
-  ([graph-manager selector-constructor a]
+  ([tx-manager selector-constructor a]
    ;;todo
    )
-  ([graph-manager selector-constructor a b]
+  ([tx-manager selector-constructor a b]
    )
-  ([graph-manager selector-constructor a b c]
+  ([tx-manager selector-constructor a b c]
    )
-  ([graph-manager selector-constructor a b c d]
+  ([tx-manager selector-constructor a b c d]
    )
-  ([graph-manager selector-constructor a b c d e]
+  ([tx-manager selector-constructor a b c d e]
    )
-  ([graph-manager selector-constructor a b c d e f]
+  ([tx-manager selector-constructor a b c d e f]
    )
-  ([graph-manager selector-constructor a b c d e f g]
+  ([tx-manager selector-constructor a b c d e f g]
    ))
 
 
@@ -129,27 +129,27 @@
   If body uses `select!` and derefs unavailable values, the exception will
   be caught and body will be called again when the value is available.
   This continues until body returns without throwing an exception."
-  ([graph-managercb body]
+  ([graph-manager cb body]
    )
-  ([graph-managercb body a]
+  ([graph-manager cb body a]
    )
-  ([graph-managercb body a b]
+  ([graph-manager cb body a b]
    )
-  ([graph-managercb body a b c]
+  ([graph-manager cb body a b c]
    )
-  ([graph-managercb body a b c d]
+  ([graph-manager cb body a b c d]
    )
-  ([graph-managercb body a b c d e]
+  ([graph-manager cb body a b c d e]
    )
-  ([graph-managercb body a b c d e f]
+  ([graph-manager cb body a b c d e f]
    )
-  ([graph-managercb body a b c d e f g]
+  ([graph-manager cb body a b c d e f g]
    ))
 
 (defn apply-commands
   "Issue a list of selector-command pairs to a graph. Selector-command-pairs
    is like `[[Selector [command & command-args]] ,,,]`. Do not rely on returned
    value."
-  [graph-managerselector-command-pairs]
+  [graph-manager selector-command-pairs]
   )
 
