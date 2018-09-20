@@ -58,20 +58,19 @@
           var-resets))
 
 (defn apply-var-resets [graph-manager-value changes]
-  [ (populate-new-var-values graph-manager-value changes)
+  [(populate-new-var-values graph-manager-value changes)
    (reduce (fn [acc [parent sel value]]
              (assert (= (selector-proto/selector-kind parent) :hitch.selector.kind/var-singleton-machine))
              (if (= (get-in graph-manager-value [:value sel]) value)
                acc
-               ;this assumes dependencies are updated first!!
-               (reduce
-                 (fn [acc child]
-                   (update acc child
-                     (fnil conj {}) sel))
-                 acc
-                 (get-in graph-manager-value [:children sel]))))
-     {}
-     changes)])
+               ;;this assumes dependencies are updated first!!
+               (reduce (fn [acc child]
+                         (update acc child
+                                 (fnil conj {}) sel))
+                       acc
+                       (get-in graph-manager-value [:children sel]))))
+           {}
+           changes)])
 
 (defn apply-child-change-command [node-state machine-instance graph-manager-value
                                   children parents changes]
@@ -195,6 +194,7 @@
            ;; value changes is always empty so the recur is never taken
            value-changes       {}
            disturbed-machines  dirty-list]
+      ;; should this be or?
       (if (and (not-empty var-resets) (not-empty parent-changes) (not-empty value-changes))
         (let [[graph-manager-value var-resets1 parent-changes1 value-changes1 disturbed-machines1]
               (apply-parent-changes graph-manager-value parent-changes)
@@ -207,7 +207,7 @@
             graph-manager-value
             (into var-resets1 var-resets3)
             (into parent-changes1 parent-changes3)
-            (into value-changes1 value-changes2)
+            (into value-changes1 value-changes2) ;; what about value-changes 3?
             (-> disturbed-machines
                 (into disturbed-machines1)
                 (into disturbed-machines3))))
