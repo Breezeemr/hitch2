@@ -276,13 +276,17 @@
 (defn apply-effects
   ""
   [graph-manager-value graph-manager disturbed-machines]
-  (let [node-state   (:node-state graph-manager-value)
-        sync-effects (into [] (mapcat (fn [machine]
-                                        (get-in node-state [machine :sync-effects])))
-                       disturbed-machines)
-        async-effects (into [] (mapcat (fn [machine]
-                                         (get-in node-state [machine :async-effects])))
-                        disturbed-machines)
+  (let [node-state          (:node-state graph-manager-value)
+        sync-effects        (into []
+                              (mapcat
+                                (fn [machine]
+                                  (get-in node-state [machine :sync-effects])))
+                              disturbed-machines)
+        async-effects       (into []
+                              (mapcat
+                                (fn [machine]
+                                  (get-in node-state [machine :async-effects])))
+                              disturbed-machines)
         graph-manager-value (update graph-manager-value :node-state remove-effects disturbed-machines)]
     (prn :run-effects sync-effects async-effects)
     (run! (fn [effect] (g/run-effect graph-manager effect)) sync-effects)
