@@ -23,13 +23,11 @@
     machine-proto/ParentChanges
     (-parent-value-changes [_ graph-value node children parents parent-selectors]
       (let [selector->targets (:state node)]
-        (prn "selector->targets" selector->targets)
         (-> node
             (update :async-effects
               into
               (mapcat (fn [selector]
-
-                        (for [target (selector->targets selector)]
+                        (for [target (seq (selector->targets selector))]
                           {:type   :hook-call
                            :target target
                            :selector selector})))
@@ -57,7 +55,5 @@
                                                sel :selector}]
   (let [graph-value (graph-proto/-get-graph graph-manager)
         v (get graph-value sel)]
-    ;(prn :graph @(.-state graph-manager))
-    (prn :effect effect)
     (f graph-manager v)))
 
