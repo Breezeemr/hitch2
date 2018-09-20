@@ -224,9 +224,27 @@
           :parents (s/coll-of ::selector))
   :ret :hitch2.protocols.machine/node-state)
 
+(defn remove-effects [node-state machines]
+  (reduce
+    (fn [acc machine]
+      (update acc machine assoc :sync-effects {} :async-effects {}))
+    node-state
+    machines))
 (defn apply-effects
   ""
-  [graph-manager-value disturbed-machines])
+  [graph-manager-value graph-manager disturbed-machines]
+  (let [node-state   (:node-state graph-manager-value)
+        sync-effects (into [] (mapcat (fn [machine]
+                                        (get-in node-state [machine :sync-effects])))
+                       disturbed-machines)
+        async-effects (into [] (mapcat (fn [machine]
+                                         (get-in node-state [machine :async-effects])))
+                        disturbed-machines)
+        graph-manager-value (update graph-manager-value :node-state remove-effects disturbed-machines)]
+    (prn sync-effects async-effects)
+    (run! (fn [effect] (g/run-effect graph-manager effect)) sync-effects)
+    (run! (fn [effect] (g/run-effect graph-manager effect)) async-effects)
+    graph-manager-value))
 
 (s/fdef apply-command
   :args (s/cat
@@ -238,7 +256,7 @@
 (defn apply-command
   "Apply command to machine and then allow the graph to settle. Returns
   the new graph manager value."
-  [graph-manager-value machine command]
+  [graph-manager-value graph-manager machine command]
   (let [{:keys [graph-value parents children] :as initalized-graph}
         (ensure-machine-init graph-manager-value machine)
 
@@ -251,7 +269,7 @@
         (propagate-changes command-applied-graph [machine])
         ;;flush-tx
         ]
-    (apply-effects propagated-graph disturbed-machines)))
+    (apply-effects propagated-graph graph-manager disturbed-machines)))
 
 (deftype gm [state]
   g/Snapshot
@@ -259,7 +277,7 @@
     (:graph-value @state))
   g/GraphManagerSync
   (-transact! [graph-manager machine command]
-    (:graph-value (swap! state apply-command machine command)))
+    (:graph-value (swap! state apply-command graph-manager machine command)))
   (-transact-commands! [graph-manager cmds])
   g/GraphManagerAsync
   (-transact-async! [graph-manager v command])
