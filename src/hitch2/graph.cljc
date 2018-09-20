@@ -104,22 +104,22 @@
 (defn dget!
   "Return the value (or `nf` if not yet known) for a selector-constructor and
   its arguments from graph transaction context `tx`."
-  ([tx nf selector-constructor]
-   (dget-sel! tx (selector-constructor) nf))
-  ([tx nf selector-constructor a]
-   (dget-sel! tx (selector-constructor a) nf))
-  ([tx nf selector-constructor a b]
-   (dget-sel! tx (selector-constructor a b) nf))
-  ([tx nf selector-constructor a b c]
-   (dget-sel! tx (selector-constructor a b c) nf))
-  ([tx nf selector-constructor a b c d]
-   (dget-sel! tx (selector-constructor a b c d) nf))
-  ([tx nf selector-constructor a b c d e]
-   (dget-sel! tx (selector-constructor a b c d e) nf))
-  ([tx nf selector-constructor a b c d e f]
-   (dget-sel! tx (selector-constructor a b c d e f) nf))
-  ([tx nf selector-constructor a b c d e f g]
-   (dget-sel! tx (selector-constructor a b c d e f g) nf)))
+  ([tx-manager nf selector-constructor]
+   (dget-sel! tx-manager (selector-constructor) nf))
+  ([tx-manager nf selector-constructor a]
+   (dget-sel! tx-manager (selector-constructor a) nf))
+  ([tx-manager nf selector-constructor a b]
+   (dget-sel! tx-manager (selector-constructor a b) nf))
+  ([tx-manager nf selector-constructor a b c]
+   (dget-sel! tx-manager (selector-constructor a b c) nf))
+  ([tx-manager nf selector-constructor a b c d]
+   (dget-sel! tx-manager (selector-constructor a b c d) nf))
+  ([tx-manager nf selector-constructor a b c d e]
+   (dget-sel! tx-manager (selector-constructor a b c d e) nf))
+  ([tx-manager nf selector-constructor a b c d e f]
+   (dget-sel! tx-manager (selector-constructor a b c d e f) nf))
+  ([tx-manager nf selector-constructor a b c d e f g]
+   (dget-sel! tx-manager (selector-constructor a b c d e f g) nf)))
 
 (defn select-sel!
   "Return a box containing the value for a selector from graph transaction
@@ -136,43 +136,43 @@
   (@). If the value is not yet known, deref will throw an exception which the
   transaction context will catch. You can test if a value is available
   using `(realized? box)`."
-  ([tx selector-constructor]
-   (let [v (dget! tx NOT-IN-GRAPH-SENTINEL selector-constructor)]
+  ([tx-manager selector-constructor]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx selector-constructor a]
-   (let [v (dget! tx NOT-IN-GRAPH-SENTINEL selector-constructor a)]
+  ([tx-manager selector-constructor a]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx selector-constructor a b]
-   (let [v (dget! tx NOT-IN-GRAPH-SENTINEL selector-constructor a b)]
+  ([tx-manager selector-constructor a b]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a b)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx selector-constructor a b c]
-   (let [v (dget! tx NOT-IN-GRAPH-SENTINEL selector-constructor a b c)]
+  ([tx-manager selector-constructor a b c]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a b c)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx selector-constructor a b c d]
-   (let [v (dget! tx NOT-IN-GRAPH-SENTINEL selector-constructor a b c d)]
+  ([tx-manager selector-constructor a b c d]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a b c d)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx selector-constructor a b c d e]
-   (let [v (dget! tx NOT-IN-GRAPH-SENTINEL selector-constructor a b c d e)]
+  ([tx-manager selector-constructor a b c d e]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a b c d e)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx selector-constructor a b c d e f]
-   (let [v (dget! tx NOT-IN-GRAPH-SENTINEL selector-constructor a b c d e f)]
+  ([tx-manager selector-constructor a b c d e f]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a b c d e f)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx selector-constructor a b c d e f g]
-   (let [v (dget! tx NOT-IN-GRAPH-SENTINEL selector-constructor a b c d e f g)]
+  ([tx-manager selector-constructor a b c d e f g]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a b c d e f g)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v)))))
