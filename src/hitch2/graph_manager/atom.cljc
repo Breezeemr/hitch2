@@ -215,17 +215,9 @@
           :parents (s/coll-of ::selector))
   :ret :hitch2.protocols.machine/node-state)
 
-(defn -apply-command [machine-state machine command graph-value children parents]
-  ;; what is value here? it's called with :graph-value from the gv but we've
-  ;; been calling graph-manager-value the map value of the graph atom. Can
-  ;; this function be called as an update to :node-state as it is?
-  (machine-proto/-apply-command machine graph-value machine-state children parents command))
-
 (defn apply-effects
   ""
   [graph-manager-value disturbed-machines])
-
-
 
 (s/fdef apply-command
   :args (s/cat
@@ -235,16 +227,19 @@
   :ret ::graph-manager-value)
 
 (defn apply-command
-  ""
+  "Apply command to machine and then allow the graph to settle. Returns
+  the new graph manager value."
   [graph-manager-value machine command]
-  (let [{:keys [graph-value parents children]
-         :as initalized-graph}
+  (let [{:keys [graph-value parents children] :as initalized-graph}
         (ensure-machine-init graph-manager-value machine)
-        ;;init-tx node-state contains _all_ machine states. do we need
-        ;; an update-in [:node-state machine]?
-        command-applied-graph (update-in initalized-graph [:node-state machine]
-                                         -apply-command machine command graph-value children parents)
-        [propagated-graph disturbed-machines] (propagate-changes command-applied-graph [machine])
+
+        command-applied-graph
+        (update-in initalized-graph [:node-state machine]
+                   (fn [machine-state]
+                     (machine-proto/-apply-command machine graph-value machine-state
+                                                   children parents command)))
+        [propagated-graph disturbed-machines]
+        (propagate-changes command-applied-graph [machine])
         ;;flush-tx
         ]
     (apply-effects propagated-graph disturbed-machines)))
