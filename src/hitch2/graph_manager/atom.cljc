@@ -58,19 +58,20 @@
           var-resets))
 
 (defn apply-var-resets [graph-manager-value changes]
-  [(populate-new-var-values graph-manager-value changes)
-   (reduce (fn [acc [parent sel value]]
-             (assert (= (selector-proto/selector-kind parent) :hitch.selector.kind/var-singleton-machine))
-             (if (= (get-in graph-manager-value [:value sel]) value)
-               acc
-               ;;this assumes dependencies are updated first!!
-               (reduce (fn [acc child]
-                         (update acc child
-                                 (fnil conj {}) sel))
-                       acc
-                       (get-in graph-manager-value [:children sel]))))
-           {}
-           changes)])
+  (let [populated-gmv (populate-new-var-values graph-manager-value changes)]
+   [populated-gmv
+    (reduce (fn [acc [parent sel value]]
+              (assert (= (selector-proto/selector-kind parent) :hitch.selector.kind/var-singleton-machine))
+              (if (= (get-in populated-gmv [:graph-value sel]) value)
+                acc
+                ;;this assumes dependencies are updated first!!
+                (reduce (fn [acc child]
+                          (update acc child
+                                  (fnil conj {}) sel))
+                        acc
+                        (get-in graph-manager-value [:children sel]))))
+            {}
+            changes)]))
 
 (defn apply-child-change-command [node-state machine-instance graph-manager-value
                                   children parents changes]
