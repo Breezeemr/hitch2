@@ -14,7 +14,7 @@
 #?(:clj
    (if-clj-target
      (import
-       '(hitch.tracking.halt HaltException)
+       '(hitch2.halt HaltException)
        '(clojure.lang IPending IDeref))
      nil))
 
