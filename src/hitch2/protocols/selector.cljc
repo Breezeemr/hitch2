@@ -14,6 +14,12 @@ Should be a keyword for dispatching. Values are from:
 :hitch.selector.kind/sentinel
 :hitch.selector.kind/halting"))
 
+(defprotocol HaltingImplementation
+  (-get-halting-fn [imp]))
+
+(defprotocol SentinelImplementation
+  (-get-sentinel-fn [imp]))
+
 (defprotocol SelectorImplementation
   (-imp [sel]
     "Returns the selector implementation"))
@@ -112,15 +118,15 @@ Should be a keyword for dispatching. Values are from:
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
     (f gv-tracker)))
-(defrecord Selector1 [name a]
+(defrecord Selector1 [impl a]
   SelectorImplementation
-  (-imp [_] name)
+  (-imp [_] impl)
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
     (f gv-tracker a)))
-(defrecord Selector2 [name a b]
+(defrecord Selector2 [impl a b]
   SelectorImplementation
-  (-imp [_] name)
+  (-imp [_] impl)
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
     (f gv-tracker a b)))
@@ -181,7 +187,7 @@ Should be a keyword for dispatching. Values are from:
            2 (let [[a] sel] (f gv-tracker a))
            3 (let [[a b] sel] (f gv-tracker a b))))]))
 
-(deftype TypeSelector1 [name a]
+(deftype TypeSelector1 [impl a]
   InvokeHalting
   (-invoke-halting [sel f gv-tracker]
     (f gv-tracker a)))
