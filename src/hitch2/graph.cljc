@@ -3,7 +3,7 @@
             [hitch2.machine.dependent-get :refer [dget-machine]]
             [hitch2.machine.hook :refer [hook-machine]]
             [hitch2.protocols.tx-manager :as tx-proto]
-            [hitch2.protocols :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
+            [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
             [hitch2.halt :as halt]))
 
 (defn get-target-for-tx-context [tx]

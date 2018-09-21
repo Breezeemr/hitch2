@@ -1,4 +1,4 @@
-(ns hitch2.protocols)
+(ns hitch2.sentinels)
 
 (defonce NOT-FOUND-SENTINEL
   (reify
