@@ -1,6 +1,6 @@
 (ns hitch2.graph
   (:require [hitch2.protocols.graph-manager :as graph-proto]
-            [hitch2.machine.dependent-get :refer [dget-machine]]
+            [hitch2.machine.pin :refer [pin-machine]]
             [hitch2.machine.hook :refer [hook-machine]]
             [hitch2.protocols.tx-manager :as tx-proto]
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
@@ -8,6 +8,16 @@
 
 (defn get-target-for-tx-context [tx]
   :target)
+
+(defn pin
+  "Force a selector to remain in the graph even if nothing else depends on it."
+  [graph-manager selector]
+  (graph-proto/-transact! graph-manager pin-machine [:pin selector]))
+
+(defn unpin
+  "Allow a selector to be removed from the graph if nothing else depends on it."
+  [graph-manager selector]
+  (graph-proto/-transact! graph-manager pin-machine [:unpin selector]))
 
 (defn hook-sel
   "Call fn `cb` once with the value of `selector` in `graph` as soon as it is

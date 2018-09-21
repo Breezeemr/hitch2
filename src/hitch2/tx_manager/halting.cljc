@@ -1,13 +1,18 @@
 (ns hitch2.tx-manager.halting
-  (:require [hitch2.protocols.tx-manager :as tx-manager]))
+  (:require [hitch2.protocols.tx-manager :as tx-manager]
+            [hitch2.halt :as halt]))
 
 
-(deftype halting-manager [graph-value #?(:cljs    ^:mutable requests
+(deftype HaltingManager [graph-value #?(:cljs    ^:mutable requests
                                         :default ^:unsynchronized-mutable requests)]
   tx-manager/IDependTrack
   (dget-sel!  [this data-selector nf]
-    (set! requests (conj! requests)))
+    (set! requests (conj! requests))
+    (get graph-value data-selector nf))
   (finish-tx! [this]
     (let [reqs (persistent! requests)]
       (set! requests (transient #{}))
       reqs)))
+
+(defn halting-manager [graph-value]
+  (HaltingManager. graph-value (transient #{})))

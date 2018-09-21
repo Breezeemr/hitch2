@@ -4,7 +4,7 @@
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.protocols.selector :as sel-proto]))
 
-(declare v-sel)
+(declare mutable-var)
 (def initial-node (assoc machine-proto/initial-node :state NOT-FOUND-SENTINEL))
 
 (def machine-impl (reify
@@ -22,7 +22,7 @@
       :set-value (let [[_ val] command]
                    (-> node
                        (assoc :state val)
-                       (update :reset-vars assoc (v-sel ns) val))))))
+                       (update :reset-vars assoc (mutable-var ns) val))))))
 
 (def var-impl
   (reify
@@ -33,6 +33,6 @@
     (-get-machine [var [_ var-name]]
       (->mutable-machine var-name))))
 
-(defn v-sel [var-name]
+(defn mutable-var [var-name]
   (sel-proto/->Selector1 var-impl var-name))
 

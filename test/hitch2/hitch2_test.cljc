@@ -2,7 +2,7 @@
     (:require
       #?(:cljs [cljs.test :refer [deftest is testing]]
          :clj [clojure.test :refer [deftest is testing]])
-      [hitch2.machine.dependent-get :refer [dget-machine]]
+      [hitch2.machine.pin :refer [pin-machine]]
       [hitch2.protocols.machine :as machine-proto]
       [clojure.data :as diff]))
 
@@ -11,10 +11,10 @@
                :halting (fn [g sel] :hi)})
 
 (deftest dget-machine-test
-  (let [node (machine-proto/-initialize dget-machine)
+  (let [node (machine-proto/-initialize pin-machine)
         sel {:s-name sel-impl}]
-    (is (= node (assoc machine-proto/initial-node :state {})))
-    (let [node (machine-proto/-apply-command dget-machine
+    (is (= node (assoc machine-proto/initial-node :state #{})))
+    #_(let [node (machine-proto/-apply-command pin-machine
                   {}  node #{} #{}
                   [:dget-subscribe sel :target])
           [f s both] (diff/diff node

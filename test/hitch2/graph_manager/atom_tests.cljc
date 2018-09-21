@@ -30,7 +30,7 @@
     ;needs to be async
     (hitch/hook-sel graph-manager (fn [gm val]
                                     (reset! test-atom val)
-                                    (prn "yay! I got value " val)) (mv/v-sel :test-name))
+                                    (prn "yay! I got value " val)) (mv/mutable-var :test-name))
     (gm-proto/-transact! graph-manager (mv/->mutable-machine :test-name) [:set-value 5])
     (is (= @test-atom 5))
     ;; what goes here?

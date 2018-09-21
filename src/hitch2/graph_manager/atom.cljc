@@ -1,12 +1,16 @@
 (ns hitch2.graph-manager.atom
   (:require  [clojure.spec.alpha :as s]
              [hitch2.protocols.graph-manager :as g]
+             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
              [hitch2.protocols.machine :as machine-proto]
-             [hitch2.protocols.selector :as selector-proto]))
+             [hitch2.protocols.selector :as selector-proto]
+             [hitch2.tx-manager.halting :as halting-tx]
+             [hitch2.halt :as halt]))
 
 
 
-
+(defrecord deriving-state [parent-changes waiting value-changed?])
+(defrecord var-state [value-changed?])
 
 (s/def ::selector any?)
 (s/def ::graph-value (s/map-of ::selector any?))
@@ -30,7 +34,6 @@
              ::children]))
 
 
-(defrecord halting-derive-state [waiting])
 
 (defn ensure-machine-init [state machine]
   (if-some [m (get-in state [:node-state machine])]
@@ -66,6 +69,18 @@
                         (get-in populated-gmv [:children sel]))))
             {}
             changes)]))
+(defn run-halting [graph-manager-value
+                   node-state
+                   selector
+                   h-fn]
+  (let [tx-manager (halting-tx/halting-manager (:graph-value graph-manager-value))
+        nv (halt/maybe-halt
+             (selector-proto/-invoke-halting selector h-fn tx-manager)
+             NOT-FOUND-SENTINEL)]
+    (if (identical? nv NOT-FOUND-SENTINEL)
+
+      )))
+
 
 (defn apply-child-change-command [node-state machine-instance graph-manager-value
                                   children parents changes]
@@ -108,11 +123,23 @@
                    value-changes ;; always untouched
                    disturbed-machines1])
                 :hitch.selector.kind/halting
-                [graph-manager-value
-                 var-resets
-                 parent-changes
-                 value-changes  ;; always untouched
-                 disturbed-machines1])))
+                (let [node-state (get-in graph-manager-value [:node-state parent] NOT-FOUND-SENTINEL)]
+                  (if (= node-state NOT-FOUND-SENTINEL)
+                    (run-halting graph-manager-value
+                      {:deps    #{}
+                       :waiting #{}}
+                      parent
+                      (selector-proto/-get-halting-fn sel-impl)
+                      var-resets
+                      parent-changes
+                      value-changes                            ;; always untouched
+                      disturbed-machines1)
+                    [graph-manager-value
+                     var-resets
+                     parent-changes
+                     value-changes                            ;; always untouched
+                     disturbed-machines1]))
+                )))
           ;; the last two value-changes and disturbed-machines1 (???)
           ;; is never modified and remain empty.
           [graph-manager-value {} {} {} #{}]
@@ -159,11 +186,6 @@
                                change-parent))]))
           [graph-manager-value [] []]
           machines))
-(defn should-run-halting? [graph-manager-value selector]
-  false)
-(defn run-halting [graph-manager-value selector]
-  graph-manager-value
-  )
 
 (defn apply-value-change-commands [graph-manager-value changes]
   (reduce (fn [[graph-manager-value var-resets parent-changes value-changes disturbed-machines1]
