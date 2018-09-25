@@ -129,7 +129,7 @@
       (is (= @results [0])
         (str gname "Hook-change's cb should not be called again if the value moves from X to unresolved then back to X."))
 
-
+      (vreset! results [0])
       (unpin g mvsel)
 
       (is (= @results [0])
