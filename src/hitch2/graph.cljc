@@ -48,7 +48,7 @@
     (if (identical? val NOT-IN-GRAPH-SENTINEL)
       (graph-proto/-transact! graph-manager hook-change-machine [:hook-change-subscribe selector cb])
       (cb #_graph-manager val)))
-  nil)
+  (fn [] (graph-proto/-transact! graph-manager hook-change-machine [:hook-change-unsubscribe selector cb])))
 
 (defn hook
   "Call fn `cb` once with the value of selector returned from
