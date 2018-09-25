@@ -46,15 +46,19 @@
 
 (defn propagate-reset-vars [graph-manager-value reset-vars disturbed]
   (reduce-kv (fn [gv sel value]
-               (let [old-value (assoc-in gv [:graph-value sel] value)]
+               (let [old-value (get-in gv [:graph-value sel] NOT-FOUND-SENTINEL)]
                  (if (= old-value value)
                    gv
-                   (do
-                     (swap! disturbed conj sel)
+                   (if (identical? value NOT-FOUND-SENTINEL)
                      (-> gv
-                         (assoc-in  [:node-state sel :value-changed?] true)
-                       (assoc-in  [:graph-value sel] value))
-                     ))))
+                         (assoc-in [:node-state sel :value-changed?] true)
+                         (update :graph-value dissoc sel))
+                     (do
+                       (swap! disturbed conj sel)
+                       (-> gv
+                           (assoc-in [:node-state sel :value-changed?] true)
+                           (assoc-in [:graph-value sel] value))
+                       )))))
     graph-manager-value
     reset-vars))
 
