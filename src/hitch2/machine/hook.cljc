@@ -55,5 +55,5 @@
                                                sel :selector}]
   (let [graph-value (graph-proto/-get-graph graph-manager)
         v (get graph-value sel)]
-    (f graph-manager v)))
+    (f v)))
 

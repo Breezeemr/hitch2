@@ -16,6 +16,9 @@
   (-imp [machine-instance] machine-impl)
   machine-proto/Init
   (-initialize [machine-instance] initial-node)
+  machine-proto/ChildChanges
+  (-child-changes [machine-instance graph-value node children parents children-added children-removed]
+    node)
   machine-proto/Commandable
   (-apply-command [_ graph-value node children parents command]
     (case (nth command 0)
@@ -30,8 +33,8 @@
     (-imp-kind [var]
       :hitch.selector.kind/var-singleton-machine)
     sel-proto/GetMachine
-    (-get-machine [var [_ var-name]]
-      (->mutable-machine var-name))))
+    (-get-machine [var sel]
+      (->mutable-machine (:ns sel)))))
 
 (defn mutable-var [var-name]
   (sel-proto/->Selector1 var-impl var-name))

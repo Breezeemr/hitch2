@@ -28,9 +28,12 @@
   (let [graph-manager (g/make-gm)
         test-atom (atom nil)]
     ;needs to be async
-    (hitch/hook-sel graph-manager (fn [gm val]
+    (prn "hook")
+    (hitch/hook-sel graph-manager (fn [val]
                                     (reset! test-atom val)
                                     (prn "yay! I got value " val)) (mv/mutable-var :test-name))
+
+    (prn "transact" )
     (gm-proto/-transact! graph-manager (mv/->mutable-machine :test-name) [:set-value 5])
     (is (= @test-atom 5))
     ;; what goes here?
