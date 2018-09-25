@@ -25,7 +25,10 @@
       :set-value (let [[_ val] command]
                    (-> node
                        (assoc :state val)
-                       (update :reset-vars assoc (mutable-var ns) val))))))
+                       (update :reset-vars assoc (mutable-var ns) val)))
+      :clear (-> node
+                 (assoc :state NOT-FOUND-SENTINEL)
+                 (update :reset-vars assoc (mutable-var ns) NOT-FOUND-SENTINEL)))))
 
 (def var-impl
   (reify
