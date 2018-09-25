@@ -1,5 +1,6 @@
 (ns hitch2.defselector-test
-  (:require [clojure.test :refer [is deftest testing]]
+  (:require #?(:cljs [cljs.test :refer [deftest is testing]]
+               :clj [clojure.test :refer [deftest is testing]])
             [hitch2.selector :as sel]))
 
 (deftest selectors
