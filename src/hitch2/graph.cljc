@@ -1,7 +1,7 @@
 (ns hitch2.graph
   (:require [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.machine.pin :refer [pin-machine]]
-            [hitch2.machine.hook :refer [hook-machine]]
+            [hitch2.machine.hook :refer [hook-machine hook-change-machine]]
             [hitch2.protocols.tx-manager :as tx-proto]
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
             [hitch2.halt :as halt]))
@@ -43,7 +43,12 @@
   There is no guarantee that each `cb` call will receive a value not= to the
   previous call's value."
   [graph-manager cb selector]
-  )
+  (let [graph-value (graph-proto/-get-graph graph-manager)
+        val  (get graph-value selector NOT-IN-GRAPH-SENTINEL)]
+    (if (identical? val NOT-IN-GRAPH-SENTINEL)
+      (graph-proto/-transact! graph-manager hook-change-machine [:hook-change-subscribe selector cb])
+      (cb #_graph-manager val)))
+  nil)
 
 (defn hook
   "Call fn `cb` once with the value of selector returned from
