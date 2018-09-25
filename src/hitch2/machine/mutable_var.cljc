@@ -34,7 +34,7 @@
       :hitch.selector.kind/var-singleton-machine)
     sel-proto/GetMachine
     (-get-machine [var sel]
-      (->mutable-machine (:ns sel)))))
+      (->mutable-machine (:a sel)))))
 
 (defn mutable-var [var-name]
   (sel-proto/->Selector1 var-impl var-name))

@@ -52,50 +52,50 @@
       (is (= @results [0])
         (str gname "Unshared hook's cb not called if selector gains another ext-child"))))
 
-  ;(deftest hook-shared-immediate-resolution
-  ;  (let [g       (gctor)
-  ;        results (volatile! [])]
-  ;
-  ;    (pin g (Constant 0))
-  ;
-  ;    (h/hook-sel g #(vswap! results conj %) (Constant 0))
-  ;
-  ;    (is (= @results [0])
-  ;      (str gname "Shared hook's cb sees resolved value immediately"))
-  ;
-  ;    (pin g mvsel)
-  ;
-  ;    (is (= @results [0])
-  ;      (str gname "Shared hook's cb not called if selector gains another ext-child"))))
-  ;
-  ;
-  ;(deftest hook-shared-delayed-resolution
-  ;  (let [g       (gctor)
-  ;        results (volatile! [])]
-  ;
-  ;    (pin g mvsel)
-  ;
-  ;    (h/hook-sel g #(vswap! results conj %) mvsel)
-  ;
-  ;    (is (= @results [])
-  ;      (str gname "Shared hook's cb uncalled before selector resolved."))
-  ;
-  ;    (h/apply-commands g [[mvsel [:set-value 0]]])
-  ;
-  ;    (is (= @results [0])
-  ;      (str gname "Shared hook's cb sees resolved value immediately"))
-  ;
-  ;    (h/apply-commands g [[mvsel [:set-value 1]]])
-  ;
-  ;    (is (= @results [0])
-  ;      (str gname "Hooks do not get called more than once"))
-  ;
-  ;    (unpin g mvsel)
-  ;
-  ;    (is (= @results [0])
-  ;      (str gname "Shared hook's cb not called if selector loses another ext-child"))))
-  ;
-  ;
+  (deftest hook-shared-immediate-resolution
+    (let [g       (gctor)
+          results (volatile! [])]
+
+      (pin g (Constant 0))
+
+      (h/hook-sel g #(vswap! results conj %) (Constant 0))
+
+      (is (= @results [0])
+        (str gname "Shared hook's cb sees resolved value immediately"))
+
+      (pin g mvsel)
+
+      (is (= @results [0])
+        (str gname "Shared hook's cb not called if selector gains another ext-child"))))
+
+
+  (deftest hook-shared-delayed-resolution
+    (let [g       (gctor)
+          results (volatile! [])]
+
+      (pin g mvsel)
+
+      (h/hook-sel g #(vswap! results conj %) mvsel)
+
+      (is (= @results [])
+        (str gname "Shared hook's cb uncalled before selector resolved."))
+
+      (h/apply-commands g [[mvsel [:set-value 0]]])
+
+      (is (= @results [0])
+        (str gname "Shared hook's cb sees resolved value immediately"))
+
+      (h/apply-commands g [[mvsel [:set-value 1]]])
+
+      (is (= @results [0])
+        (str gname "Hooks do not get called more than once"))
+
+      (unpin g mvsel)
+
+      (is (= @results [0])
+        (str gname "Shared hook's cb not called if selector loses another ext-child"))))
+
+
   ;(deftest hook-change-delayed-resolution
   ;  (let [g       (gctor)
   ;        results (volatile! [])

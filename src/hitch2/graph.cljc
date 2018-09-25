@@ -28,7 +28,7 @@
         val  (get graph-value selector NOT-IN-GRAPH-SENTINEL)]
     (if (identical? val NOT-IN-GRAPH-SENTINEL)
       (graph-proto/-transact! graph-manager hook-machine [:hook-subscribe selector cb])
-      (cb graph-manager val)))
+      (cb #_graph-manager val)))
   nil)
 
 (defn hook-change-sel
@@ -102,6 +102,7 @@
    is like `[[Selector [command & command-args]] ,,,]`. Do not rely on returned
    value."
   [graph-manager selector-command-pairs]
+  (graph-proto/-transact-commands! graph-manager selector-command-pairs)
   )
 
 ;;tx-manager options
