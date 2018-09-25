@@ -8,7 +8,7 @@
   (-imp-kind [impl]
     "Returns the kind of selector or machine.
 Should be a keyword for dispatching. Values are from:
-:hitch.selector.kind/var-singleton-machine
+:hitch.selector.kind/var
 :hitch.selector.kind/var-machine
 :hitch.selector.kind/machine
 :hitch.selector.kind/sentinel
@@ -54,7 +54,7 @@ Should be a keyword for dispatching. Values are from:
 
 (defmulti impliementation-kind -imp-kind)
 
-(defmethod impliementation-kind :hitch.selector.kind/var-singleton-machine
+(defmethod impliementation-kind :hitch.selector.kind/var
   [_]
   (s/keys
     :req [:hitch.selector/name]

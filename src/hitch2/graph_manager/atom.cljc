@@ -156,7 +156,7 @@
                 (assoc-in
                   [:node-state selector :change-parent] {})
                 (propagate-dependency-changes selector new-change-parent disturbed))))
-          ;:hitch.selector.kind/var-singleton-machine
+          ;:hitch.selector.kind/var
           ;(assert false "should not happen")
           :hitch.selector.kind/halting
           (let [{:keys [waiting] :as node-state}
@@ -206,7 +206,7 @@
                 assoc
                 :reset-vars {})
               (propagate-reset-vars reset-vars disturbed))))
-        :hitch.selector.kind/var-singleton-machine
+        :hitch.selector.kind/var
         (let [{:keys [value-changed?]}
               node-state]
           (cond-> graph-manager-value
@@ -282,7 +282,7 @@
                   :change-parent {}))
               (not-empty new-change-parent)
               (propagate-dependency-changes  parent new-change-parent disturbed)))
-          :hitch.selector.kind/var-singleton-machine
+          :hitch.selector.kind/var
           (let [machine (selector-proto/-get-machine sel-impl parent)]
             (case added|removed
               true (if (get-in graph-manager-value [:parents parent machine])
@@ -410,7 +410,7 @@
           (fn [machine-state]
             (machine-proto/-apply-command selector graph-value machine-state
               children parents command))))
-      :hitch.selector.kind/var-singleton-machine
+      :hitch.selector.kind/var
       (apply-command graph-manager-value (selector-proto/-get-machine sel-impl selector) command )
       )))
 
@@ -430,7 +430,7 @@
     (case sel-kind
       :hitch.selector.kind/machine
       selector
-      :hitch.selector.kind/var-singleton-machine
+      :hitch.selector.kind/var
       (selector-proto/-get-machine sel-impl selector))))
 
 (deftype gm [state]

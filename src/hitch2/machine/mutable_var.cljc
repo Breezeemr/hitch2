@@ -34,7 +34,7 @@
   (reify
     sel-proto/ImplementationKind
     (-imp-kind [var]
-      :hitch.selector.kind/var-singleton-machine)
+      :hitch.selector.kind/var)
     sel-proto/GetMachine
     (-get-machine [var sel]
       (->mutable-machine (:a sel)))))
