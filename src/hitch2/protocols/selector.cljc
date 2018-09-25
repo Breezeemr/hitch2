@@ -131,6 +131,14 @@ Should be a keyword for dispatching. Values are from:
   (-invoke-halting [_ f gv-tracker]
     (f gv-tracker a b)))
 
+(defrecord Selector3 [impl a b c]
+  SelectorImplementation
+  (-imp [_] impl)
+  InvokeHalting
+  (-invoke-halting [_ f gv-tracker]
+    (f gv-tracker a b c)))
+
+
 ;;is gv-tracker the best name?
 
 
