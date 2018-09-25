@@ -46,7 +46,7 @@
           (let [new-node (update-in node [:state selector] (fnil disj #{}) target)]
             (if (not-empty (get-in new-node [:state selector]))
               new-node
-              (update :change-parent assoc selector false))))))))
+              (update  new-node :change-parent assoc selector false))))))))
 
 (def hook-change-machine
   (reify
@@ -76,10 +76,10 @@
               (update :change-parent assoc selector true)))
         :hook-change-unsubscribe
         (let [[_ selector target] command]
-          (let [new-node (update-in node [:state selector] (fnil disj #{}) target)]
+          (let [new-node (update-in node [:state selector] disj target)]
             (if (not-empty (get-in new-node [:state selector]))
               new-node
-              (update :change-parent assoc selector false))))))))
+              (update new-node :change-parent assoc selector false))))))))
 
 (defmethod graph-proto/run-effect :hook-call [graph-manager
                                               {:as effect
