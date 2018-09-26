@@ -9,7 +9,6 @@
     "Returns the kind of selector or machine.
 Should be a keyword for dispatching. Values are from:
 :hitch.selector.kind/var
-:hitch.selector.kind/var-machine
 :hitch.selector.kind/machine
 :hitch.selector.kind/sentinel
 :hitch.selector.kind/halting"))
@@ -46,7 +45,6 @@ Should be a keyword for dispatching. Values are from:
 (s/def :hitch.selector.impl/kind keyword?)
 
 (s/def :hitch.selector.impl/machine any?)
-(s/def :hitch.selector.impl/machine-finder fn?)
 (s/def :hitch.selector.impl/halting fn?)
 (s/def :hitch.selector.impl/sentinel fn?)
 (s/def :hitch.selector.impl/dependent-value fn?)
@@ -60,13 +58,6 @@ Should be a keyword for dispatching. Values are from:
     :req [:hitch.selector/name]
     :req-un [:hitch.selector.impl/kind
              :hitch.selector.impl/machine]))
-
-(defmethod impliementation-kind :hitch.selector.kind/var-machine
-  [_]
-  (s/keys
-    :req [:hitch.selector/name]
-    :req-un [:hitch.selector.impl/kind
-             :hitch.selector.impl/machine-finder]))
 
 (defmethod impliementation-kind :hitch.selector.kind/halting
   [_]
