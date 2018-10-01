@@ -15,8 +15,13 @@
    :delete "DELETE"})
 
 
-(defn mk-xhr [{:keys [url method serializer deserializer content headers withcreds]} cb]
-  (let [xhr (XhrIo.)]
+(defmethod graph-proto/run-effect ::request
+  [gm {:keys [selector] :as effect}]
+  (let [{:keys [url method serializer deserializer content headers withcreds]}
+        (:a selector)
+        cb  (fn [response] (prn "got a response?") (prn response)
+              (graph-proto/-transact! gm selector [::value selector response]))
+        xhr (XhrIo.)]
     (when withcreds
       (.setWithCredentials xhr true))
     (events/listen xhr EventType/SUCCESS
@@ -25,9 +30,11 @@
         (fn [e] (cb [:ok (.. e -target (getResponseText))]))))
     (events/listen xhr EventType/ERROR
       (fn [e] (cb [:error (.. e -target (getLastError))])))
-    (.send xhr (str url) method (if serializer
-                                  (serializer content)
-                                  content) (clj->js headers))
+    (.send xhr (str url) (meths method method)
+           (if serializer
+             (serializer content)
+             content)
+           (clj->js headers))
     #(.dispose xhr)))
 
 (def initial-node (assoc machine-proto/initial-node :state NOT-FOUND-SENTINEL))
@@ -46,12 +53,17 @@
     (-initialize [machine-instance] initial-node)
     machine-proto/ChildChanges
     (-child-changes [machine-instance graph-value node children parents children-added children-removed]
-      node)
+      (prn "child changes on node: " node)
+      (update node :async-effects into (map (fn [child] {:type     ::request
+                                                         :selector child})
+                                            children-added)))
     machine-proto/Commandable
     (-apply-command [_ graph-value node children parents command]
       (case (nth command 0)
-        :set-value nil
-        :clear nil))))
+        ::value (let [[_ selector response] command]
+                  (prn "response from command? " response)
+                  (prn "selector here: " selector)
+                  (assoc-in node [:reset-vars selector] response))))))
 
 (def var-impl
   (reify

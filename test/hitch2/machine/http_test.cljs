@@ -11,12 +11,20 @@
 
 (doseq [[graph-name gctor] gctors]
   (deftest simple-get-ok
-    (let [graph (gctor)]
-      (async done
-        (graph/hook graph (fn [[status value :as result]]
-                            (is (= result [:ok "cat\n"]) graph-name)
-                            (done))
-          http/http "/test.txt" :get nil nil nil nil nil))))
+    (binding [atom-gm/*trace* true]
+      ;;(atom-gm/clear-trace!)
+      (let [graph (gctor)]
+        (async done
+               (graph/hook graph (fn [[status value :as result]]
+                                   (is (= result [:ok "cat\n"]) graph-name)
+                                   (done))
+                           http/http
+                           "http://dummy.restapiexample.com/api/v1/employees"
+                           :get
+                           nil
+                           (fn [payload] (let [json (.parse js/JSON payload)]
+                                           (first json)))
+                           nil nil nil)))))
 
   (deftest simple-get-error
     (let [graph (gctor)]
