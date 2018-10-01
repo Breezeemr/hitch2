@@ -50,12 +50,16 @@
              ::children]))
 
 
+(defn init-machine [machine ]
+  (let [machine-state (machine-proto/-initialize machine)]
+    (s/assert ::machine-proto/machine-state machine-state)
+    machine-state))
 
 (defn ensure-machine-init [state machine]
   (if-some [m (get-in state [:node-state machine])]
     state
     (assoc-in state [:node-state machine]
-      (machine-proto/-initialize machine))))
+      (init-machine machine))))
 
 (declare propagate-dependency-changes)
 
@@ -159,6 +163,7 @@
                   (-> graph-manager-value :children (get selector))
                   (-> graph-manager-value :parents (get selector))
                   #{parent})]
+            (s/assert ::machine-proto/machine-state new-node-state)
             (when (or (not-empty new-reset-vars)
                     (not-empty sync-effects)
                     (not-empty async-effects))
@@ -200,6 +205,7 @@
         (let [{:keys [change-parent reset-vars
                       sync-effects async-effects]}
               node-state]
+          (s/assert ::machine-proto/machine-state node-state)
           (when (or
                 (not-empty sync-effects)
                 (not-empty async-effects))
@@ -289,6 +295,7 @@
                     #{child})
                   (when (not added|removed)
                     #{child}))]
+            (s/assert ::machine-proto/machine-state new-node-state)
             (when (or (not-empty reset-vars)
                     (not-empty sync-effects)
                     (not-empty async-effects))
