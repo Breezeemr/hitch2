@@ -53,17 +53,17 @@
     (-initialize [machine-instance] initial-node)
     machine-proto/ChildChanges
     (-child-changes [machine-instance graph-value node children parents children-added children-removed]
-      (prn "child changes on node: " node)
       (update node :async-effects into (map (fn [child] {:type     ::request
                                                          :selector child})
                                             children-added)))
     machine-proto/Commandable
     (-apply-command [_ graph-value node children parents command]
       (case (nth command 0)
-        ::value (let [[_ selector response] command]
-                  (prn "response from command? " response)
-                  (prn "selector here: " selector)
-                  (assoc-in node [:reset-vars selector] response))))))
+        ::value   (let [[_ selector response] command]
+                    (assoc-in node [:reset-vars selector] response))
+        ::refresh (let [[_ selector] command]
+                    (update node :async-effects conj {:type     ::request
+                                                      :selector selector}))))))
 
 (def var-impl
   (reify
