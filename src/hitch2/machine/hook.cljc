@@ -100,7 +100,6 @@
                                               {:as effect
                                                f :target
                                                sel :selector}]
-  (prn effect)
   (let [graph-value (graph-proto/-get-graph graph-manager)
         v (get graph-value sel)]
     (f v)))
