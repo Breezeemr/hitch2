@@ -1,6 +1,7 @@
 (ns hitch2.machine.hook
   (:require [hitch2.protocols.machine :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
+            [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
             [hitch2.protocols.selector :as sel-proto]))
 
 (defrecord node-state [state change-parent reset-vars
@@ -70,10 +71,16 @@
     (-apply-command [_ graph-value node children parents command]
       (case (nth command 0)
         :hook-change-subscribe
-        (let [[_ selector target] command]
-          (-> node
-              (update-in [:state selector] (fnil conj #{}) target)
-              (update :change-parent assoc selector true)))
+        (let [[_ selector target] command
+              current-selector-value (get graph-value selector NOT-FOUND-SENTINEL)]
+          (cond->
+            (-> node
+                (update-in [:state selector] (fnil conj #{}) target)
+                (update :change-parent assoc selector true))
+            (not (identical? current-selector-value NOT-FOUND-SENTINEL))
+            (update :sync-effects conj {:type   :hook-changes-call
+                                 :target target
+                                 :selector selector})))
         :hook-change-unsubscribe
         (let [[_ selector target] command]
           (let [new-node (update-in node [:state selector] disj target)]
@@ -93,6 +100,7 @@
                                               {:as effect
                                                f :target
                                                sel :selector}]
+  (prn effect)
   (let [graph-value (graph-proto/-get-graph graph-manager)
         v (get graph-value sel)]
     (f v)))

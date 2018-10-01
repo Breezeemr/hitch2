@@ -43,11 +43,7 @@
   There is no guarantee that each `cb` call will receive a value not= to the
   previous call's value."
   [graph-manager cb selector]
-  (let [graph-value (graph-proto/-get-graph graph-manager)
-        val  (get graph-value selector NOT-IN-GRAPH-SENTINEL)]
-    (if (identical? val NOT-IN-GRAPH-SENTINEL)
-      (graph-proto/-transact! graph-manager hook-change-machine [:hook-change-subscribe selector cb])
-      (cb #_graph-manager val)))
+  (graph-proto/-transact! graph-manager hook-change-machine [:hook-change-subscribe selector cb])
   (fn [] (graph-proto/-transact! graph-manager hook-change-machine [:hook-change-unsubscribe selector cb])))
 
 (defn hook
