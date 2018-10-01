@@ -28,45 +28,45 @@
     initial-machine-state))
 
 (defprotocol Deinit
-  (-uninitialize [machine-instance ^node-state node]
+  (-uninitialize [machine-instance ^machine-state node]
     node))
 
 (extend-protocol Deinit
   #?(:clj  Object
      :cljs default)
-  (-uninitialize [machine-instance ^node-state node]
+  (-uninitialize [machine-instance ^machine-state node]
     nil))
 
 (defprotocol ChildChanges
-  (-child-changes [machine-instance graph-value ^node-state node children parents children-added children-removed]))
+  (-child-changes [machine-instance graph-value ^machine-state node children parents children-added children-removed]))
 (defprotocol ParentChanges
-  (-parent-value-changes [machine-instance graph-value ^node-state node children parents parent-selectors]))
+  (-parent-value-changes [machine-instance graph-value ^machine-state node children parents parent-selectors]))
 (defprotocol Commandable
-  (-apply-command [machine-instance graph-value ^node-state node children parents command]))
+  (-apply-command [machine-instance graph-value ^machine-state node children parents command]))
 
 (defprotocol InitForTX
-  (-init-tx [machine-instance graph-value ^node-state node children parents]))
+  (-init-tx [machine-instance graph-value ^machine-state node children parents]))
 
 (extend-protocol InitForTX
   #?(:clj  Object
      :cljs default)
-  (-init-tx [machine-instance graph-value ^node-state node children parents]
+  (-init-tx [machine-instance graph-value ^machine-state node children parents]
     node))
 
 (defprotocol FlushForTX
-  (-flush-tx [machine-instance graph-value ^node-state node children parents]))
+  (-flush-tx [machine-instance graph-value ^machine-state node children parents]))
 
 (extend-protocol FlushForTX
   #?(:clj  Object
      :cljs default)
-  (-flush-tx [machine-instance graph-value ^node-state node children parents]
+  (-flush-tx [machine-instance graph-value ^machine-state node children parents]
     node))
 
 (defprotocol FinalizeForTX
-  (-finalize [machine-instance graph-value ^node-state node children parents]))
+  (-finalize [machine-instance graph-value ^machine-state node children parents]))
 
 (extend-protocol FinalizeForTX
   #?(:clj  Object
      :cljs default)
-  (-finalize [machine-instance graph-value ^node-state node children parents]
+  (-finalize [machine-instance graph-value ^machine-state node children parents]
     node))
