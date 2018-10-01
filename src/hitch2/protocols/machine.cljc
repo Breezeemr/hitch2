@@ -18,6 +18,7 @@
 
 (def initial-machine-state (->machine-state nil {} {} [] []))
 
+;; ability to supply initial state
 (defprotocol Init
   (-initialize [machine-instance]))
 
@@ -27,6 +28,8 @@
   (-initialize [machine-instance]
     initial-machine-state))
 
+;; have handles to stateful objects. for instance, if you get
+;; deinitted, need to cancel the existing xhr's that are in flight.
 (defprotocol Deinit
   (-uninitialize [machine-instance ^machine-state node]
     node))
@@ -37,13 +40,17 @@
   (-uninitialize [machine-instance ^machine-state node]
     nil))
 
+;; people depending on this machine changed
 (defprotocol ChildChanges
   (-child-changes [machine-instance graph-value ^machine-state node children parents children-added children-removed]))
+
+;; things you depended on value's changed
 (defprotocol ParentChanges
   (-parent-value-changes [machine-instance graph-value ^machine-state node children parents parent-selectors]))
 (defprotocol Commandable
   (-apply-command [machine-instance graph-value ^machine-state node children parents command]))
 
+;; batching use cases (really wanted on the server). any time in this tx
 (defprotocol InitForTX
   (-init-tx [machine-instance graph-value ^machine-state node children parents]))
 
