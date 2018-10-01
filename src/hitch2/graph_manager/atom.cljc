@@ -13,6 +13,21 @@
 (defrecord deriving-state [change-parent waiting value-changed?])
 (defrecord var-state [value-changed?])
 
+(def #?(:cljs    ^:dynamic ^boolean *trace*
+        :default ^:dynamic *trace*)
+  "Whether the ImmutableGraph will include a key ::trace in the command-result,
+  which is a list of internal ops executed during the transaction. Default false."
+  false)
+
+(defonce ^:private op-history (volatile! []))
+
+(defn- record! [op]
+  (vswap! op-history conj op)
+  nil)
+
+(defn get-trace [] @op-history)
+(defn clear-trace! [] (vreset! op-history []))
+
 (s/def ::selector any?)
 (s/def ::graph-value (s/map-of ::selector any?))
 (s/def ::derivation-state any?)
@@ -193,6 +208,8 @@
             )
           (when (not-empty reset-vars)
             (swap! disturbed conj selector))
+          (when *trace* (record! [:node-changes :machine (selector-proto/-sname sel-impl)
+                                  node-state]))
           (cond-> graph-manager-value
             (not-empty change-parent)
             (->
@@ -209,6 +226,7 @@
         :hitch.selector.kind/var
         (let [{:keys [value-changed?]}
               node-state]
+          (when *trace* (record! [:node-changes :var (selector-proto/-sname sel-impl)]))
           (cond-> graph-manager-value
             value-changed?
             (->
