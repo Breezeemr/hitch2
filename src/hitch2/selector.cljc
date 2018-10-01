@@ -42,5 +42,5 @@
            (~'-imp-kind [~'_] :hitch.selector.kind/halting)
            hitch2.protocols.selector/HaltingImplementation
            (~'-get-halting-fn [~'sel]
-             ~impl-name)))
+             ~eval-fn-name)))
        ~(sel-constructor name impl-name record-field-names))))
