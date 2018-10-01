@@ -288,7 +288,8 @@
                 (machine-proto/-child-changes
                   parent
                   (-> graph-manager-value :graph-value)
-                  node-state
+                  (if node-state node-state
+                      (machine-proto/-initialize parent))
                   (-> graph-manager-value :children (get parent))
                   (-> graph-manager-value :parents (get parent))
                   (when added|removed
@@ -424,28 +425,29 @@
 (defn apply-command
   "Apply command to machine and then allow the graph to settle. Returns
   the new graph manager value."
-  [graph-manager-value selector command]
+  [graph-manager-value selector command disturbed-machines]
   (let [sel-impl   (selector-proto/-imp selector)
         sel-kind   (selector-proto/-imp-kind sel-impl)]
     (case sel-kind
       :hitch.selector.kind/machine
       (let [{:keys [graph-value parents children] :as initalized-graph}
             (ensure-machine-init graph-manager-value selector)]
+        (swap! disturbed-machines conj selector)
         (update-in initalized-graph [:node-state selector]
-          (fn [machine-state]
-            (machine-proto/-apply-command selector graph-value machine-state
-              children parents command))))
+                   (fn [machine-state]
+                     (machine-proto/-apply-command selector graph-value machine-state
+                                                   children parents command))))
       :hitch.selector.kind/var
-      (apply-command graph-manager-value (selector-proto/-get-machine sel-impl selector) command )
-      )))
+      (apply-command graph-manager-value (selector-proto/-get-machine sel-impl selector)
+                     command disturbed-machines))))
 
 (defn apply-commands
   "Apply command to machine and then allow the graph to settle. Returns
   the new graph manager value."
-  [graph-manager-value cmds]
+  [graph-manager-value cmds disturbed-machines]
   (reduce
     (fn [gmv [selector command]]
-      (apply-command gmv selector command))
+      (apply-command gmv selector command disturbed-machines))
     graph-manager-value
     cmds))
 
@@ -465,16 +467,17 @@
   g/GraphManagerSync
   (-transact! [graph-manager machine command]
     (let [disturbed-machines (atom #{})
-          _ (swap! state apply-command machine command)
-          _ (swap! state propagate-changes [machine] disturbed-machines)
+          ;; pass disturbed machines into apply commands
+          _ (swap! state apply-command machine command disturbed-machines)
+          ;; or look at disturbed machines and if they are vars, map
+          ;; them to their machines.
+          _ (swap! state propagate-changes @disturbed-machines disturbed-machines)
           new-graph-manager-value (swap! state apply-effects graph-manager @disturbed-machines)]
       (:graph-value new-graph-manager-value)))
   (-transact-commands! [graph-manager cmds]
     (let [disturbed-machines (atom #{})
-          _ (swap! state apply-commands cmds)
-          _ (swap! state propagate-changes
-              (into [] (map (comp to-machine first)) cmds)
-              disturbed-machines)
+          _ (swap! state apply-commands cmds disturbed-machines)
+          _ (swap! state propagate-changes @disturbed-machines disturbed-machines)
           new-graph-manager-value (swap! state apply-effects graph-manager @disturbed-machines)]
       (:graph-value new-graph-manager-value)))
   g/GraphManagerAsync

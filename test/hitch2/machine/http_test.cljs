@@ -5,6 +5,24 @@
             [hitch2.machine.mutable-var :refer  [mutable-var]]
             [hitch2.graph-manager.atom :as atom-gm]))
 
+(def url "http://dummy.restapiexample.com/api/v1/employees")
+(defn deserializer [payload]
+  (let [json (.parse js/JSON payload)]
+    (first json)))
+
+(defn http-call []
+  (http/http "http://dummy.restapiexample.com/api/v1/employees"
+             :get
+             nil
+             deserializer
+             nil nil nil))
+
+(defn assert-valid-http-call [done graph-name [status value :as result]]
+  (let [decoded (js->clj value)]
+    (is (and (map? decoded)
+             (seq decoded))
+        graph-name))
+  (done))
 
 (def gctors
   [["Atom graph: " (fn [] (atom-gm/make-gm))]])
@@ -15,16 +33,9 @@
       ;;(atom-gm/clear-trace!)
       (let [graph (gctor)]
         (async done
-               (graph/hook graph (fn [[status value :as result]]
-                                   (is (= result [:ok "cat\n"]) graph-name)
-                                   (done))
-                           http/http
-                           "http://dummy.restapiexample.com/api/v1/employees"
-                           :get
-                           nil
-                           (fn [payload] (let [json (.parse js/JSON payload)]
-                                           (first json)))
-                           nil nil nil)))))
+               (graph/hook graph
+                           (partial assert-valid-http-call done graph-name)
+                           http-call)))))
 
   (deftest simple-get-error
     (let [graph (gctor)]
@@ -34,7 +45,7 @@
                             (done))
           http/http "/DOES-NOT-EXIST" :get nil nil nil nil nil))))
 
-  (deftest simple-refresh
+  #_(deftest simple-refresh
     (testing "Additional http request is issued after a ::http/refresh command. (Must verify manually in dev console.)"
       (let [graph (gctor)
             sel   (http/http "/test.txt" :get nil nil nil nil nil)]

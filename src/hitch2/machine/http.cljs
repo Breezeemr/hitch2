@@ -19,7 +19,7 @@
   [gm {:keys [selector] :as effect}]
   (let [{:keys [url method serializer deserializer content headers withcreds]}
         (:a selector)
-        cb  (fn [response] (prn "got a response?") (prn response)
+        cb  (fn [response]
               (graph-proto/-transact! gm selector [::value selector response]))
         xhr (XhrIo.)]
     (when withcreds
@@ -37,7 +37,7 @@
            (clj->js headers))
     #(.dispose xhr)))
 
-(def initial-node (assoc machine-proto/initial-machine-state :state NOT-FOUND-SENTINEL))
+(def initial-node machine-proto/initial-machine-state)
 
 (def http-impl (reify
                  sel-proto/ImplementationKind
