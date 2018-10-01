@@ -33,8 +33,10 @@
 (def initial-node (assoc machine-proto/initial-node :state NOT-FOUND-SENTINEL))
 
 (def http-impl (reify
-                    sel-proto/ImplementationKind
-                    (-imp-kind [machine] :hitch.selector.kind/machine)))
+                 sel-proto/ImplementationKind
+                 (-imp-kind [machine] :hitch.selector.kind/machine)
+                 sel-proto/SelectorName
+                 (-sname [imp] "http machine")))
 
 (def http-machine
   (reify

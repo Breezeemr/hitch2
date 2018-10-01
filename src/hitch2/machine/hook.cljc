@@ -10,7 +10,9 @@
 
 (def impl (reify
             sel-proto/ImplementationKind
-            (-imp-kind [machine] :hitch.selector.kind/machine)))
+            (-imp-kind [machine] :hitch.selector.kind/machine)
+            sel-proto/SelectorName
+            (-sname [imp] ::hook)))
 
 (defn remove-called-hooks [state selectors]
   (reduce dissoc state selectors))
