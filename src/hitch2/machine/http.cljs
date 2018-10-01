@@ -39,7 +39,7 @@
 (def http-machine
   (reify
     sel-proto/SelectorImplementation
-    (-imp [machine-instance] machine-impl)
+    (-imp [machine-instance] http-impl)
     machine-proto/Init
     (-initialize [machine-instance] initial-node)
     machine-proto/ChildChanges
@@ -48,13 +48,8 @@
     machine-proto/Commandable
     (-apply-command [_ graph-value node children parents command]
       (case (nth command 0)
-        :set-value (let [[_ val] command]
-                     (-> node
-                         (assoc :state val)
-                         (update :reset-vars assoc (mutable-var ns) val)))
-        :clear (-> node
-                   (assoc :state NOT-FOUND-SENTINEL)
-                   (update :reset-vars assoc (mutable-var ns) NOT-FOUND-SENTINEL))))))
+        :set-value nil
+        :clear nil))))
 
 (def var-impl
   (reify
@@ -66,7 +61,7 @@
       http-machine)))
 
 (defn http [url method serializer deserializer content headers withcreds]
-  (sel-proto/Selector1 var-impl
+  (sel-proto/->Selector1 var-impl
     {:url          url
      :method       method
      :serializer   serializer
