@@ -37,7 +37,7 @@
            (clj->js headers))
     #(.dispose xhr)))
 
-(def initial-node (assoc machine-proto/initial-node :state NOT-FOUND-SENTINEL))
+(def initial-node (assoc machine-proto/initial-machine-state :state NOT-FOUND-SENTINEL))
 
 (def http-impl (reify
                  sel-proto/ImplementationKind

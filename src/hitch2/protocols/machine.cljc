@@ -8,15 +8,15 @@
 (s/def ::async-effects (s/coll-of any?))
 (s/def ::sync-effects (s/coll-of any?))
 
-(s/def ::node-state
+(s/def ::machine-state
   (s/keys :opt-un
     [::state ::change-parent ::reset-vars
      ::async-effects ::sync-effects]))
 
-(defrecord node-state [state change-parent reset-vars
+(defrecord machine-state [state change-parent reset-vars
                        async-effects sync-effects])
 
-(def initial-node (->node-state nil {} {} [] []))
+(def initial-machine-state (->machine-state nil {} {} [] []))
 
 (defprotocol Init
   (-initialize [machine-instance]))
@@ -25,7 +25,7 @@
   #?(:clj  Object
      :cljs default)
   (-initialize [machine-instance]
-    initial-node))
+    initial-machine-state))
 
 (defprotocol Deinit
   (-uninitialize [machine-instance ^node-state node]

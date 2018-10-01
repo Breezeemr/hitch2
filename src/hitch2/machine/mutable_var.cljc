@@ -5,7 +5,7 @@
             [hitch2.protocols.selector :as sel-proto]))
 
 (declare mutable-var)
-(def initial-node (assoc machine-proto/initial-node :state NOT-FOUND-SENTINEL))
+(def initial-node (assoc machine-proto/initial-machine-state :state NOT-FOUND-SENTINEL))
 
 (def machine-impl (reify
             sel-proto/ImplementationKind

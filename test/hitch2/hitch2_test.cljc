@@ -13,12 +13,12 @@
 (deftest dget-machine-test
   (let [node (machine-proto/-initialize pin-machine)
         sel {:s-name sel-impl}]
-    (is (= node (assoc machine-proto/initial-node :state #{})))
+    (is (= node (assoc machine-proto/initial-machine-state :state #{})))
     #_(let [node (machine-proto/-apply-command pin-machine
                   {}  node #{} #{}
                   [:dget-subscribe sel :target])
           [f s both] (diff/diff node
-                       (machine-proto/->node-state {sel #{:target}} {sel true} {} [] []))]
+                       (machine-proto/->machine-state {sel #{:target}} {sel true} {} [] []))]
       (is (nil? f))
       (is (nil? s)))
     ))

@@ -35,7 +35,7 @@
                       ::selector
                       (s/or
                         :machine-state
-                        :hitch2.protocols.machine/node-state
+                        ::machine-proto/machine-state
                         :derivation-state
                         ::derivation-state)))
 
@@ -373,13 +373,13 @@
 
 (s/fdef -apply-command
   :args (s/cat
-          :machine-state  :hitch2.protocols.machine/node-state
+          :machine-state  ::machine-proto/machine-state
           :machine any?
           :command vector?
           :graph-value ::graph-value
           :children (s/coll-of ::selector)
           :parents (s/coll-of ::selector))
-  :ret :hitch2.protocols.machine/node-state)
+  :ret ::machine-proto/machine-state)
 
 (defn remove-effects [node-state machines]
   (reduce
