@@ -1,0 +1,49 @@
+* selectors
+
+** http
+
+** another one
+
+** lifecycle methods
+
+have less than half. need to look in machines
+
+** make implementation of react manager
+
+** value deriver
+
+might be able to drop that off
+
+dget stuff
+
+but need basic dget support
+
+** decision points for meeting
+
+*** how do we want to do selectors
+
+want some benchmarks inside the graph. see if when using the graph do selectors even matter. before we were measuring just selectors but need to see it wholisticly.
+
+*** atom transient graph manager
+
+*** agent graph manager
+
+*** need graph benchmarker
+
+** logger
+
+add logger like francis did. good way to introduce to inside of the graph.
+
+"fast enough in the browser". server doesn't matter.
+
+** serialization
+
+what is the plan to serialize selectors (big decision point)
+
+1. what is representation
+2. how do we serialize precisely. vector, map, down in the details. transit at the bottom no matter what.
+
+** mandatory decisions
+
+1. serialization
+2. selector implementation
