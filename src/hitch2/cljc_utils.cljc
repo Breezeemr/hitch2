@@ -1,6 +1,6 @@
 (ns hitch2.cljc-utils
   #?(:cljs
-     (:require-macros [hitch.cljc-utils :refer [if-clj-target defsatisfies]])
+     (:require-macros [hitch2.cljc-utils :refer [if-clj-target defsatisfies]])
      :clj
      (:import (java.util.concurrent ConcurrentHashMap))))
 

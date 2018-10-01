@@ -1,5 +1,5 @@
 (ns hitch2.selector
-  #?(:cljs (:require-macros hitch.selector))
+  #?(:cljs (:require-macros hitch2.selector))
   (:require [hitch2.halt :as halt]
             [hitch2.protocols.selector :as selector-proto]))
 
