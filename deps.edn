@@ -1,21 +1,29 @@
 {:deps    {org.clojure/clojure       {:mvn/version "1.9.0"}
            org.clojure/clojurescript {:mvn/version "1.10.339"}}
  :paths   ["src" "resources" "src-java"]
- :aliases {:fig       {:extra-deps
+ :aliases {
+           ;; figwheel cljs dev
+           :fig       {:extra-deps
                        {com.bhauman/figwheel-main {:mvn/version "0.1.9"}
                         criterium                 {:mvn/version "0.4.4"}}
                        :extra-paths ["test" "target" "bench"]}
            :bench     {:extra-paths ["bench"]
                        :extra-deps  {criterium {:mvn/version "0.4.4"}}}
+
+           ;; raw repls
            :clj       {:extra-paths ["test"]}
-           :clj-test  {:extra-paths ["test"]
-                       :main-opts   ["-m" "hitch2.clojure-runner"]}
+           :cljs      {:main-opts ["-m cljs.main --repl"]}
            :clj-rebel {:extra-deps  {com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
                        :extra-paths ["test" "target"]
                        :main-opts   ["-m" "rebel-readline.main"]}
-           :cljs      {:main-opts ["-m cljs.main --repl"]}
+
+           ;; test runners
+           :test      {:extra-paths ["test"]
+                       :main-opts   ["-m" "hitch2.clojure-runner"]}
+           :cljs-test {:extra-paths ["test"]
+                       :extra-deps  {com.bhauman/figwheel-main {:mvn/version "0.1.9"}}
+                       :main-opts   ["-m" "figwheel.main" "-co" "test.cljs.edn" "-m" hitch2.test-runner]}
+
            :build     {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
            :min       {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]}
-           :test      {:extra-paths ["test"]
-                       :extra-deps {com.bhauman/figwheel-main {:mvn/version "0.1.9"}}
-                       :main-opts   ["-m" "figwheel.main" "-co" "test.cljs.edn" "-m" hitch2.test-runner]}}}
+           }}
