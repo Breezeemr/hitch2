@@ -440,19 +440,45 @@
     node-state
     machines))
 
+(defn finalize-tx [node-state graph-value graph-manager-value selector]
+  (machine-proto/-finalize selector
+    graph-value
+    node-state
+    (-> graph-manager-value :children (get selector))
+    (-> graph-manager-value :parents (get selector))
+    ))
+
+(defn assert-valid-finalized-node-state [{:keys [change-parent reset-vars]}]
+  (assert (empty? change-parent))
+  (assert (empty? reset-vars)))
 (defn apply-effects
   ""
   [graph-manager-value graph-manager disturbed-machines]
-  (let [node-state          (:node-state graph-manager-value)
+  (let [graph-value         (-> graph-manager-value :graph-value)
+        new-node-state      (reduce
+                              (fn [node-state selector]
+                                (let [old-state (get node-state selector)
+                                      new-state (finalize-tx
+                                                  old-state
+                                                  graph-value
+                                                  graph-manager-value
+                                                  selector)]
+                                  (assert-valid-finalized-node-state new-state)
+                                  (assoc
+                                    node-state
+                                    selector
+                                    new-state)))
+                              (:node-state graph-manager-value)
+                              disturbed-machines)
         sync-effects        (into []
                               (mapcat
                                 (fn [machine]
-                                  (get-in node-state [machine :sync-effects])))
+                                  (get-in new-node-state [machine :sync-effects])))
                               disturbed-machines)
         async-effects       (into []
                               (mapcat
                                 (fn [machine]
-                                  (get-in node-state [machine :async-effects])))
+                                  (get-in new-node-state [machine :async-effects])))
                               disturbed-machines)
         graph-manager-value (update graph-manager-value :node-state remove-effects disturbed-machines)]
     (run! (fn [effect] (g/run-effect graph-manager effect)) sync-effects)
