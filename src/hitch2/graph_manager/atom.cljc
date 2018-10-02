@@ -101,22 +101,22 @@
                    worklist-atom
                    dirty-machines]
   (let [old-value (get-in graph-manager-value [:graph-value selector] NOT-FOUND-SENTINEL)
-        old-deps  (get-in graph-manager-value [:parents selector])
+        old-deps  (get-in graph-manager-value [:parents selector] #{})
         tx-manager (halting-tx/halting-manager (:graph-value graph-manager-value))
         new-value (halt/maybe-halt
              (selector-proto/-invoke-halting selector h-fn tx-manager)
              NOT-FOUND-SENTINEL)
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (and (not= new-value old-value) (not (identical? new-value NOT-FOUND-SENTINEL)))
-        added-deps       (into [] (remove old-deps) deps)
-        change-parent (-> []
+        added-deps       (into #{} (remove old-deps) deps)
+        change-parent (-> {}
                            (into (map (fn [dep]
-                                        [selector dep true]))
+                                        [dep true]))
                              added-deps)
                            (into (comp (remove deps)
                                    (map (fn [dep]
-                                          [selector dep false])))
-                             old-deps))]
+                                          [dep false])))
+                                 old-deps))]
     (when value-changed?
       (swap! worklist-atom conj selector))
     (cond-> (assoc-in
@@ -198,7 +198,7 @@
           :hitch.selector.kind/halting
           (let [{:keys [waiting] :as node-state}
                 (-> (get-in graph-manager-value [:node-state selector] NOT-FOUND-SENTINEL)
-                    (update :waiting disj selector))]
+                    (update :waiting disj parent))]
             (assert (not= node-state NOT-FOUND-SENTINEL))
             (if (empty? waiting)
               (let [graph-manager-value (run-halting
@@ -209,7 +209,7 @@
                                           worklist-atom
                                           dirty-machines)]
                 graph-manager-value)
-              graph-manager-value)))))
+              (assoc-in graph-manager-value [:node-state selector] node-state))))))
     graph-manager-value
     (get-in graph-manager-value [:children parent])))
 
