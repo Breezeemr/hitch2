@@ -392,7 +392,7 @@
 
                        (swap! worklist-atom conj parent)
                        graph-manager-value)
-                     (not added|removed))
+                     graph-manager-value)
               false (if-some [parents (not-empty (get-in graph-manager-value [:parents parent]))]
                       graph-manager-value
                       (if-some [children (not-empty (get-in graph-manager-value [:children parent]))]
