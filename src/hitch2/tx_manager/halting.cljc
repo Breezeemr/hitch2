@@ -7,7 +7,7 @@
                                         :default ^:unsynchronized-mutable requests)]
   tx-manager/IDependTrack
   (dget-sel!  [this data-selector nf]
-    (set! requests (conj! requests))
+    (set! requests (conj! requests data-selector))
     (get graph-value data-selector nf))
   (finish-tx! [this]
     (let [reqs (persistent! requests)]
