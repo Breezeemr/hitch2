@@ -226,6 +226,7 @@
           (when (not-empty reset-vars)
             (swap! worklist-atom conj selector))
           (when *trace* (record! [:node-changes :machine (selector-proto/-sname sel-impl)
+                                  selector
                                   node-state]))
           (cond-> graph-manager-value
             (not-empty change-parent)
@@ -243,7 +244,8 @@
         :hitch.selector.kind/var
         (let [{:keys [value-changed?]}
               node-state]
-          (when *trace* (record! [:node-changes :var (selector-proto/-sname sel-impl)]))
+          (when *trace* (record! [:node-changes :var (selector-proto/-sname sel-impl)
+                                  selector]))
           (cond-> graph-manager-value
             value-changed?
             (->
@@ -254,6 +256,10 @@
         :hitch.selector.kind/halting
         (let [{:keys [value-changed? change-parent]}
               node-state]
+          (when *trace*
+            (record! [:node-changes :halting (selector-proto/-sname sel-impl)
+                      selector (-> graph-manager-value :graph-value (get selector))])
+                )
           (cond-> graph-manager-value
             (not-empty change-parent)
             (->
@@ -342,6 +348,9 @@
                     (not-empty sync-effects)
                     (not-empty async-effects))
               (swap! worklist-atom conj parent))
+            (when *trace*
+              (record! [:child-change :machine
+                        (selector-proto/-sname sel-impl)]))
             (cond->
               (assoc-in graph-manager-value
                 [:node-state parent]
@@ -351,6 +360,9 @@
               (propagate-dependency-changes  parent new-change-parent worklist-atom dirty-machines)))
           :hitch.selector.kind/var
           (let [machine (selector-proto/-get-machine sel-impl parent)]
+            (when *trace*
+              (record! [:child-change :var
+                        (selector-proto/-sname sel-impl)]))
             (case added|removed
               true (if (get-in graph-manager-value [:parents parent machine])
                      graph-manager-value
@@ -362,6 +374,11 @@
                           (propagate-dependency-changes parent {machine false} worklist-atom dirty-machines)))))
           :hitch.selector.kind/halting
           (let [node-state (get-in graph-manager-value [:node-state parent] NOT-FOUND-SENTINEL)]
+            (when *trace*
+              (record! [:child-change :halting
+                        (selector-proto/-sname sel-impl)
+                        child
+                        parent]))
             (case added|removed
               true (if (= node-state NOT-FOUND-SENTINEL)
                      (let [graph-manager-value (run-halting
