@@ -23,10 +23,7 @@
               n-2 (api/select! G fibb-graph (dec (dec n)))]
           (+ @n-1 @n-2))))
 
-
-
-
-(defn do-it [n]
+(defn fib-bench [n]
   (binding [atom-gm/*trace* true]
     (atom-gm/clear-trace!)
     (let [g (atom-gm/make-gm)]
