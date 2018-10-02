@@ -153,18 +153,26 @@
             node-state (get-in graph-manager-value [:node-state selector])]
         (case sel-kind
           :hitch.selector.kind/machine
-          (let [{:keys [sync-effects async-effects]
+          (let [inited-for-tx? (get @dirty-machines selector)
+                graph-value    (-> graph-manager-value :graph-value)
+                children       (-> graph-manager-value :children (get selector))
+                parents        (-> graph-manager-value :parents (get selector))
+                {:keys [sync-effects async-effects]
                  new-reset-vars     :reset-vars
                  new-change-parent :change-parent
                  :as                new-node-state}
                 (machine-proto/-parent-value-changes
                   selector
                   (-> graph-manager-value :graph-value)
-                  node-state
-                  (-> graph-manager-value :children (get selector))
-                  (-> graph-manager-value :parents (get selector))
+                  (if inited-for-tx?
+                    node-state
+                    (machine-proto/-init-tx selector graph-value node-state children parents))
+                  children
+                  parents
                   #{parent})]
             (s/assert ::machine-proto/machine-state new-node-state)
+            (when-not inited-for-tx?
+              (swap! dirty-machines conj selector))
             (when (or (not-empty new-reset-vars)
                     (not-empty sync-effects)
                     (not-empty async-effects))
@@ -204,16 +212,9 @@
           node-state (get-in graph-manager-value [:node-state selector])]
       (case sel-kind
         :hitch.selector.kind/machine
-        (let [{:keys [change-parent reset-vars
-                      sync-effects async-effects]}
+        (let [{:keys [change-parent reset-vars]}
               node-state]
           (s/assert ::machine-proto/machine-state node-state)
-          (when (or
-                (not-empty sync-effects)
-                (not-empty async-effects))
-            (swap! dirty-machines conj selector)
-            ;(swap! dirty-machines disj selector)
-            )
           (when (not-empty reset-vars)
             (swap! worklist-atom conj selector))
           (when *trace* (record! [:node-changes :machine (selector-proto/-sname sel-impl)
@@ -285,22 +286,36 @@
             node-state (get-in graph-manager-value [:node-state parent])]
         (case sel-kind
           :hitch.selector.kind/machine
-          (let [{:keys [sync-effects async-effects]
+          (let [inited-for-tx? (get @dirty-machines parent)
+                inited-node-state (if node-state
+                                    node-state
+                                    (machine-proto/-initialize parent))
+                graph-value        (-> graph-manager-value :graph-value)
+                children           (-> graph-manager-value :children (get parent))
+                parents            (-> graph-manager-value :parents (get parent))
+                tx-inited-node-state (if inited-for-tx?
+                                       node-state
+                                       (machine-proto/-init-tx parent graph-value
+                                         inited-node-state
+                                         children
+                                         parents))
+                {:keys [sync-effects async-effects]
                  new-change-parent :change-parent
                  reset-vars         :reset-vars
                  :as                new-node-state}
                 (machine-proto/-child-changes
                   parent
-                  (-> graph-manager-value :graph-value)
-                  (if node-state node-state
-                      (machine-proto/-initialize parent))
-                  (-> graph-manager-value :children (get parent))
-                  (-> graph-manager-value :parents (get parent))
+                  graph-value
+                  tx-inited-node-state
+                  children
+                  parents
                   (when added|removed
                     #{child})
                   (when (not added|removed)
                     #{child}))]
             (s/assert ::machine-proto/machine-state new-node-state)
+            (when-not inited-for-tx?
+              (swap! dirty-machines conj parent))
             (when (or (not-empty reset-vars)
                     (not-empty sync-effects)
                     (not-empty async-effects))
@@ -437,9 +452,23 @@
         sel-kind   (selector-proto/-imp-kind sel-impl)]
     (case sel-kind
       :hitch.selector.kind/machine
-      (let [{:keys [graph-value parents children] :as initalized-graph}
-            (ensure-machine-init graph-manager-value selector)]
-        (swap! disturbed-machines conj selector)
+      (let [inited-for-tx? (get @disturbed-machines selector)
+            inited-node-state (ensure-machine-init graph-manager-value selector)
+            graph-value        (-> graph-manager-value :graph-value)
+            children           (-> graph-manager-value :children (get selector))
+            parents            (-> graph-manager-value :parents (get selector))
+            tx-itited-node-state (if inited-for-tx?
+                                   inited-node-state
+                                   (machine-proto/-init-tx
+                                     selector
+                                     graph-value
+                                     inited-node-state
+                                     children
+                                     parents))
+            {:keys [graph-value parents children] :as initalized-graph}
+            tx-itited-node-state]
+        (when-not inited-for-tx?
+          (swap! disturbed-machines conj selector))
         (update-in initalized-graph [:node-state selector]
                    (fn [machine-state]
                      (machine-proto/-apply-command selector graph-value machine-state
