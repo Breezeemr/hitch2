@@ -8,8 +8,10 @@
 (def initial-node (assoc machine-proto/initial-machine-state :state NOT-FOUND-SENTINEL))
 
 (def machine-impl (reify
-            sel-proto/ImplementationKind
-            (-imp-kind [machine] :hitch.selector.kind/machine)))
+                    sel-proto/ImplementationKind
+                    (-imp-kind [machine] :hitch.selector.kind/machine)
+                    sel-proto/SelectorName
+                    (-sname [imp] "mutable var machine")))
 
 (defrecord mutable-machine [ns]
   sel-proto/SelectorImplementation
@@ -37,7 +39,9 @@
       :hitch.selector.kind/var)
     sel-proto/GetMachine
     (-get-machine [var sel]
-      (->mutable-machine (:a sel)))))
+      (->mutable-machine (:a sel)))
+    sel-proto/SelectorName
+    (-sname [imp] "mutable var")))
 
 (defn mutable-var [var-name]
   (sel-proto/->Selector1 var-impl var-name))
