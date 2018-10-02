@@ -274,17 +274,43 @@
           :dirty-list (s/coll-of ::selectors))
   :ret ::graph-manager-value)
 
-(defn propagate-changes [graph-manager-value work-list dirty-machines]
+(defn flush-tx [node-state graph-manager-value selector]
+  (machine-proto/-flush-tx
+    selector
+    (:graph-value graph-manager-value)
+    node-state
+    (-> graph-manager-value :children (get selector))
+    (-> graph-manager-value :parents (get selector))))
+
+(defn flush-worklist [graph-manager-value dirty-machines-snapshot flush-worklist-atom]
+  (reduce
+    (fn [graph-manager-value machine]
+      (let [old-node-state (get-in graph-manager-value [:node-state machine])
+            new-node-sate  (flush-tx old-node-state graph-manager-value machine)]
+        (if (= old-node-state new-node-sate)
+          graph-manager-value
+          (do (swap! flush-worklist-atom conj machine)
+            (assoc-in graph-manager-value [:node-state machine] new-node-sate)))))
+    graph-manager-value
+    dirty-machines-snapshot))
+
+(defn propagate-changes [graph-manager-value work-list dirty-machines recursion-limit]
   (let [new-work-list-atom (atom [])
-        new-graph-manager-value (reduce
+        graph-manager-value (reduce
                                   (propagate-node-changes
                                     new-work-list-atom
                                     dirty-machines)
                                   graph-manager-value
                                   work-list)]
+    (assert (not (zero? recursion-limit)))
     (if-some [new-work-list (not-empty @new-work-list-atom)]
-      (recur new-graph-manager-value new-work-list dirty-machines)
-      new-graph-manager-value)))
+      (recur graph-manager-value new-work-list dirty-machines (dec recursion-limit))
+      (let [dirty-machines-snapshot @dirty-machines
+            flush-worklist-atom (atom #{})
+            graph-manager-value (flush-worklist graph-manager-value dirty-machines-snapshot flush-worklist-atom)]
+        (if-some [flush-worklist (not-empty @flush-worklist-atom)]
+          (recur graph-manager-value flush-worklist dirty-machines (dec recursion-limit))
+          graph-manager-value)))))
 
 (defn apply-child-change-commands [graph-manager-value child changes worklist-atom dirty-machines]
   (reduce-kv
@@ -480,6 +506,7 @@
       selector
       :hitch.selector.kind/var
       (selector-proto/-get-machine sel-impl selector))))
+(def recursion-limit 1000000)
 
 (deftype gm [state]
   g/Snapshot
@@ -492,13 +519,13 @@
           _ (swap! state apply-command machine command disturbed-machines)
           ;; or look at disturbed machines and if they are vars, map
           ;; them to their machines.
-          _ (swap! state propagate-changes @disturbed-machines disturbed-machines)
+          _ (swap! state propagate-changes @disturbed-machines disturbed-machines recursion-limit)
           new-graph-manager-value (swap! state apply-effects graph-manager @disturbed-machines)]
       (:graph-value new-graph-manager-value)))
   (-transact-commands! [graph-manager cmds]
     (let [disturbed-machines (atom #{})
           _ (swap! state apply-commands cmds disturbed-machines)
-          _ (swap! state propagate-changes @disturbed-machines disturbed-machines)
+          _ (swap! state propagate-changes @disturbed-machines disturbed-machines recursion-limit)
           new-graph-manager-value (swap! state apply-effects graph-manager @disturbed-machines)]
       (:graph-value new-graph-manager-value)))
   g/GraphManagerAsync
