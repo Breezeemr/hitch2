@@ -39,31 +39,32 @@
 
 (def initial-node machine-proto/initial-machine-state)
 
-(def http-impl (reify
-                 sel-proto/ImplementationKind
-                 (-imp-kind [machine] :hitch.selector.kind/machine)
-                 sel-proto/SelectorName
-                 (-sname [imp] "http machine")))
+(def http-impl
+  (reify
+    sel-proto/ImplementationKind
+    (-imp-kind [machine] :hitch.selector.kind/machine)
+    sel-proto/SelectorName
+    (-sname [imp] "http machine")
+    machine-proto/Init
+    (-initialize [machine-instance machine-selector] initial-node)
+    machine-proto/ChildChanges
+    (-child-changes [machine-instance machine-selector graph-value node children parents children-added children-removed]
+      (update node :async-effects into (map (fn [child] {:type     ::request
+                                                         :selector child})
+                                         children-added)))
+    machine-proto/Commandable
+    (-apply-command [_ machine-selector graph-value node children parents command]
+      (case (nth command 0)
+        ::value (let [[_ selector response] command]
+                  (assoc-in node [:reset-vars selector] response))
+        ::refresh (let [[_ selector] command]
+                    (update node :async-effects conj {:type     ::request
+                                                      :selector selector}))))))
 
 (def http-machine
   (reify
     sel-proto/SelectorImplementation
-    (-imp [machine-instance] http-impl)
-    machine-proto/Init
-    (-initialize [machine-instance] initial-node)
-    machine-proto/ChildChanges
-    (-child-changes [machine-instance graph-value node children parents children-added children-removed]
-      (update node :async-effects into (map (fn [child] {:type     ::request
-                                                         :selector child})
-                                            children-added)))
-    machine-proto/Commandable
-    (-apply-command [_ graph-value node children parents command]
-      (case (nth command 0)
-        ::value   (let [[_ selector response] command]
-                    (assoc-in node [:reset-vars selector] response))
-        ::refresh (let [[_ selector] command]
-                    (update node :async-effects conj {:type     ::request
-                                                      :selector selector}))))))
+    (-imp [machine-instance] http-impl)))
 
 (def var-impl
   (reify

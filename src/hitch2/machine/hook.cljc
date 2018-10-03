@@ -8,36 +8,32 @@
                        async-effects sync-effects])
 (def initial-node (assoc machine-proto/initial-machine-state :state {}))
 
-(def impl (reify
-            sel-proto/ImplementationKind
-            (-imp-kind [machine] :hitch.selector.kind/machine)
-            sel-proto/SelectorName
-            (-sname [imp] ::hook)))
-
 (defn remove-called-hooks [state selectors]
   (reduce dissoc state selectors))
 
-(def hook-machine
+(def hook-impl
   (reify
-    sel-proto/SelectorImplementation
-    (-imp [machine-instance] impl)
+    sel-proto/ImplementationKind
+    (-imp-kind [machine] :hitch.selector.kind/machine)
+    sel-proto/SelectorName
+    (-sname [imp] ::hook)
     machine-proto/Init
-    (-initialize [machine-instance] initial-node)
+    (-initialize [machine-instance machine-selector] initial-node)
     machine-proto/ParentChanges
-    (-parent-value-changes [_ graph-value node children parents parent-selectors]
+    (-parent-value-changes [_ machine-selector graph-value node children parents parent-selectors]
       (let [selector->targets (:state node)]
         (-> node
             (update :async-effects
               into
               (mapcat (fn [selector]
                         (for [target (seq (selector->targets selector))]
-                          {:type   :hook-call
-                           :target target
+                          {:type     :hook-call
+                           :target   target
                            :selector selector})))
               parent-selectors)
             (update :state remove-called-hooks parent-selectors))))
     machine-proto/Commandable
-    (-apply-command [_ graph-value node children parents command]
+    (-apply-command [_ machine-selector graph-value node children parents command]
       (case (nth command 0)
         :hook-subscribe
         (let [[_ selector target] command]
@@ -49,28 +45,35 @@
           (let [new-node (update-in node [:state selector] (fnil disj #{}) target)]
             (if (not-empty (get-in new-node [:state selector]))
               new-node
-              (update  new-node :change-parent assoc selector false))))))))
+              (update new-node :change-parent assoc selector false))))))))
 
-(def hook-change-machine
+(def hook-machine
   (reify
     sel-proto/SelectorImplementation
-    (-imp [machine-instance] impl)
+    (-imp [machine-instance ] hook-impl)))
+
+(def hook-change-impl
+  (reify
+    sel-proto/ImplementationKind
+    (-imp-kind [machine] :hitch.selector.kind/machine)
+    sel-proto/SelectorName
+    (-sname [imp] ::hook)
     machine-proto/Init
-    (-initialize [machine-instance] initial-node)
+    (-initialize [machine-instance machine-selector] initial-node)
     machine-proto/ParentChanges
-    (-parent-value-changes [_ graph-value node children parents parent-selectors]
+    (-parent-value-changes [_ machine-selector graph-value node children parents parent-selectors]
       (let [selector->targets (:state node)]
         (-> node
             (update :async-effects
               into
               (mapcat (fn [selector]
                         (for [target (seq (selector->targets selector))]
-                          {:type   :hook-changes-call
-                           :target target
+                          {:type     :hook-changes-call
+                           :target   target
                            :selector selector})))
               parent-selectors))))
     machine-proto/Commandable
-    (-apply-command [_ graph-value node children parents command]
+    (-apply-command [_ machine-selector graph-value node children parents command]
       (case (nth command 0)
         :hook-change-subscribe
         (let [[_ selector target] command
@@ -80,15 +83,20 @@
                 (update-in [:state selector] (fnil conj #{}) target)
                 (update :change-parent assoc selector true))
             (not (identical? current-selector-value NOT-FOUND-SENTINEL))
-            (update :sync-effects conj {:type   :hook-changes-call
-                                 :target target
-                                 :selector selector})))
+            (update :sync-effects conj {:type     :hook-changes-call
+                                        :target   target
+                                        :selector selector})))
         :hook-change-unsubscribe
         (let [[_ selector target] command]
           (let [new-node (update-in node [:state selector] disj target)]
             (if (not-empty (get-in new-node [:state selector]))
               new-node
               (update new-node :change-parent assoc selector false))))))))
+
+(def hook-change-machine
+  (reify
+    sel-proto/SelectorImplementation
+    (-imp [machine-instance] hook-change-impl)))
 
 (defmethod graph-proto/run-effect :hook-call [graph-manager
                                               {:as effect

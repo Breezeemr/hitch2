@@ -65,10 +65,10 @@
   (-> graph-manager-value :graph-value))
 
 
-(defn init-machine [node-state machine]
+(defn init-machine [node-state selector]
   (let [machine-state (if node-state
                         node-state
-                        (machine-proto/-initialize machine))]
+                        (machine-proto/-initialize (selector-proto/-imp selector) selector))]
     (s/assert ::machine-proto/machine-state machine-state)
     machine-state))
 
@@ -82,6 +82,7 @@
     (do
       (add-to-working-set disturbed-machines selector)
       (machine-proto/-init-tx
+        (selector-proto/-imp selector)
           selector
           (get-graph-value graph-manager-value)
           node-state
@@ -186,6 +187,7 @@
                  new-change-parent :change-parent
                  :as                new-node-state}
                 (machine-proto/-parent-value-changes
+                  sel-impl
                   selector
                   graph-value
                   (ensure-inits node-state graph-manager-value selector dirty-machines)
@@ -296,6 +298,7 @@
 
 (defn flush-tx [node-state graph-manager-value selector]
   (machine-proto/-flush-tx
+    (selector-proto/-imp selector)
     selector
     (:graph-value graph-manager-value)
     node-state
@@ -349,6 +352,7 @@
                  reset-vars         :reset-vars
                  :as                new-node-state}
                 (machine-proto/-child-changes
+                  sel-impl
                   parent
                   graph-value
                   (ensure-inits node-state graph-manager-value parent dirty-machines)
@@ -473,7 +477,9 @@
     machines))
 
 (defn finalize-tx [node-state graph-value graph-manager-value selector]
-  (machine-proto/-finalize selector
+  (machine-proto/-finalize
+    (selector-proto/-imp selector)
+    selector
     graph-value
     node-state
     (get-children graph-manager-value selector)
@@ -546,6 +552,7 @@
             parents            (get-parents graph-manager-value selector)]
         (assoc-in graph-manager-value [:node-state selector]
           (machine-proto/-apply-command
+            sel-impl
             selector
             graph-value
             (ensure-inits node-state graph-manager-value selector disturbed-machines)

@@ -3,28 +3,23 @@
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.protocols.selector :as sel-proto]))
 
-(defrecord node-state [state change-parent reset-vars
-                       async-effects sync-effects])
 (def initial-node (assoc machine-proto/initial-machine-state :state #{}))
 
-(def impl (reify
-            sel-proto/ImplementationKind
-            (-imp-kind [machine] :hitch.selector.kind/machine)))
-
-(def pin-machine
+(def impl
   (reify
-    sel-proto/SelectorImplementation
-    (-imp [machine-instance] impl)
+    sel-proto/ImplementationKind
+    (-imp-kind [machine] :hitch.selector.kind/machine)
     machine-proto/Init
-    (-initialize [machine-instance] initial-node)
+    (-initialize [machine-instance machine-selector]
+      initial-node)
     machine-proto/ParentChanges
-    (-parent-value-changes [_ graph-value node children parents parent-selectors]
+    (-parent-value-changes [_ machine-selector graph-value node children parents parent-selectors]
       node)
     machine-proto/Commandable
-    (-apply-command [_ graph-value node children parents command]
+    (-apply-command [_ machine-selector graph-value node children parents command]
       (case (nth command 0)
         :pin
-        (let [[_ selector ] command
+        (let [[_ selector] command
               there? (get-in node [:state selector])]
           (if there?
             node
@@ -39,4 +34,9 @@
                 (update :state disj selector)
                 (update :change-parent assoc selector false))
             node))))))
+
+(def pin-machine
+  (reify
+    sel-proto/SelectorImplementation
+    (-imp [machine-instance] impl)))
 

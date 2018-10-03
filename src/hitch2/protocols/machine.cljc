@@ -20,60 +20,60 @@
 
 ;; ability to supply initial state
 (defprotocol Init
-  (-initialize [machine-instance]))
+  (-initialize [machine-instance machine-selector]))
 
 (extend-protocol Init
   #?(:clj  Object
      :cljs default)
-  (-initialize [machine-instance]
+  (-initialize [machine-instance machine-selector]
     initial-machine-state))
 
 ;; have handles to stateful objects. for instance, if you get
 ;; deinitted, need to cancel the existing xhr's that are in flight.
 (defprotocol Deinit
-  (-uninitialize [machine-instance ^machine-state node]
+  (-uninitialize [machine-instance machine-selector ^machine-state node]
     node))
 
 (extend-protocol Deinit
   #?(:clj  Object
      :cljs default)
-  (-uninitialize [machine-instance ^machine-state node]
+  (-uninitialize [machine-instance machine-selector ^machine-state node]
     nil))
 
 ;; people depending on this machine changed
 (defprotocol ChildChanges
-  (-child-changes [machine-instance graph-value ^machine-state node children parents children-added children-removed]))
+  (-child-changes [machine-instance machine-selector graph-value ^machine-state node children parents children-added children-removed]))
 
 ;; things you depended on value's changed
 (defprotocol ParentChanges
-  (-parent-value-changes [machine-instance graph-value ^machine-state node children parents parent-selectors]))
+  (-parent-value-changes [machine-instance machine-selector graph-value ^machine-state node children parents parent-selectors]))
 (defprotocol Commandable
-  (-apply-command [machine-instance graph-value ^machine-state node children parents command]))
+  (-apply-command [machine-instance machine-selector graph-value ^machine-state node children parents command]))
 
 ;; batching use cases (really wanted on the server). any time in this tx
 (defprotocol InitForTX
-  (-init-tx [machine-instance graph-value ^machine-state node children parents]))
+  (-init-tx [machine-instance machine-selector graph-value ^machine-state node children parents]))
 
 (extend-protocol InitForTX
   #?(:clj  Object
      :cljs default)
-  (-init-tx [machine-instance graph-value ^machine-state node children parents]
+  (-init-tx [machine-instance machine-selector graph-value ^machine-state node children parents]
     node))
 
 (defprotocol FlushForTX
-  (-flush-tx [machine-instance graph-value ^machine-state node children parents]))
+  (-flush-tx [machine-instance machine-selector graph-value ^machine-state node children parents]))
 
 (extend-protocol FlushForTX
   #?(:clj  Object
      :cljs default)
-  (-flush-tx [machine-instance graph-value ^machine-state node children parents]
+  (-flush-tx [machine-instance machine-selector graph-value ^machine-state node children parents]
     node))
 
 (defprotocol FinalizeForTX
-  (-finalize [machine-instance graph-value ^machine-state node children parents]))
+  (-finalize [machine-instance machine-selector graph-value ^machine-state node children parents]))
 
 (extend-protocol FinalizeForTX
   #?(:clj  Object
      :cljs default)
-  (-finalize [machine-instance graph-value ^machine-state node children parents]
+  (-finalize [machine-instance machine-selector graph-value ^machine-state node children parents]
     node))

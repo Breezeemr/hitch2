@@ -4,6 +4,7 @@
          :clj [clojure.test :refer [deftest is testing]])
       [hitch2.machine.pin :refer [pin-machine]]
       [hitch2.protocols.machine :as machine-proto]
+      [hitch2.protocols.selector :as selector-proto]
       [clojure.data :as diff]))
 
 (def sel-impl {:s-name :hi
@@ -11,8 +12,8 @@
                :halting (fn [g sel] :hi)})
 
 (deftest dget-machine-test
-  (let [node (machine-proto/-initialize pin-machine)
-        sel {:s-name sel-impl}]
+  (let [impl (selector-proto/-imp pin-machine)
+        node (machine-proto/-initialize impl pin-machine)]
     (is (= node (assoc machine-proto/initial-machine-state :state #{})))
     #_(let [node (machine-proto/-apply-command pin-machine
                   {}  node #{} #{}

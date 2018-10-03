@@ -16,12 +16,12 @@
     sel-proto/ImplementationKind
     (-imp-kind [_machine] :hitch.selector.kind/machine)
     machine-proto/Init
-    (-initialize [_machine] initial-node)
+    (-initialize [_machine machine-selector] initial-node)
     machine-proto/ParentChanges
-    (-parent-value-changes [_ g-v node children parents parent-selectors]
+    (-parent-value-changes [_ machine-selector g-v node children parents parent-selectors]
       (swap! state update :parent-changes (fnil conj #{}) parent-selectors))
     machine-proto/Commandable
-    (-apply-command [_ graph-value node children parents command]
+    (-apply-command [_ machine-selector graph-value node children parents command]
       )))
 
 (deftest atom-tests
