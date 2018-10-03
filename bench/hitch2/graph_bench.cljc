@@ -105,9 +105,9 @@
        :clj  (bench (api/apply-commands g [[machine-sel [:set-value (rand-int 54)]]])))))
 
 (defn -main []
-  (deep-value-change-bench  "deep-value-change-bench-record" (depends-on 100))
-  (deep-value-change-bench  "deep-value-change-bench-map" {:impl depends-on-map-impl
+  #_(deep-value-change-bench  "deep-value-change-bench-record" (depends-on 100))
+  #_(deep-value-change-bench  "deep-value-change-bench-map" {:impl depends-on-map-impl
                                                            :n 100})
-  #_(fib-bench "fib-record" (fn [] (fibb-graph 30)))
-  #_(fib-bench "fib-map" (fn [] {:impl fibimpl
+  (fib-bench "fib-record" (fn [] (fibb-graph 30)))
+  (fib-bench "fib-map" (fn [] {:impl fibimpl
                                :n    30})))
