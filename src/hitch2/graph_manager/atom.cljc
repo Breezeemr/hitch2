@@ -9,7 +9,7 @@
              [hitch2.halt :as halt]))
 
 
-(defrecord graph-manager-value [graph-value
+(defrecord GraphManagerValue [graph-value
                                 node-state
                                 parents
                                 children ])
@@ -594,7 +594,7 @@
   )
 
 (defn make-gm []
-  (->gm (atom (->graph-manager-value
+  (->gm (atom (->GraphManagerValue
                 {}
                 {}
                 {}
