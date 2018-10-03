@@ -13,8 +13,36 @@ Should be a keyword for dispatching. Values are from:
 :hitch.selector.kind/sentinel
 :hitch.selector.kind/halting"))
 
+(extend-protocol ImplementationKind
+  #?@(:cljs
+      [cljs.core/PersistentHashMap
+       (-imp-kind [impl]
+         (:kind impl))
+       cljs.core/PersistentArrayMap
+       (-imp-kind [impl]
+         (:kind impl))]
+      :clj
+      ;; todo probably missing another map type
+      [clojure.lang.PersistentArrayMap
+       (-imp-kind [impl]
+         (:kind impl))]))
+
 (defprotocol HaltingImplementation
   (-get-halting-fn [imp]))
+
+(extend-protocol HaltingImplementation
+  #?@(:cljs
+      [cljs.core/PersistentHashMap
+       (-get-halting-fn [impl]
+         (:halting impl))
+       cljs.core/PersistentArrayMap
+       (-get-halting-fn [impl]
+         (:halting impl))]
+      :clj
+      ;; todo probably missing another map type
+      [clojure.lang.PersistentArrayMap
+       (-get-halting-fn [impl]
+         (:halting impl))]))
 
 (defprotocol SentinelImplementation
   (-get-sentinel-fn [imp]))
