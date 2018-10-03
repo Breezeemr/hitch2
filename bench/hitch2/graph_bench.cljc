@@ -35,7 +35,7 @@
 (def fibimpl {:kind :hitch.selector.kind/halting
            :halting fibmap})
 
-
+(reg/def-registered-selector fib-x ::fibmap fibimpl)
 (declare fibb-graph)
 
 (sel/defselector fibb-graph [G n]
@@ -111,5 +111,5 @@
   #_(deep-value-change-bench  "deep-value-change-bench-map" {:selector-name depends-on-map-impl
                                                            :n 100})
   (fib-bench "fib-record" (fn [] (fibb-graph 30)))
-  (fib-bench "fib-map" (fn [] {:selector-name fibimpl
+  (fib-bench "fib-map" (fn [] {:selector-name fib-x
                                :n    30})))
