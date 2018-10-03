@@ -72,11 +72,15 @@
     (s/assert ::machine-proto/machine-state machine-state)
     machine-state))
 
+(defn- add-to-working-set [working-set selector]
+  (vswap! working-set conj! selector)
+  nil)
+
 (defn tx-init-machine [node-state graph-manager-value selector disturbed-machines]
   (if (contains? @disturbed-machines selector)
     node-state
     (do
-      (swap! disturbed-machines conj selector)
+      (add-to-working-set disturbed-machines selector)
       (machine-proto/-init-tx
           selector
           (get-graph-value graph-manager-value)
@@ -101,7 +105,7 @@
                          (assoc-in [:node-state sel] (->var-state true))
                          (update :graph-value dissoc sel))
                      (do
-                       (swap! worklist-atom conj sel)
+                       (add-to-working-set worklist-atom sel)
                        (-> gv
                            (assoc-in [:node-state sel :value-changed?] true)
                            (assoc-in [:graph-value sel] value))
@@ -133,7 +137,7 @@
                                           [dep false])))
                                  old-deps))]
     (when value-changed?
-      (swap! worklist-atom conj selector))
+      (add-to-working-set worklist-atom selector))
     (cond-> (assoc-in
               graph-manager-value
               [:node-state selector]
@@ -166,13 +170,6 @@
       (dissoc x k))
     x))
 
-(defn remove-all [items to-remove]
-  (persistent!
-    (reduce
-      disj!
-      (transient items)
-      to-remove)))
-
 (defn propagate-value-changes [graph-manager-value parent worklist-atom dirty-machines]
   (reduce
     (fn [graph-manager-value selector]
@@ -199,7 +196,7 @@
             (when (or (not-empty new-reset-vars)
                     (not-empty sync-effects)
                     (not-empty async-effects))
-              (swap! worklist-atom conj selector))
+              (add-to-working-set worklist-atom selector))
             (cond-> (assoc-in graph-manager-value
                       [:node-state selector]
                       new-node-state)
@@ -241,7 +238,7 @@
               node-state]
           (s/assert ::machine-proto/machine-state node-state)
           (when (not-empty reset-vars)
-            (swap! worklist-atom conj selector))
+            (add-to-working-set worklist-atom selector))
           (when *trace* (record! [:node-changes :machine (selector-proto/-sname sel-impl)
                                   selector
                                   node-state]))
@@ -312,13 +309,13 @@
             new-node-sate  (flush-tx old-node-state graph-manager-value machine)]
         (if (= old-node-state new-node-sate)
           graph-manager-value
-          (do (swap! flush-worklist-atom conj machine)
+          (do (add-to-working-set flush-worklist-atom machine)
             (assoc-in graph-manager-value [:node-state machine] new-node-sate)))))
     graph-manager-value
     dirty-machines-snapshot))
 
 (defn propagate-changes [graph-manager-value work-list dirty-machines recursion-limit]
-  (let [new-work-list-atom (atom #{})
+  (let [new-work-list-atom (volatile! (transient #{}))
         graph-manager-value (reduce
                                   (propagate-node-changes
                                     new-work-list-atom
@@ -326,12 +323,13 @@
                                   graph-manager-value
                                   work-list)]
     (assert (not (zero? recursion-limit)))
-    (if-some [new-work-list (not-empty @new-work-list-atom)]
+    (if-some [new-work-list (not-empty (persistent! @new-work-list-atom))]
       (recur graph-manager-value new-work-list dirty-machines (dec recursion-limit))
-      (let [dirty-machines-snapshot @dirty-machines
-            flush-worklist-atom (atom #{})
+      (let [dirty-machines-snapshot (persistent! @dirty-machines)
+            _ (vreset! dirty-machines (transient dirty-machines-snapshot))
+            flush-worklist-atom (volatile! (transient #{}))
             graph-manager-value (flush-worklist graph-manager-value dirty-machines-snapshot flush-worklist-atom)]
-        (if-some [flush-worklist (not-empty @flush-worklist-atom)]
+        (if-some [flush-worklist (not-empty (persistent! @flush-worklist-atom))]
           (recur graph-manager-value flush-worklist dirty-machines (dec recursion-limit))
           graph-manager-value)))))
 
@@ -364,7 +362,7 @@
             (when (or (not-empty reset-vars)
                     (not-empty sync-effects)
                     (not-empty async-effects))
-              (swap! worklist-atom conj parent))
+              (add-to-working-set worklist-atom parent))
             (when *trace*
               (record! [:child-change :machine
                         (selector-proto/-sname sel-impl)]))
@@ -407,7 +405,7 @@
                                                  worklist-atom
                                                  dirty-machines)]
 
-                       (swap! worklist-atom conj parent)
+                       (add-to-working-set worklist-atom parent)
                        graph-manager-value)
                      graph-manager-value)
               false (if-some [children (not-empty (get-in graph-manager-value [:children parent]))]
@@ -485,39 +483,46 @@
 (defn assert-valid-finalized-node-state [{:keys [change-parent reset-vars]}]
   (assert (empty? change-parent))
   (assert (empty? reset-vars)))
-(defn apply-effects
-  ""
-  [graph-manager-value graph-manager disturbed-machines]
+
+(defn into! [target source]
+  (reduce
+    conj!
+    target
+    source))
+
+(defn finalize-effects
+  [graph-manager-value disturbed-machines  sync-effects-atom async-effects-atom]
   (let [graph-value         (get-graph-value graph-manager-value)
         new-node-state      (reduce
                               (fn [node-state selector]
                                 (let [old-state (get node-state selector)
-                                      new-state (finalize-tx
+                                      {:keys [sync-effects async-effects]
+                                       :as new-state} (finalize-tx
                                                   old-state
                                                   graph-value
                                                   graph-manager-value
                                                   selector)]
                                   (assert-valid-finalized-node-state new-state)
+                                  (when (not-empty sync-effects)
+                                    (vswap! sync-effects-atom into! sync-effects))
+                                  (when (not-empty async-effects)
+                                    (vswap! async-effects-atom into! async-effects))
                                   (assoc
                                     node-state
                                     selector
-                                    new-state)))
+                                    (cond-> new-state
+                                      (not-empty sync-effects)
+                                      (assoc :sync-effects {})
+                                      (not-empty async-effects)
+                                      (assoc :async-effects {})))))
                               (:node-state graph-manager-value)
-                              disturbed-machines)
-        sync-effects        (into []
-                              (mapcat
-                                (fn [machine]
-                                  (get-in new-node-state [machine :sync-effects])))
-                              disturbed-machines)
-        async-effects       (into []
-                              (mapcat
-                                (fn [machine]
-                                  (get-in new-node-state [machine :async-effects])))
-                              disturbed-machines)
-        graph-manager-value (update graph-manager-value :node-state remove-effects disturbed-machines)]
-    (run! (fn [effect] (g/run-effect graph-manager effect)) sync-effects)
-    (run! (fn [effect] (g/run-effect graph-manager effect)) async-effects)
-    graph-manager-value))
+                              disturbed-machines)]
+    (assoc graph-manager-value :node-state new-node-state)))
+
+(defn apply-effects
+  [graph-manager sync-effects async-effects]
+  (run! (fn [effect] (g/run-effect graph-manager effect)) sync-effects)
+  (run! (fn [effect] (g/run-effect graph-manager effect)) async-effects))
 
 (s/fdef apply-command
   :args (s/cat
@@ -525,8 +530,9 @@
           :machine any?
           :command vector?)
   :ret ::graph-manager-value)
+(def recursion-limit 1000)
 
-(defn apply-command
+(defn -apply-command
   "Apply command to machine and then allow the graph to settle. Returns
   the new graph manager value."
   [graph-manager-value selector command disturbed-machines]
@@ -545,18 +551,46 @@
             (ensure-inits node-state graph-manager-value selector disturbed-machines)
             children parents command)))
       :hitch.selector.kind/var
-      (apply-command graph-manager-value (selector-proto/-get-machine sel-impl selector)
+      (-apply-command graph-manager-value (selector-proto/-get-machine sel-impl selector)
                      command disturbed-machines))))
+
+(defn apply-command
+  "Apply command to machine and then allow the graph to settle. Returns
+  the new graph manager value."
+  [graph-manager-value selector command sync-effects-atom async-effects-atom]
+  (let [disturbed-machines (volatile! (transient #{}))
+        graph-manager-value (-apply-command graph-manager-value selector command disturbed-machines)
+        disturbed-machines-snapshot (persistent! @disturbed-machines)
+        _  (vreset! disturbed-machines (transient disturbed-machines-snapshot))
+        graph-manager-value (propagate-changes graph-manager-value
+                              disturbed-machines-snapshot
+                              disturbed-machines
+                              recursion-limit)]
+    (finalize-effects graph-manager-value
+      (persistent! @disturbed-machines)
+      sync-effects-atom async-effects-atom)
+    ))
 
 (defn apply-commands
   "Apply command to machine and then allow the graph to settle. Returns
   the new graph manager value."
-  [graph-manager-value cmds disturbed-machines]
-  (reduce
-    (fn [gmv [selector command]]
-      (apply-command gmv selector command disturbed-machines))
-    graph-manager-value
-    cmds))
+  [graph-manager-value cmds sync-effects-atom async-effects-atom]
+  (let [disturbed-machines (volatile! (transient #{}))
+        graph-manager-value
+                           (reduce
+                             (fn [gmv [selector command]]
+                               (-apply-command gmv selector command disturbed-machines))
+                             graph-manager-value
+                             cmds)
+        disturbed-machines-snapshot (persistent! @disturbed-machines)
+        _ (vreset! disturbed-machines (transient disturbed-machines-snapshot))
+        graph-manager-value (propagate-changes graph-manager-value
+                              disturbed-machines-snapshot disturbed-machines
+                              recursion-limit)]
+    (finalize-effects graph-manager-value
+      (persistent! @disturbed-machines)
+      sync-effects-atom async-effects-atom)
+    ))
 
 (defn to-machine [selector]
   (let [sel-impl   (selector-proto/-imp selector)
@@ -566,7 +600,6 @@
       selector
       :hitch.selector.kind/var
       (selector-proto/-get-machine sel-impl selector))))
-(def recursion-limit 1000)
 
 (deftype gm [state]
   g/Snapshot
@@ -574,20 +607,21 @@
     (:graph-value @state))
   g/GraphManagerSync
   (-transact! [graph-manager machine command]
-    (let [disturbed-machines (atom #{})
-          ;; pass disturbed machines into apply commands
-          _ (swap! state apply-command machine command disturbed-machines)
-          ;; or look at disturbed machines and if they are vars, map
-          ;; them to their machines.
-          _ (swap! state propagate-changes @disturbed-machines disturbed-machines recursion-limit)
-          new-graph-manager-value (swap! state apply-effects graph-manager @disturbed-machines)]
-      (:graph-value new-graph-manager-value)))
+    (let [sync-effects-atom (volatile! (transient []))
+          async-effects-atom (volatile! (transient []))]
+      (swap! state apply-command machine command sync-effects-atom async-effects-atom)
+      (apply-effects graph-manager
+        (persistent! @sync-effects-atom)
+        (persistent! @async-effects-atom))
+      (:graph-value @state)))
   (-transact-commands! [graph-manager cmds]
-    (let [disturbed-machines (atom #{})
-          _ (swap! state apply-commands cmds disturbed-machines)
-          _ (swap! state propagate-changes @disturbed-machines disturbed-machines recursion-limit)
-          new-graph-manager-value (swap! state apply-effects graph-manager @disturbed-machines)]
-      (:graph-value new-graph-manager-value)))
+    (let [sync-effects-atom (volatile! (transient []))
+          async-effects-atom (volatile! (transient []))]
+      (swap! state apply-commands cmds sync-effects-atom async-effects-atom)
+      (apply-effects graph-manager
+        (persistent! @sync-effects-atom)
+        (persistent! @async-effects-atom))
+      (:graph-value @state)))
   g/GraphManagerAsync
   (-transact-async! [graph-manager v command])
   (-transact-commands-async! [graph-manager cmds])
