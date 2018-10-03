@@ -318,7 +318,7 @@
     dirty-machines-snapshot))
 
 (defn propagate-changes [graph-manager-value work-list dirty-machines recursion-limit]
-  (let [new-work-list-atom (atom [])
+  (let [new-work-list-atom (atom #{})
         graph-manager-value (reduce
                                   (propagate-node-changes
                                     new-work-list-atom
