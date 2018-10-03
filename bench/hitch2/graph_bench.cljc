@@ -53,6 +53,7 @@
                    #_(prn :pined
                        (get (gm-proto/-get-graph g) sel))
                    (api/unpin g sel))
+               bench-times
                #_(prn :unpined
                  (get (gm-proto/-get-graph g) sel)))
        :clj  (bench
@@ -68,7 +69,7 @@
   (cond (= 0 n) @(api/select! G mv/mutable-var :bench)
         :else   (+ 1 @(api/select-sel! G (assoc sel n (dec n))))))
 
-(def depends-on-impl
+(def depends-on-map-impl
   {:kind    :hitch.selector.kind/halting
    :halting depends-on-map})
 
@@ -105,7 +106,7 @@
 
 (defn -main []
   (deep-value-change-bench  "deep-value-change-bench-record" (depends-on 100))
-  (deep-value-change-bench  "deep-value-change-bench-map" {:impl depends-on-impl
+  (deep-value-change-bench  "deep-value-change-bench-map" {:impl depends-on-map-impl
                                                            :n 100})
   #_(fib-bench "fib-record" (fn [] (fibb-graph 30)))
   #_(fib-bench "fib-map" (fn [] {:impl fibimpl
