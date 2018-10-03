@@ -393,9 +393,9 @@
                        (swap! worklist-atom conj parent)
                        graph-manager-value)
                      graph-manager-value)
-              false (if-some [parents (not-empty (get-in graph-manager-value [:parents parent]))]
+              false (if-some [children (not-empty (get-in graph-manager-value [:children parent]))]
                       graph-manager-value
-                      (if-some [children (not-empty (get-in graph-manager-value [:children parent]))]
+                      (if-some [parents (not-empty (get-in graph-manager-value [:parents parent]))]
                         (-> graph-manager-value
                             (update :graph-value dissoc parent)
                             (propagate-dependency-changes
@@ -403,7 +403,7 @@
                               (into {}
                                 (map (fn [x]
                                        [x false]))
-                                children)
+                                parents)
                               worklist-atom
                               dirty-machines))
                         graph-manager-value)))))))
@@ -549,7 +549,7 @@
       selector
       :hitch.selector.kind/var
       (selector-proto/-get-machine sel-impl selector))))
-(def recursion-limit 1000000)
+(def recursion-limit 1000)
 
 (deftype gm [state]
   g/Snapshot
