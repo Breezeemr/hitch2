@@ -47,10 +47,6 @@ Should be a keyword for dispatching. Values are from:
 (defprotocol SentinelImplementation
   (-get-sentinel-fn [imp]))
 
-(defprotocol SelectorImplementation
-  (-imp [sel]
-    "Returns the selector implementation"))
-
 (defprotocol SelectorName
   (-sname [imp] "returns the selector name"))
 
@@ -103,27 +99,13 @@ Should be a keyword for dispatching. Values are from:
 (s/def :selector/impl
   (s/multi-spec impliementation-kind :kind))
 
-(defn selector-kind [sel]
-  (some-> sel -imp -imp-kind))
-
 (defn selector-name [sel]
-  (some-> sel -imp -sname))
-
-(defn has-impl? [selector]
-  (and (satisfies? SelectorImplementation selector)
-    (-imp selector)))
+  (-sname sel))
 
 (defn has-name? [selector]
   (selector-name selector))
 
-(defn has-kind? [selector]
-  (selector-kind selector))
-
-(s/def :selector/selector (s/and
-                            has-impl?
-                            (s/or
-                              :full-impl has-kind?
-                              :name has-name?)))
+(s/def :selector/selector has-name?)
 
 
 
@@ -132,27 +114,27 @@ Should be a keyword for dispatching. Values are from:
 ;;f first?
 
 (defrecord Selector0 [impl]
-  SelectorImplementation
-  (-imp [_] impl)
+  SelectorName
+  (-sname [_] impl)
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
     (f gv-tracker)))
 (defrecord Selector1 [impl a]
-  SelectorImplementation
-  (-imp [_] impl)
+  SelectorName
+  (-sname [_] impl)
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
     (f gv-tracker a)))
 (defrecord Selector2 [impl a b]
-  SelectorImplementation
-  (-imp [_] impl)
+  SelectorName
+  (-sname [_] impl)
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
     (f gv-tracker a b)))
 
 (defrecord Selector3 [impl a b c]
-  SelectorImplementation
-  (-imp [_] impl)
+  SelectorName
+  (-sname [_] impl)
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
     (f gv-tracker a b c)))
@@ -161,19 +143,19 @@ Should be a keyword for dispatching. Values are from:
 ;;is gv-tracker the best name?
 
 
-(extend-protocol SelectorImplementation
+(extend-protocol SelectorName
   #?@(:cljs
       [cljs.core/PersistentVector
-       (-imp [sel] (first sel))
+       (-sname [sel] (first sel))
        cljs.core/PersistentHashMap
-       (-imp [sel] (:impl sel))
+       (-sname [sel] (:selector-name sel))
        cljs.core/PersistentArrayMap
-       (-imp [sel] (:impl sel))]
+       (-sname [sel] (:selector-name sel))]
       :clj
       [clojure.lang.PersistentVector
-       (-imp [sel] (first sel))
+       (-sname [sel] (first sel))
        clojure.lang.PersistentArrayMap
-       (-imp [sel] (:impl sel))]))
+       (-sname [sel] (:selector-name sel))]))
 
 ;; todo: what does a vector do?
 ;; cljs.core/PersistentVector

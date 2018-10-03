@@ -45,7 +45,7 @@
   (let [sname (selector-proto/-sname selector)]
     (or
       (get-selector-impl sname)
-      (throw (ex-info "Could not find implementation in selector registry"
+      (throw (ex-info (str "Could not find implementation in selector registry " sname)
                {::ca/category  ::ca/not-found
                 :selector-name sname})))))
 

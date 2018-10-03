@@ -4,6 +4,8 @@
             [hitch2.graph-manager.atom :as atom-gm]
             [hitch2.protocols.graph-manager :as gm-proto]
             [hitch2.machine.mutable-var :as mv]
+            [hitch2.selector-impl-registry :as reg
+             :refer [registry-resolver]]
     #?(:clj
             [criterium.core :refer [bench]])))
 
@@ -46,7 +48,7 @@
 
 (defn fib-bench [bench-name sel-fn]
   (test-header bench-name)
-  (let [g (atom-gm/make-gm)]
+  (let [g (atom-gm/make-gm registry-resolver)]
     #?(:cljs (simple-benchmark []
                (let [sel (sel-fn)]
                  (api/pin g sel)
@@ -81,7 +83,7 @@
 (defn depends-bench [n]
   (binding [atom-gm/*trace* false]
     (atom-gm/clear-trace!)
-    (let [g (atom-gm/make-gm)]
+    (let [g (atom-gm/make-gm registry-resolver)]
 
       (api/hook-sel g
                     (fn [result]
@@ -95,7 +97,7 @@
 
 (defn deep-value-change-bench [bench-name sel]
   (test-header bench-name)
-  (let [g (atom-gm/make-gm)
+  (let [g (atom-gm/make-gm registry-resolver)
         machine-sel (mv/->mutable-machine :bench)]
     (api/pin g sel)
 
@@ -106,8 +108,8 @@
 
 (defn -main []
   #_(deep-value-change-bench  "deep-value-change-bench-record" (depends-on 100))
-  #_(deep-value-change-bench  "deep-value-change-bench-map" {:impl depends-on-map-impl
+  #_(deep-value-change-bench  "deep-value-change-bench-map" {:selector-name depends-on-map-impl
                                                            :n 100})
   (fib-bench "fib-record" (fn [] (fibb-graph 30)))
-  (fib-bench "fib-map" (fn [] {:impl fibimpl
+  (fib-bench "fib-map" (fn [] {:selector-name fibimpl
                                :n    30})))

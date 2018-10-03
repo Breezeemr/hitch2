@@ -1,11 +1,12 @@
 (ns hitch2.machine.pin
   (:require [hitch2.protocols.machine :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
-            [hitch2.protocols.selector :as sel-proto]))
+            [hitch2.protocols.selector :as sel-proto]
+            [hitch2.selector-impl-registry :as reg]))
 
 (def initial-node (assoc machine-proto/initial-machine-state :state #{}))
 
-(def impl
+(def pin-impl
   (reify
     sel-proto/ImplementationKind
     (-imp-kind [machine] :hitch.selector.kind/machine)
@@ -35,8 +36,10 @@
                 (update :change-parent assoc selector false))
             node))))))
 
+(reg/def-registered-selector pin-mach ::pin pin-impl)
+
 (def pin-machine
   (reify
-    sel-proto/SelectorImplementation
-    (-imp [machine-instance] impl)))
+    sel-proto/SelectorName
+    (-sname [selector] pin-mach)))
 

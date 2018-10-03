@@ -5,7 +5,8 @@
             [hitch2.protocols.selector :as sel-proto]
             [goog.events :as events]
             [goog.net.EventType :as EventType]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [hitch2.selector-impl-registry :as reg])
   (:import (goog.net XhrIo)))
 
 (def ^:private meths
@@ -43,8 +44,6 @@
   (reify
     sel-proto/ImplementationKind
     (-imp-kind [machine] :hitch.selector.kind/machine)
-    sel-proto/SelectorName
-    (-sname [imp] "http machine")
     machine-proto/Init
     (-initialize [machine-instance machine-selector] initial-node)
     machine-proto/ChildChanges
@@ -61,12 +60,15 @@
                     (update node :async-effects conj {:type     ::request
                                                       :selector selector}))))))
 
+(reg/def-registered-selector http-m "http machine" http-impl)
 (def http-machine
   (reify
-    sel-proto/SelectorImplementation
-    (-imp [machine-instance] http-impl)))
+    sel-proto/SelectorName
+    (-sname [machine-instance] http-m)))
 
-(def var-impl
+
+
+(def http-var-impl
   (reify
     sel-proto/ImplementationKind
     (-imp-kind [var]
@@ -75,8 +77,11 @@
     (-get-machine [var sel]
       http-machine)))
 
+(reg/def-registered-selector http-var :http-var http-var-impl)
+
 (defn http [url method serializer deserializer content headers withcreds]
-  (sel-proto/->Selector1 var-impl
+  (sel-proto/->Selector1
+    http-var
     {:url          url
      :method       method
      :serializer   serializer

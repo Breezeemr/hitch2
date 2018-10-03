@@ -2,7 +2,8 @@
   (:require [hitch2.protocols.machine :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
-            [hitch2.protocols.selector :as sel-proto]))
+            [hitch2.protocols.selector :as sel-proto]
+            [hitch2.selector-impl-registry :as reg]))
 
 (defrecord node-state [state change-parent reset-vars
                        async-effects sync-effects])
@@ -15,8 +16,6 @@
   (reify
     sel-proto/ImplementationKind
     (-imp-kind [machine] :hitch.selector.kind/machine)
-    sel-proto/SelectorName
-    (-sname [imp] ::hook)
     machine-proto/Init
     (-initialize [machine-instance machine-selector] initial-node)
     machine-proto/ParentChanges
@@ -49,15 +48,15 @@
 
 (def hook-machine
   (reify
-    sel-proto/SelectorImplementation
-    (-imp [machine-instance ] hook-impl)))
+    sel-proto/SelectorName
+    (-sname [machine-instance] ::hook)))
+
+(reg/def-registered-selector hook ::hook hook-impl)
 
 (def hook-change-impl
   (reify
     sel-proto/ImplementationKind
     (-imp-kind [machine] :hitch.selector.kind/machine)
-    sel-proto/SelectorName
-    (-sname [imp] ::hook)
     machine-proto/Init
     (-initialize [machine-instance machine-selector] initial-node)
     machine-proto/ParentChanges
@@ -95,8 +94,10 @@
 
 (def hook-change-machine
   (reify
-    sel-proto/SelectorImplementation
-    (-imp [machine-instance] hook-change-impl)))
+    sel-proto/SelectorName
+    (-sname [machine-instance] ::hook-change)))
+
+(reg/def-registered-selector hook-change ::hook-change hook-change-impl)
 
 (defmethod graph-proto/run-effect :hook-call [graph-manager
                                               {:as effect

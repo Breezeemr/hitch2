@@ -12,7 +12,8 @@
 (defrecord GraphManagerValue [graph-value
                                 node-state
                                 parents
-                                children ])
+                                children
+                              resolver])
 (defrecord deriving-state [change-parent waiting value-changed?])
 (defrecord var-state [value-changed?])
 
@@ -52,6 +53,9 @@
              ::parents
              ::children]))
 
+(defn get-impl [{:keys [resolver]} selector]
+  (resolver selector))
+
 (defn get-parents [graph-manager-value selector]
   (-> graph-manager-value :parents (get selector)))
 
@@ -65,10 +69,10 @@
   (-> graph-manager-value :graph-value))
 
 
-(defn init-machine [node-state selector]
+(defn init-machine [node-state resolver selector]
   (let [machine-state (if node-state
                         node-state
-                        (machine-proto/-initialize (selector-proto/-imp selector) selector))]
+                        (machine-proto/-initialize (resolver selector) selector))]
     (s/assert ::machine-proto/machine-state machine-state)
     machine-state))
 
@@ -82,7 +86,7 @@
     (do
       (add-to-working-set disturbed-machines selector)
       (machine-proto/-init-tx
-        (selector-proto/-imp selector)
+        (get-impl graph-manager-value selector)
           selector
           (get-graph-value graph-manager-value)
           node-state
@@ -91,7 +95,7 @@
 
 (defn ensure-inits [node-state graph-manager-value selector disturbed-machines]
   (-> node-state
-      (init-machine selector)
+      (init-machine (:resolver graph-manager-value) selector)
       (tx-init-machine graph-manager-value selector disturbed-machines)))
 
 (declare propagate-dependency-changes)
@@ -174,7 +178,7 @@
 (defn propagate-value-changes [graph-manager-value parent worklist-atom dirty-machines]
   (reduce
     (fn [graph-manager-value selector]
-      (let [sel-impl (selector-proto/-imp selector)
+      (let [sel-impl (get-impl graph-manager-value selector)
             sel-kind (selector-proto/-imp-kind sel-impl)
             node-state (get-node-state graph-manager-value selector)]
         (case sel-kind
@@ -231,7 +235,7 @@
 
 (defn propagate-node-changes [worklist-atom dirty-machines]
   (fn [graph-manager-value selector]
-    (let [sel-impl (selector-proto/-imp selector)
+    (let [sel-impl (get-impl graph-manager-value selector)
           sel-kind (selector-proto/-imp-kind sel-impl)
           node-state (get-node-state graph-manager-value selector)]
       (case sel-kind
@@ -298,7 +302,7 @@
 
 (defn flush-tx [node-state graph-manager-value selector]
   (machine-proto/-flush-tx
-    (selector-proto/-imp selector)
+    (get-impl graph-manager-value selector)
     selector
     (:graph-value graph-manager-value)
     node-state
@@ -339,7 +343,7 @@
 (defn apply-child-change-commands [graph-manager-value child changes worklist-atom dirty-machines]
   (reduce-kv
     (fn [graph-manager-value parent added|removed]
-      (let [sel-impl   (selector-proto/-imp parent)
+      (let [sel-impl   (get-impl graph-manager-value parent)
             sel-kind   (selector-proto/-imp-kind sel-impl)
             node-state (get-node-state graph-manager-value parent)]
         (case sel-kind
@@ -478,7 +482,7 @@
 
 (defn finalize-tx [node-state graph-value graph-manager-value selector]
   (machine-proto/-finalize
-    (selector-proto/-imp selector)
+    (get-impl graph-manager-value selector)
     selector
     graph-value
     node-state
@@ -542,7 +546,7 @@
   "Apply command to machine and then allow the graph to settle. Returns
   the new graph manager value."
   [graph-manager-value selector command disturbed-machines]
-  (let [sel-impl   (selector-proto/-imp selector)
+  (let [sel-impl   (get-impl graph-manager-value selector)
         sel-kind   (selector-proto/-imp-kind sel-impl)
         node-state (get-node-state graph-manager-value selector)]
     (case sel-kind
@@ -599,8 +603,8 @@
       sync-effects-atom async-effects-atom)
     ))
 
-(defn to-machine [selector]
-  (let [sel-impl   (selector-proto/-imp selector)
+#_(defn to-machine [selector]
+  (let [sel-impl   (get-impl graph-manager-value selector)
         sel-kind   (selector-proto/-imp-kind sel-impl)]
     (case sel-kind
       :hitch.selector.kind/machine
@@ -634,11 +638,12 @@
   (-transact-commands-async! [graph-manager cmds])
   )
 
-(defn make-gm []
+(defn make-gm [resolver]
   (->gm (atom (->GraphManagerValue
                 {}
                 {}
                 {}
-                {}))))
+                {}
+                resolver))))
 
 

@@ -1,6 +1,7 @@
 (ns hitch2.test-common
   #?(:clj (:import (java.io Writer)))
-  (:require [hitch2.protocols.selector :as selector-proto]))
+  (:require [hitch2.protocols.selector :as selector-proto]
+            [hitch2.selector-impl-registry :as reg]))
 
 (defn return-constant [gv-tracker v]
   v)
@@ -11,8 +12,9 @@
                      (-get-halting-fn [sel]
                        return-constant)))
 
+(reg/def-registered-selector constant ::constant constant-impl)
 (defn Constant [v]
-  (selector-proto/->Selector1 constant-impl v))
+  (selector-proto/->Selector1 constant v))
 
 ;(defrecord Variable [name]
 ;  hitch2.protocols.selector/Selector

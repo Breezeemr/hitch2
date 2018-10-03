@@ -3,7 +3,9 @@
             [hitch2.machine.http :as http]
             [hitch2.graph :as graph]
             [hitch2.machine.mutable-var :refer  [mutable-var]]
-            [hitch2.graph-manager.atom :as atom-gm]))
+            [hitch2.graph-manager.atom :as atom-gm]
+            [hitch2.selector-impl-registry :as reg
+             :refer [registry-resolver]]))
 
 (def url "http://dummy.restapiexample.com/api/v1/employees")
 (defn deserializer [payload]
@@ -25,7 +27,7 @@
   (done))
 
 (def gctors
-  [["Atom graph: " (fn [] (atom-gm/make-gm))]])
+  [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver))]])
 
 (doseq [[graph-name gctor] gctors]
   (deftest simple-get-ok
