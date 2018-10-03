@@ -9,7 +9,10 @@
              [hitch2.halt :as halt]))
 
 
-
+(defrecord graph-manager-value [graph-value
+                                node-state
+                                parents
+                                children ])
 (defrecord deriving-state [change-parent waiting value-changed?])
 (defrecord var-state [value-changed?])
 
@@ -49,6 +52,15 @@
              ::parents
              ::children]))
 
+(defn get-parents [graph-manager-value selector]
+  (-> graph-manager-value :parents (get selector)))
+
+(defn get-children [graph-manager-value selector]
+  (-> graph-manager-value :children (get selector)))
+
+(defn get-graph-value [graph-manager-value]
+  (-> graph-manager-value :graph-value))
+
 
 (defn init-machine [node-state machine]
   (let [machine-state (if node-state
@@ -64,10 +76,10 @@
       (swap! disturbed-machines conj selector)
       (machine-proto/-init-tx
           selector
-          (-> graph-manager-value :graph-value)
+          (get-graph-value graph-manager-value)
           node-state
-          (-> graph-manager-value :children (get selector))
-          (-> graph-manager-value :parents (get selector))))))
+          (get-children graph-manager-value selector)
+          (get-parents graph-manager-value selector)))))
 
 (defn ensure-inits [node-state graph-manager-value selector disturbed-machines]
   (-> node-state
@@ -166,9 +178,9 @@
             node-state (get-in graph-manager-value [:node-state selector])]
         (case sel-kind
           :hitch.selector.kind/machine
-          (let [graph-value    (-> graph-manager-value :graph-value)
-                children       (-> graph-manager-value :children (get selector))
-                parents        (-> graph-manager-value :parents (get selector))
+          (let [graph-value    (get-graph-value graph-manager-value)
+                children       (get-children graph-manager-value selector)
+                parents        (get-parents graph-manager-value selector)
                 {:keys [sync-effects async-effects]
                  new-reset-vars     :reset-vars
                  new-change-parent :change-parent
@@ -285,8 +297,8 @@
     selector
     (:graph-value graph-manager-value)
     node-state
-    (-> graph-manager-value :children (get selector))
-    (-> graph-manager-value :parents (get selector))))
+    (get-children graph-manager-value selector)
+    (get-parents graph-manager-value selector)))
 
 (defn flush-worklist [graph-manager-value dirty-machines-snapshot flush-worklist-atom]
   (reduce
@@ -326,9 +338,9 @@
             node-state (get-in graph-manager-value [:node-state parent])]
         (case sel-kind
           :hitch.selector.kind/machine
-          (let [graph-value        (-> graph-manager-value :graph-value)
-                children           (-> graph-manager-value :children (get parent))
-                parents            (-> graph-manager-value :parents (get parent))
+          (let [graph-value        (get-graph-value graph-manager-value)
+                children           (get-children graph-manager-value parent)
+                parents            (get-parents graph-manager-value parent)
                 {:keys [sync-effects async-effects]
                  new-change-parent :change-parent
                  reset-vars         :reset-vars
@@ -461,8 +473,8 @@
   (machine-proto/-finalize selector
     graph-value
     node-state
-    (-> graph-manager-value :children (get selector))
-    (-> graph-manager-value :parents (get selector))
+    (get-children graph-manager-value selector)
+    (get-parents graph-manager-value selector)
     ))
 
 (defn assert-valid-finalized-node-state [{:keys [change-parent reset-vars]}]
@@ -471,7 +483,7 @@
 (defn apply-effects
   ""
   [graph-manager-value graph-manager disturbed-machines]
-  (let [graph-value         (-> graph-manager-value :graph-value)
+  (let [graph-value         (get-graph-value graph-manager-value)
         new-node-state      (reduce
                               (fn [node-state selector]
                                 (let [old-state (get node-state selector)
@@ -518,9 +530,9 @@
         node-state (get-in graph-manager-value [:node-state selector])]
     (case sel-kind
       :hitch.selector.kind/machine
-      (let [graph-value        (-> graph-manager-value :graph-value)
-            children           (-> graph-manager-value :children (get selector))
-            parents            (-> graph-manager-value :parents (get selector))]
+      (let [graph-value        (get-graph-value graph-manager-value)
+            children           (get-children graph-manager-value selector)
+            parents            (get-parents graph-manager-value selector)]
         (assoc-in graph-manager-value [:node-state selector]
           (machine-proto/-apply-command
             selector
@@ -577,9 +589,10 @@
   )
 
 (defn make-gm []
-  (->gm (atom {:graph-value {}
-               :node-state {}
-               :parents {}
-               :children {}})))
+  (->gm (atom (->graph-manager-value
+                {}
+                {}
+                {}
+                {}))))
 
 
