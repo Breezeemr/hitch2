@@ -64,6 +64,14 @@
                #_(prn :unpined
                    (get (gm-proto/-get-graph g) sel))))))
 
+(defn depends-on-map [G {:keys [n] :as sel}]
+  (cond (= 0 n) @(api/select! G mv/mutable-var :bench)
+        :else   (+ 1 @(api/select-sel! G (assoc sel n (dec n))))))
+
+(def depends-on-impl
+  {:kind    :hitch.selector.kind/halting
+   :halting depends-on-map})
+
 (declare depends-on)
 (sel/defselector depends-on [G n]
   (cond (= 0 n) @(api/select! G mv/mutable-var :bench)
@@ -84,18 +92,21 @@
                       (prn "value is now: " result))
                     (depends-on n)))))
 
-(defn deep-value-change-bench []
-  (test-header "deep-value-change-bench")
-  (let [g (atom-gm/make-gm)]
-    (api/pin g (depends-on 100))
+(defn deep-value-change-bench [bench-name sel]
+  (test-header bench-name)
+  (let [g (atom-gm/make-gm)
+        machine-sel (mv/->mutable-machine :bench)]
+    (api/pin g sel)
 
     #?(:cljs (simple-benchmark []
-               (api/apply-commands g [[(mv/->mutable-machine :bench) [:set-value (rand-int 54)]]])
+               (api/apply-commands g [[machine-sel [:set-value (rand-int 54)]]])
                bench-times)
-       :clj  (bench (api/apply-commands g [[(mv/->mutable-machine :bench) [:set-value (rand-int 54)]]])))))
+       :clj  (bench (api/apply-commands g [[machine-sel [:set-value (rand-int 54)]]])))))
 
 (defn -main []
-  ;(deep-value-change-bench)
-  (fib-bench "fib-record" (fn [] (fibb-graph 30)))
-  (fib-bench "fib-map" (fn [] {:impl fibimpl
+  (deep-value-change-bench  "deep-value-change-bench-record" (depends-on 100))
+  (deep-value-change-bench  "deep-value-change-bench-map" {:impl depends-on-impl
+                                                           :n 100})
+  #_(fib-bench "fib-record" (fn [] (fibb-graph 30)))
+  #_(fib-bench "fib-map" (fn [] {:impl fibimpl
                                :n    30})))
