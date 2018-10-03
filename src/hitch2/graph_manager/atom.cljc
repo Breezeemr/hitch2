@@ -58,6 +58,9 @@
 (defn get-children [graph-manager-value selector]
   (-> graph-manager-value :children (get selector)))
 
+(defn get-node-state [graph-manager-value selector]
+  (-> graph-manager-value :node-state (get selector)))
+
 (defn get-graph-value [graph-manager-value]
   (-> graph-manager-value :graph-value))
 
@@ -90,7 +93,7 @@
 
 (defn propagate-reset-vars [graph-manager-value reset-vars worklist-atom]
   (reduce-kv (fn [gv sel value]
-               (let [old-value (get-in gv [:graph-value sel] NOT-FOUND-SENTINEL)]
+               (let [old-value (-> gv :graph-value (get sel NOT-FOUND-SENTINEL))]
                  (if (= old-value value)
                    gv
                    (if (identical? value NOT-FOUND-SENTINEL)
@@ -112,8 +115,8 @@
                    h-fn
                    worklist-atom
                    dirty-machines]
-  (let [old-value (get-in graph-manager-value [:graph-value selector] NOT-FOUND-SENTINEL)
-        old-deps  (get-in graph-manager-value [:parents selector] #{})
+  (let [old-value (-> graph-manager-value :graph-value (get selector NOT-FOUND-SENTINEL))
+        old-deps  (-> graph-manager-value :parents (get selector #{}))
         tx-manager (halting-tx/halting-manager (:graph-value graph-manager-value))
         new-value (halt/maybe-halt
              (selector-proto/-invoke-halting selector h-fn tx-manager)
@@ -175,7 +178,7 @@
     (fn [graph-manager-value selector]
       (let [sel-impl (selector-proto/-imp selector)
             sel-kind (selector-proto/-imp-kind sel-impl)
-            node-state (get-in graph-manager-value [:node-state selector])]
+            node-state (get-node-state graph-manager-value selector)]
         (case sel-kind
           :hitch.selector.kind/machine
           (let [graph-value    (get-graph-value graph-manager-value)
@@ -209,7 +212,9 @@
           ;(assert false "should not happen")
           :hitch.selector.kind/halting
           (let [{:keys [waiting] :as node-state}
-                (-> (get-in graph-manager-value [:node-state selector] NOT-FOUND-SENTINEL)
+                (-> graph-manager-value
+                    :node-state
+                    (get selector NOT-FOUND-SENTINEL)
                     (update :waiting disj parent))]
             (assert (not= node-state NOT-FOUND-SENTINEL))
             (if (empty? waiting)
@@ -223,13 +228,13 @@
                 graph-manager-value)
               (assoc-in graph-manager-value [:node-state selector] node-state))))))
     graph-manager-value
-    (get-in graph-manager-value [:children parent])))
+    (-> graph-manager-value :children (get parent))))
 
 (defn propagate-node-changes [worklist-atom dirty-machines]
   (fn [graph-manager-value selector]
     (let [sel-impl (selector-proto/-imp selector)
           sel-kind (selector-proto/-imp-kind sel-impl)
-          node-state (get-in graph-manager-value [:node-state selector])]
+          node-state (get-node-state graph-manager-value selector)]
       (case sel-kind
         :hitch.selector.kind/machine
         (let [{:keys [change-parent reset-vars]}
@@ -303,7 +308,7 @@
 (defn flush-worklist [graph-manager-value dirty-machines-snapshot flush-worklist-atom]
   (reduce
     (fn [graph-manager-value machine]
-      (let [old-node-state (get-in graph-manager-value [:node-state machine])
+      (let [old-node-state (get-node-state graph-manager-value machine)
             new-node-sate  (flush-tx old-node-state graph-manager-value machine)]
         (if (= old-node-state new-node-sate)
           graph-manager-value
@@ -335,7 +340,7 @@
     (fn [graph-manager-value parent added|removed]
       (let [sel-impl   (selector-proto/-imp parent)
             sel-kind   (selector-proto/-imp-kind sel-impl)
-            node-state (get-in graph-manager-value [:node-state parent])]
+            node-state (get-node-state graph-manager-value parent)]
         (case sel-kind
           :hitch.selector.kind/machine
           (let [graph-value        (get-graph-value graph-manager-value)
@@ -527,7 +532,7 @@
   [graph-manager-value selector command disturbed-machines]
   (let [sel-impl   (selector-proto/-imp selector)
         sel-kind   (selector-proto/-imp-kind sel-impl)
-        node-state (get-in graph-manager-value [:node-state selector])]
+        node-state (get-node-state graph-manager-value selector)]
     (case sel-kind
       :hitch.selector.kind/machine
       (let [graph-value        (get-graph-value graph-manager-value)
