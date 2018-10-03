@@ -1,7 +1,8 @@
 (ns hitch2.selector
   #?(:cljs (:require-macros hitch2.selector))
   (:require [hitch2.halt :as halt]
-            [hitch2.protocols.selector :as selector-proto]))
+            [hitch2.protocols.selector :as selector-proto]
+            [hitch2.selector-impl-registry :as reg]))
 
 (defn- cljs-target? [env]
   (some? (:ns env)))
@@ -33,16 +34,18 @@
 (defmacro defselector [name constructor-binding-forms & body]
   (let [record-field-names   (param-names (rest constructor-binding-forms))
         eval-fn-name         (symbol (str name "-eval-fn"))
-        impl-name         (symbol (str name "-impl"))]
+        impl              (symbol (str name "-impl"))
+        impl-name         (keyword name)
+        sel-var           (symbol (str name "-sel-var"))]
     `(do
        (defn ~eval-fn-name ~constructor-binding-forms ~@body)
-       (def ~impl-name
+       (def ~impl
          (reify
            hitch2.protocols.selector/ImplementationKind
            (~'-imp-kind [~'_] :hitch.selector.kind/halting)
            hitch2.protocols.selector/HaltingImplementation
            (~'-get-halting-fn [~'sel]
-            ~eval-fn-name)
-           hitch2.protocols.selector/SelectorName
-           (~'-sname [~'_] ~(str name))))
+            ~eval-fn-name)))
+       (hitch2.selector-impl-registry/def-registered-selector
+         ~sel-var  ~impl-name ~impl)
        ~(sel-constructor name impl-name record-field-names))))
