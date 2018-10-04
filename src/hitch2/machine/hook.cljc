@@ -5,7 +5,7 @@
             [hitch2.protocols.selector :as sel-proto]
             [hitch2.selector-impl-registry :as reg]))
 
-(def hook
+(def hook-spec
   {:hitch.selector/name ::hook
    :hitch.selector.spec/kind :machine})
 
@@ -55,7 +55,7 @@
     sel-proto/SelectorName
     (-sname [machine-instance] ::hook)))
 
-(reg/def-registered-selector hook hook-spec hook-impl)
+(reg/def-registered-selector hook ::hook hook-impl)
 
 (def hook-change-impl
   (reify
