@@ -522,9 +522,9 @@
                                     selector
                                     (cond-> new-state
                                       (not-empty sync-effects)
-                                      (assoc :sync-effects {})
+                                      (assoc :sync-effects [])
                                       (not-empty async-effects)
-                                      (assoc :async-effects {})))))
+                                      (assoc :async-effects [])))))
                               (:node-state graph-manager-value)
                               disturbed-machines)]
     (assoc graph-manager-value :node-state new-node-state)))
