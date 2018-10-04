@@ -17,15 +17,14 @@ Should be a keyword for dispatching. Values are from:
   #?@(:cljs
       [cljs.core/PersistentHashMap
        (-imp-kind [impl]
-         (:kind impl))
+         (:hitch.selector.impl/kind impl))
        cljs.core/PersistentArrayMap
        (-imp-kind [impl]
-         (:kind impl))]
+         (:hitch.selector.impl/kind impl))]
       :clj
-      ;; todo probably missing another map type
-      [clojure.lang.PersistentArrayMap
+      [clojure.lang.APersistentMap
        (-imp-kind [impl]
-         (:kind impl))]))
+         (:hitch.selector.impl/kind impl))]))
 
 (defprotocol HaltingImplementation
   (-get-halting-fn [imp]))
@@ -54,17 +53,16 @@ Should be a keyword for dispatching. Values are from:
   (-get-machine [impl sel]
     "return a machine selector from impl"))
 
-(s/def :hitch.selector.spec/specs any?)
-(s/def :hitch.selector.spec/name keyword?)
-(s/def :hitch.selector.spec/args :hitch.selector.spec/specs)
-(s/def :hitch.selector.spec/value :hitch.selector.spec/specs)
-(s/def :hitch.selector.spec/params (s/coll-of keyword?))
+(s/def :hitch.selector/name qualified-symbol?)
+(s/def :hitch.selector.spec/kind
+  #{:machine :positional-arguments :map-argument})
+(s/def :hitch.selector.spec/positional-params
+  (s/coll-of keyword? :kind vector? :into []))
 
-(s/def :selector/spec (s/keys
-                        :req [:hitch.selector/name]
-                        :req-un [:hitch.selector.spec/args
-                                 :hitch.selector.spec/value
-                                 :hitch.selector.spec/params]))
+(s/def :hitch/selector-spec
+  (s/keys
+    :req [:hitch.selector/name
+          :hitch.selector.spec/kind]))
 
 (s/def :hitch.selector.impl/kind keyword?)
 
@@ -97,7 +95,7 @@ Should be a keyword for dispatching. Values are from:
              :hitch.selector.impl/sentinel]))
 
 (s/def :selector/impl
-  (s/multi-spec impliementation-kind :kind))
+  (s/multi-spec impliementation-kind :hitch.selector.impl/kind))
 
 (defn selector-name [sel]
   (-sname sel))
@@ -148,27 +146,14 @@ Should be a keyword for dispatching. Values are from:
       [cljs.core/PersistentVector
        (-sname [sel] (first sel))
        cljs.core/PersistentHashMap
-       (-sname [sel] (:selector-name sel))
+       (-sname [sel] (:hitch.selector/name sel))
        cljs.core/PersistentArrayMap
-       (-sname [sel] (:selector-name sel))]
+       (-sname [sel] (:hitch.selector/name sel))]
       :clj
       [clojure.lang.PersistentVector
        (-sname [sel] (first sel))
-       clojure.lang.PersistentArrayMap
-       (-sname [sel] (:selector-name sel))]))
-
-;; todo: what does a vector do?
-;; cljs.core/PersistentVector
-;; clojure.lang.PersistentVector
-(extend-protocol ImplementationKind
-  #?@(:cljs
-      [cljs.core/PersistentHashMap
-       (-imp-kind [sel] (:kind sel))
-       cljs.core/PersistentArrayMap
-       (-imp-kind [sel] (:kind sel))]
-      :clj
-      [clojure.lang.PersistentArrayMap
-       (-imp-kind [sel] (:kind sel))]))
+       clojure.lang.APersistentMap
+       (-sname [sel] (:hitch.selector/name sel))]))
 
 (extend-protocol InvokeHalting
   #?@(:cljs

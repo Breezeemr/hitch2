@@ -32,8 +32,8 @@
               n-2 (api/select-sel! G (assoc sel :n (dec (dec n))))]
           (+ @n-1 @n-2))))
 
-(def fibimpl {:kind :hitch.selector.kind/halting
-           :halting fibmap})
+(def fibimpl {:hitch.selector.impl/kind :hitch.selector.kind/halting
+           :halting                     fibmap})
 
 (reg/def-registered-selector fib-x ::fibmap fibimpl)
 (declare fibb-graph)
@@ -72,8 +72,8 @@
         :else   (+ 1 @(api/select-sel! G (assoc sel n (dec n))))))
 
 (def depends-on-map-impl
-  {:kind    :hitch.selector.kind/halting
-   :halting depends-on-map})
+  {:hitch.selector.impl/kind :hitch.selector.kind/halting
+   :halting                  depends-on-map})
 
 (reg/def-registered-selector depends-on-map-x ::depends-on-map depends-on-map-impl)
 
@@ -110,8 +110,8 @@
 
 (defn -main []
   (deep-value-change-bench  "deep-value-change-bench-record" (depends-on 100))
-  (deep-value-change-bench  "deep-value-change-bench-map" {:selector-name depends-on-map-x
-                                                           :n 100})
+  (deep-value-change-bench  "deep-value-change-bench-map" {:hitch.selector/name depends-on-map-x
+                                                           :n                   100})
   (fib-bench "fib-record" (fn [] (fibb-graph 40)))
-  (fib-bench "fib-map" (fn [] {:selector-name fib-x
-                               :n    40})))
+  (fib-bench "fib-map" (fn [] {:hitch.selector/name fib-x
+                               :n                   40})))

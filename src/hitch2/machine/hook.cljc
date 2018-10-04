@@ -5,6 +5,10 @@
             [hitch2.protocols.selector :as sel-proto]
             [hitch2.selector-impl-registry :as reg]))
 
+(def hook
+  {:hitch.selector/name ::hook
+   :hitch.selector.spec/kind :machine})
+
 (defrecord node-state [state change-parent reset-vars
                        async-effects sync-effects])
 (def initial-node (assoc machine-proto/initial-machine-state :state {}))
@@ -51,7 +55,7 @@
     sel-proto/SelectorName
     (-sname [machine-instance] ::hook)))
 
-(reg/def-registered-selector hook ::hook hook-impl)
+(reg/def-registered-selector hook hook-spec hook-impl)
 
 (def hook-change-impl
   (reify
