@@ -55,7 +55,9 @@ Should be a keyword for dispatching. Values are from:
 
 (s/def :hitch.selector/name qualified-symbol?)
 (s/def :hitch.selector.spec/kind
-  #{:machine :positional-arguments :map-argument})
+  #{:hitch.selector.spec.kind/machine
+    :hitch.selector.spec.kind/positional-arguments
+    :hitch.selector.spec.kind/map-argument})
 (s/def :hitch.selector.spec/positional-params
   (s/coll-of keyword? :kind vector? :into []))
 
