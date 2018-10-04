@@ -75,6 +75,8 @@
   {:kind    :hitch.selector.kind/halting
    :halting depends-on-map})
 
+(reg/def-registered-selector depends-on-map-x ::depends-on-map depends-on-map-impl)
+
 (declare depends-on)
 (sel/defselector depends-on [G n]
   (cond (= 0 n) @(api/select! G mv/mutable-var :bench)
@@ -107,9 +109,9 @@
        :clj  (bench (api/apply-commands g [[machine-sel [:set-value (rand-int 54)]]])))))
 
 (defn -main []
-  #_(deep-value-change-bench  "deep-value-change-bench-record" (depends-on 100))
-  #_(deep-value-change-bench  "deep-value-change-bench-map" {:selector-name depends-on-map-impl
+  (deep-value-change-bench  "deep-value-change-bench-record" (depends-on 100))
+  (deep-value-change-bench  "deep-value-change-bench-map" {:selector-name depends-on-map-x
                                                            :n 100})
-  (fib-bench "fib-record" (fn [] (fibb-graph 30)))
+  (fib-bench "fib-record" (fn [] (fibb-graph 40)))
   (fib-bench "fib-map" (fn [] {:selector-name fib-x
-                               :n    30})))
+                               :n    40})))
