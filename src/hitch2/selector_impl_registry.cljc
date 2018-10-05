@@ -65,8 +65,11 @@
      [symbol selector-name selector-impl-sym]
      {:pre [(simple-symbol? symbol)
             (simple-symbol? selector-name)
-            (some? (resolve selector-name))
-            (some? (resolve selector-impl-sym))]}
+            ;; todo: these resolves don't work in cljs and error out
+            ;; and kill the repl
+            ;; (some? (resolve selector-name))
+            ;; (some? (resolve selector-impl-sym))
+            ]}
      `(let []
         (register-selector-impl! ~selector-name ~selector-impl-sym)
         (def ~symbol ~selector-name))))
