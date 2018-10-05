@@ -13,7 +13,8 @@
 
            ;; raw repls
            :clj       {:extra-paths ["test"]}
-           :cljs      {:main-opts ["-m cljs.main --repl"]}
+           :cljs      {:extra-paths ["test"]
+                       :main-opts   ["-m cljs.main --repl"]}
            :clj-rebel {:extra-deps  {com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
                        :extra-paths ["test" "target"]
                        :main-opts   ["-m" "rebel-readline.main"]}
