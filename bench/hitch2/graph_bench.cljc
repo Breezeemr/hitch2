@@ -6,6 +6,8 @@
             [hitch2.machine.mutable-var :as mv]
             [hitch2.selector-impl-registry :as reg
              :refer [registry-resolver]]
+            [hitch2.protocols.selector :as sel-proto
+             :refer [def-selector-spec]]
     #?(:clj
             [criterium.core :refer [bench]])))
 
@@ -24,7 +26,15 @@
         :else (+ (fibb-no-graph (dec n))
                  (fibb-no-graph (dec (dec n))))))
 
-(defn fibmap [G {:keys [n] :as sel}]
+(def-selector-spec fib-map-spec
+  :not-machine
+  :hitch.selector.spec/canonical-form
+  :hitch.selector.spec.canonical-form/map
+  :hitch.selector.spec/positional-params
+  [:n])
+
+(defn fibmap-halting [G {:keys [n] :as sel}]
+  (prn sel)
   (cond (= n 0) 0
         (= n 1) 1
         :else
@@ -35,7 +45,7 @@
 (def fibimpl {:hitch.selector.impl/kind :hitch.selector.kind/halting
            :halting                     fibmap})
 
-(reg/def-registered-selector fib-x ::fibmap fibimpl)
+(reg/def-registered-selector fib-map-spec' fib-map-spec fibimpl)
 (declare fibb-graph)
 
 (sel/defselector fibb-graph [G n]
@@ -67,22 +77,30 @@
                #_(prn :unpined
                    (get (gm-proto/-get-graph g) sel))))))
 
-(defn depends-on-map [G {:keys [n] :as sel}]
-  (cond (= 0 n) @(api/select! G mv/mutable-var :bench)
+(def-selector-spec depends-on-map-spec
+  :not-machine
+  :hitch.selector.spec/canonical-form
+  :hitch.selector.spec.canonical-form/map
+  :hitch.selector.spec/positional-params
+  [:n])
+
+(defn depends-on-map-halting [G {:keys [n] :as sel}]
+  (cond (= 0 n) @(api/select-sel! G (mv/mutable-var :bench))
         :else   (+ 1 @(api/select-sel! G (assoc sel n (dec n))))))
 
 (def depends-on-map-impl
   {:hitch.selector.impl/kind :hitch.selector.kind/halting
-   :halting                  depends-on-map})
+   :halting                  depends-on-map-halting})
 
-(reg/def-registered-selector depends-on-map-x ::depends-on-map depends-on-map-impl)
+(reg/def-registered-selector depends-on-map-spec' depends-on-map-spec depends-on-map-impl)
 
 (declare depends-on)
 (sel/defselector depends-on [G n]
-  (cond (= 0 n) @(api/select! G mv/mutable-var :bench)
+  (cond (= 0 n) @(api/select-sel! G (mv/mutable-var :bench))
         :else   (+ 1 @(api/select! G depends-on (dec n)))))
 
-(defn depends-bench [n]
+(defn depends-bench [bench-name sel]
+  (test-header bench-name)
   (binding [atom-gm/*trace* false]
     (atom-gm/clear-trace!)
     (let [g (atom-gm/make-gm registry-resolver)]
@@ -90,17 +108,17 @@
       (api/hook-sel g
                     (fn [result]
                       (prn "value is: " result))
-                    (depends-on n))
-      (api/apply-commands g [[(mv/->mutable-machine :bench) [:set-value 5000]]])
+                    sel)
+      (api/apply-commands g [[(mv/mutable-machine :bench) [:set-value 4000]]])
       (api/hook-sel g
                     (fn [result]
                       (prn "value is now: " result))
-                    (depends-on n)))))
+                    sel))))
 
 (defn deep-value-change-bench [bench-name sel]
   (test-header bench-name)
   (let [g (atom-gm/make-gm registry-resolver)
-        machine-sel (mv/->mutable-machine :bench)]
+        machine-sel (mv/mutable-machine :bench)]
     (api/pin g sel)
 
     #?(:cljs (simple-benchmark []
@@ -109,9 +127,23 @@
        :clj  (bench (api/apply-commands g [[machine-sel [:set-value (rand-int 54)]]])))))
 
 (defn -main []
-  (deep-value-change-bench  "deep-value-change-bench-record" (depends-on 100))
-  (deep-value-change-bench  "deep-value-change-bench-map" {:hitch.selector/name depends-on-map-x
-                                                           :n                   100})
-  (fib-bench "fib-record" (fn [] (fibb-graph 40)))
-  (fib-bench "fib-map" (fn [] {:hitch.selector/name fib-x
-                               :n                   40})))
+  (depends-bench "depends-record " (sel-proto/sel depends-on 100))
+  (depends-bench "depends-map" (sel-proto/map->sel
+                                 depends-on-map-spec'
+                                 {:n   100}))
+  (deep-value-change-bench
+    "deep-value-change-bench-map"
+    (sel-proto/map->sel
+      depends-on-map-spec'
+      {:n   100}))
+  (deep-value-change-bench  "deep-value-change-bench-record"
+    (sel-proto/sel depends-on 100))
+  (deep-value-change-bench  "deep-value-change-bench-map"
+    (sel-proto/map->sel
+      depends-on-map-spec'
+                                                            {:n   100}))
+  (fib-bench "fib-record" (fn [] (sel-proto/sel fibb-graph 40)))
+  (fib-bench "fib-map" (fn []
+                         (sel-proto/map->sel
+                           fib-map-spec'
+                           {:n   40}))))
