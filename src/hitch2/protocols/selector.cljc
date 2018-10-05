@@ -225,22 +225,36 @@ Should be a keyword for dispatching. Values are from:
      :hitch.selector.spec.canonical-form/positional
      (->Selector1 (:hitch.selector/name selector-spec) a)
      :hitch.selector.spec.canonical-form/map
-     {:hitch.selector/name (:hitch.selector/name selector-spec)})
+     (let [params  (:hitch.selector.spec/positional-params selector-spec)
+           _       (assert (= 1 (count params)))
+           [a-key] params]
+       {:hitch.selector/name (:hitch.selector/name selector-spec)
+        a-key                a}))
     )
   ([selector-spec a b]
    (case (:hitch.selector.spec/canonical-form selector-spec)
      :hitch.selector.spec.canonical-form/positional
      (->Selector2 (:hitch.selector/name selector-spec) a b)
      :hitch.selector.spec.canonical-form/map
-     {:hitch.selector/name (:hitch.selector/name selector-spec)})
+     (let [params        (:hitch.selector.spec/positional-params selector-spec)
+           _             (assert (= 2 (count params)))
+           [a-key b-key] params]
+       {:hitch.selector/name (:hitch.selector/name selector-spec)
+        a-key                a
+        b-key                b}))
     )
   ([selector-spec a b c]
    (case (:hitch.selector.spec/canonical-form selector-spec)
      :hitch.selector.spec.canonical-form/positional
      (->Selector3 (:hitch.selector/name selector-spec)  a b c)
      :hitch.selector.spec.canonical-form/map
-     {:hitch.selector/name (:hitch.selector/name selector-spec)})
-    ))
+     (let [params              (:hitch.selector.spec/positional-params selector-spec)
+           _                   (assert (= 3 (count params)))
+           [a-key b-key c-key] params]
+       {:hitch.selector/name (:hitch.selector/name selector-spec)
+        a-key                a
+        b-key                b
+        c-key                c}))))
 
 (def sel tyler-sel)
 
