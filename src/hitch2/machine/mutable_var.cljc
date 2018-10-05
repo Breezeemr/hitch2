@@ -51,7 +51,7 @@
       :hitch.selector.kind/var)
     sel-proto/GetMachine
     (-get-machine [var sel]
-      (->mutable-machine (:a sel)))))
+      (mutable-machine (:var-name sel)))))
 
 (reg/def-registered-selector mutable-var-spec' mutable-var-spec mutable-var-impl)
 
