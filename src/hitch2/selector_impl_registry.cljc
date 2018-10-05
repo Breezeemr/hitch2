@@ -30,8 +30,10 @@
 
 (defn register-selector-impl!
   "Register a selector implementation."
-  [selector-name selector-impl]
-  (swap! REGISTRY assoc selector-name selector-impl))
+  [selector-spec selector-impl]
+  (swap! REGISTRY assoc
+    (:hitch.selector/name selector-spec)
+    selector-impl))
 
 (defn unregister-selector-impl!
   "Remove a selector implementation for the provided selector name."
@@ -59,7 +61,10 @@
   directly) to ensure an implementation exists before using the selector and
   to ensure CLJS advanced-compliation can eliminate dead code."
   [symbol selector-name selector-impl-sym]
-  {:pre [(simple-symbol? symbol) (some? (resolve selector-impl-sym))]}
-  `(let [selector-name# ~selector-name]
-     (register-selector-impl! selector-name# ~selector-impl-sym)
-     (def ~symbol selector-name#)))
+  {:pre [(simple-symbol? symbol)
+         (simple-symbol? selector-name)
+         (some? (resolve selector-name))
+         (some? (resolve selector-impl-sym))]}
+  `(let []
+     (register-selector-impl! ~selector-name ~selector-impl-sym)
+     (def ~symbol ~selector-name)))
