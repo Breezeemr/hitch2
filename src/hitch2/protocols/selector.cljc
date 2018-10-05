@@ -1,6 +1,26 @@
 (ns hitch2.protocols.selector
+  #?(:cljs (:require-macros [hitch2.protocols.selector]))
   (:require [clojure.spec.alpha :as s]))
 
+#?(:cljs nil
+   :default
+   (defmacro def-selector-spec
+     [selector-name kind & options]
+     {:pre [(simple-symbol? selector-name)
+            (keyword? kind)]}
+     (let [sel-name (symbol
+                      (or
+                        (:name (:ns &env))                  ;; targeting CLJS
+                        (name (ns-name *ns*)))              ;; targeting CLJ
+                      (name selector-name))
+           qkind    (if (qualified-keyword? kind)
+                      kind
+                      (keyword "hitch.selector.spec.kind" (name kind)))]
+       `(def ~selector-name
+          (array-map
+            ~@options
+            :hitch.selector/name ~(list 'quote sel-name)
+            :hitch.selector.spec/kind ~qkind)))))
 
 ;; selector kind? what generalizes selector and machine? Graphable?
 ;; Hitchable? HitchKind Hitchtype?
@@ -56,8 +76,8 @@ Should be a keyword for dispatching. Values are from:
 (s/def :hitch.selector/name qualified-symbol?)
 (s/def :hitch.selector.spec/kind
   #{:hitch.selector.spec.kind/machine
-    :hitch.selector.spec.kind/positional-arguments
-    :hitch.selector.spec.kind/map-argument})
+    :hitch.selector.spec.kind/positional-params
+    :hitch.selector.spec.kind/map-param})
 (s/def :hitch.selector.spec/positional-params
   (s/coll-of keyword? :kind vector? :into []))
 
