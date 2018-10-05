@@ -265,11 +265,11 @@ Should be a keyword for dispatching. Values are from:
       (case (count positional-params)
         0 (->Selector0 (:hitch.selector/name selector-spec))
         1 (let [[a] positional-params]
-            (->Selector1 (:hitch.selector/name selector-spec) a))
+            (->Selector1 (:hitch.selector/name selector-spec) (a data)))
         2 (let [[a b] positional-params]
-            (->Selector2 (:hitch.selector/name selector-spec) a b))
+            (->Selector2 (:hitch.selector/name selector-spec) (a data) (b data)))
         3 (let [[a b c] positional-params]
-            (->Selector3 (:hitch.selector/name selector-spec) a b c))))
+            (->Selector3 (:hitch.selector/name selector-spec) (a data) (b data) (c data)))))
     :hitch.selector.spec.canonical-form/map
     (assoc data :hitch.selector/name (:hitch.selector/name selector-spec))))
 
