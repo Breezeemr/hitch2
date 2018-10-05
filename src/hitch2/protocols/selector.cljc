@@ -10,7 +10,7 @@
             (keyword? kind)]}
      (let [sel-name (symbol
                       (or
-                        (:name (:ns &env))                  ;; targeting CLJS
+                        (str (:name (:ns &env)))   ;; targeting CLJS
                         (name (ns-name *ns*)))              ;; targeting CLJ
                       (name selector-name))
            qkind    (if (qualified-keyword? kind)
