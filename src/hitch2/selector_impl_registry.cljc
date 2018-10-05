@@ -51,8 +51,10 @@
                {::ca/category  ::ca/not-found
                 :selector-name sname})))))
 
-(defmacro def-registered-selector
-  "Def symbol with value selector-name and also register its implementation.
+#?(:cljs nil
+   :clj
+   (defmacro def-registered-selector
+     "Def symbol with value selector-name and also register its implementation.
 
   The implementation must be a symbol which resolves to a selector-impl.
 
@@ -60,11 +62,11 @@
   symbol in select!/dget when using such a graph (instead of a selector-name
   directly) to ensure an implementation exists before using the selector and
   to ensure CLJS advanced-compliation can eliminate dead code."
-  [symbol selector-name selector-impl-sym]
-  {:pre [(simple-symbol? symbol)
-         (simple-symbol? selector-name)
-         (some? (resolve selector-name))
-         (some? (resolve selector-impl-sym))]}
-  `(let []
-     (register-selector-impl! ~selector-name ~selector-impl-sym)
-     (def ~symbol ~selector-name)))
+     [symbol selector-name selector-impl-sym]
+     {:pre [(simple-symbol? symbol)
+            (simple-symbol? selector-name)
+            (some? (resolve selector-name))
+            (some? (resolve selector-impl-sym))]}
+     `(let []
+        (register-selector-impl! ~selector-name ~selector-impl-sym)
+        (def ~symbol ~selector-name))))
