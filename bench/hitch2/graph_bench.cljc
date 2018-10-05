@@ -130,11 +130,6 @@
   (depends-bench "depends-map" (sel-proto/map->sel
                                  depends-on-map-spec'
                                  {:n   100}))
-  (deep-value-change-bench
-    "deep-value-change-bench-map"
-    (sel-proto/map->sel
-      depends-on-map-spec'
-      {:n   100}))
   (deep-value-change-bench  "deep-value-change-bench-record"
     (sel-proto/sel depends-on 100))
   (deep-value-change-bench  "deep-value-change-bench-map"
