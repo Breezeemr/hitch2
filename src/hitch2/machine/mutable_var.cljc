@@ -57,6 +57,6 @@
 
 (defn mutable-var [var-name]
   (sel-proto/map->sel
-    mutable-var-machine-spec'
+    mutable-var-spec'
     {:var-name var-name}))
 
