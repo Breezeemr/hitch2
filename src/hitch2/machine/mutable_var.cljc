@@ -28,11 +28,11 @@
                    (assoc :state NOT-FOUND-SENTINEL)
                    (update :reset-vars assoc (mutable-var (:name machine-selector)) NOT-FOUND-SENTINEL))))))
 
-(reg/def-registered-selector http-machine "mutable var machine" machine-impl)
+(reg/def-registered-selector mutable-machine-name "mutable var machine" machine-impl)
 
 (defrecord mutable-machine [name]
   sel-proto/SelectorName
-  (-sname [selector] http-machine))
+  (-sname [selector] mutable-machine-name))
 
 (def var-impl
   (reify
@@ -42,8 +42,8 @@
     sel-proto/GetMachine
     (-get-machine [var sel]
       (->mutable-machine (:a sel)))))
-(reg/def-registered-selector http-var "mutable var" var-impl)
+(reg/def-registered-selector mutable-machine-var "mutable var" var-impl)
 
 (defn mutable-var [var-name]
-  (sel-proto/->Selector1 http-var var-name))
+  (sel-proto/->Selector1 mutable-machine-var var-name))
 
