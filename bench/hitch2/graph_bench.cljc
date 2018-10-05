@@ -34,7 +34,6 @@
   [:n])
 
 (defn fibmap-halting [G {:keys [n] :as sel}]
-  (prn sel)
   (cond (= n 0) 0
         (= n 1) 1
         :else
@@ -86,7 +85,7 @@
 
 (defn depends-on-map-halting [G {:keys [n] :as sel}]
   (cond (= 0 n) @(api/select-sel! G (mv/mutable-var :bench))
-        :else   (+ 1 @(api/select-sel! G (assoc sel n (dec n))))))
+        :else   (+ 1 @(api/select-sel! G (assoc sel :n (dec n))))))
 
 (def depends-on-map-impl
   {:hitch.selector.impl/kind :hitch.selector.kind/halting
