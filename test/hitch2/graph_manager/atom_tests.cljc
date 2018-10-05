@@ -3,13 +3,13 @@
     [hitch2.graph :as hitch]
     [hitch2.machine.mutable-var :as mv]
     [hitch2.graph-manager.atom :as g]
-            [hitch2.protocols.graph-manager :as gm-proto]
-            [hitch2.protocols.machine :as machine-proto]
-            [hitch2.protocols.selector :as sel-proto]
+    [hitch2.protocols.graph-manager :as gm-proto]
+    [hitch2.protocols.machine :as machine-proto]
+    [hitch2.protocols.selector :as sel-proto]
     [hitch2.selector-impl-registry :as reg
      :refer [registry-resolver]]
-            #?(:cljs [cljs.test :refer [deftest is testing]]
-               :clj [clojure.test :refer [deftest is testing]])))
+    #?(:cljs [cljs.test :refer [deftest is testing]]
+       :clj  [clojure.test :refer [deftest is testing]])))
 
 (def initial-node (assoc machine-proto/initial-machine-state :state {}))
 
