@@ -8,7 +8,9 @@
 (def initial-node (assoc machine-proto/initial-machine-state :state #{}))
 
 (def-selector-spec pin-machine-spec
-  :hitch.selector.spec.kind/positional-params)
+  :machine
+  :hitch.selector.spec/canonical-form
+  :hitch.selector.spec.canonical-form/positional)
 
 (def pin-machine-impl
   (reify

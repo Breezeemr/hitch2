@@ -18,7 +18,9 @@
   (reduce dissoc state selectors))
 
 (def-selector-spec hook-machine-spec
-  :hitch.selector.spec.kind/positional-params)
+  :machine
+  :hitch.selector.spec/canonical-form
+  :hitch.selector.spec.canonical-form/positional)
 
 (def hook-impl
   (reify
@@ -61,7 +63,9 @@
 
 
 (def-selector-spec hook-change-machine-spec
-  :hitch.selector.spec.kind/positional-params)
+  :machine
+  :hitch.selector.spec/canonical-form
+  :hitch.selector.spec.canonical-form/positional)
 
 (def hook-change-impl
   (reify

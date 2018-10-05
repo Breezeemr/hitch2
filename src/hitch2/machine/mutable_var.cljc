@@ -10,7 +10,9 @@
 (def initial-node (assoc machine-proto/initial-machine-state :state NOT-FOUND-SENTINEL))
 
 (def-selector-spec mutable-var-machine-spec
-  :hitch.selector.spec.kind/map-param
+  :machine
+  :hitch.selector.spec/canonical-form
+  :hitch.selector.spec.canonical-form/map
   :hitch.selector.spec/positional-params
   [:var-name])
 
@@ -40,7 +42,9 @@
   (sel-proto/map->sel mutable-var-machine-spec' {:var-name var-name}))
 
 (def-selector-spec mutable-var-spec
-  :hitch.selector.spec.kind/map-param
+  :not-machine
+  :hitch.selector.spec/canonical-form
+  :hitch.selector.spec.canonical-form/map
   :hitch.selector.spec/positional-params
   [:var-name])
 

@@ -7,7 +7,8 @@
 (defn return-constant [gv-tracker v]
   v)
 (def-selector-spec constant-spec
-  :hitch.selector.spec.kind/positional-params)
+  :not-machine
+  :hitch.selector.spec/canonical-form :hitch.selector.spec.canonical-form/positional)
 (def constant-impl (reify
                      selector-proto/ImplementationKind
                      (-imp-kind [machine] :hitch.selector.kind/halting)

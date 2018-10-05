@@ -42,7 +42,9 @@
 
 (def initial-node machine-proto/initial-machine-state)
 (def-selector-spec http-machine-spec
-  :hitch.selector.spec.kind/positional-params)
+  :machine
+  :hitch.selector.spec/canonical-form
+  :hitch.selector.spec.canonical-form/positional)
 
 (def http-machine-impl
   (reify
@@ -69,7 +71,9 @@
 
 
 (def-selector-spec http-spec
-  :hitch.selector.spec.kind/positional-params)
+  :not-machine
+  :hitch.selector.spec/canonical-form
+  :hitch.selector.spec.canonical-form/positional)
 
 (def http-var-impl
   (reify

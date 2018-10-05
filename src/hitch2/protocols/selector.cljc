@@ -76,8 +76,13 @@ Should be a keyword for dispatching. Values are from:
 (s/def :hitch.selector/name qualified-symbol?)
 (s/def :hitch.selector.spec/kind
   #{:hitch.selector.spec.kind/machine
-    :hitch.selector.spec.kind/positional-params
-    :hitch.selector.spec.kind/map-param})
+    :hitch.selector.spec.kind/not-machine})
+
+
+(s/def :hitch.selector.spec/canonical-form
+  #{:hitch.selector.spec.canonical-form/positional
+    :hitch.selector.spec.canonical-form/map})
+
 (s/def :hitch.selector.spec/positional-params
   (s/coll-of keyword? :kind vector? :into []))
 
@@ -210,38 +215,38 @@ Should be a keyword for dispatching. Values are from:
 
 (defn tyler-sel
   ([selector-spec]
-   (case (:hitch.selector.spec/kind selector-spec)
-     :hitch.selector.spec.kind/positional-params
+   (case (:hitch.selector.spec/canonical-form selector-spec)
+     :hitch.selector.spec.canonical-form/positional
      (->Selector0 (:hitch.selector/name selector-spec))
-     :hitch.selector.spec.kind/map-param
+     :hitch.selector.spec.canonical-form/map
      {:hitch.selector/name (:hitch.selector/name selector-spec)}))
   ([selector-spec a]
-   (case (:hitch.selector.spec/kind selector-spec)
-     :hitch.selector.spec.kind/positional-params
+   (case (:hitch.selector.spec/canonical-form selector-spec)
+     :hitch.selector.spec.canonical-form/positional
      (->Selector1 (:hitch.selector/name selector-spec) a)
-     :hitch.selector.spec.kind/map-param
+     :hitch.selector.spec.canonical-form/map
      {:hitch.selector/name (:hitch.selector/name selector-spec)})
     )
   ([selector-spec a b]
-   (case (:hitch.selector.spec/kind selector-spec)
-     :hitch.selector.spec.kind/positional-params
+   (case (:hitch.selector.spec/canonical-form selector-spec)
+     :hitch.selector.spec.canonical-form/positional
      (->Selector2 (:hitch.selector/name selector-spec) a b)
-     :hitch.selector.spec.kind/map-param
+     :hitch.selector.spec.canonical-form/map
      {:hitch.selector/name (:hitch.selector/name selector-spec)})
     )
   ([selector-spec a b c]
-   (case (:hitch.selector.spec/kind selector-spec)
-     :hitch.selector.spec.kind/positional-params
+   (case (:hitch.selector.spec/canonical-form selector-spec)
+     :hitch.selector.spec.canonical-form/positional
      (->Selector3 (:hitch.selector/name selector-spec)  a b c)
-     :hitch.selector.spec.kind/map-param
+     :hitch.selector.spec.canonical-form/map
      {:hitch.selector/name (:hitch.selector/name selector-spec)})
     ))
 
 (def sel tyler-sel)
 
 (defn tyler-map->sel [selector-spec data]
-  (case (:hitch.selector.spec/kind selector-spec)
-    :hitch.selector.spec.kind/positional-params
+  (case (:hitch.selector.spec/canonical-form selector-spec)
+    :hitch.selector.spec.canonical-form/positional
     (let [positional-params (:hitch.selector.spec/positional-params selector-spec)]
       (case (count positional-params)
         0 (->Selector0 (:hitch.selector/name selector-spec))
@@ -251,7 +256,7 @@ Should be a keyword for dispatching. Values are from:
             (->Selector2 (:hitch.selector/name selector-spec) a b))
         3 (let [[a b c] positional-params]
             (->Selector3 (:hitch.selector/name selector-spec) a b c))))
-    :hitch.selector.spec.kind/map-param
+    :hitch.selector.spec.canonical-form/map
     (assoc data :hitch.selector/name (:hitch.selector/name selector-spec))))
 
 (def map->sel tyler-map->sel)
