@@ -118,6 +118,11 @@
     graph-manager-value
     reset-vars))
 
+(defn tyler-halting [graph-manager-value selector h-fn tx-manager]
+  (halt/maybe-halt
+    (selector-proto/-invoke-halting selector h-fn tx-manager)
+    NOT-FOUND-SENTINEL))
+
 (defn run-halting [graph-manager-value
                    node-state
                    selector
@@ -127,9 +132,7 @@
   (let [old-value (-> graph-manager-value :graph-value (get selector NOT-FOUND-SENTINEL))
         old-deps  (-> graph-manager-value :parents (get selector #{}))
         tx-manager (halting-tx/halting-manager (:graph-value graph-manager-value))
-        new-value (halt/maybe-halt
-             (selector-proto/-invoke-halting selector h-fn tx-manager)
-             NOT-FOUND-SENTINEL)
+        new-value (tyler-halting graph-manager-value selector h-fn tx-manager)
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (and (not= new-value old-value) (not (identical? new-value NOT-FOUND-SENTINEL)))
         added-deps       (into #{} (remove old-deps) deps)
