@@ -1,4 +1,6 @@
 (ns hitch2.selector-impl-registry
+  #?(:cljs
+     (:require-macros [hitch2.selector-impl-registry]))
   (:require [hitch2.protocols.selector :as selector-proto]
             [cognitect.anomalies :as ca]))
 
