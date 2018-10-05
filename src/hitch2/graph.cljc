@@ -7,53 +7,11 @@
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
             [hitch2.halt :as halt]))
 
-(defn tyler-sel
-  ([selector-spec]
-   (case (:hitch.selector.spec/kind selector-spec)
-     :hitch.selector.spec.kind/positional-params
-     (selector-proto/Selector0 (:hitch.selector/name selector-spec))
-     :hitch.selector.spec.kind/map-param
-     {:hitch.selector/name (:hitch.selector/name selector-spec)}))
-  ([selector-spec a]
-   (case (:hitch.selector.spec/kind selector-spec)
-     :hitch.selector.spec.kind/positional-params
-     (selector-proto/Selector1 (:hitch.selector/name selector-spec) a)
-     :hitch.selector.spec.kind/map-param
-     {:hitch.selector/name (:hitch.selector/name selector-spec)})
-    )
-  ([selector-spec a b]
-   (case (:hitch.selector.spec/kind selector-spec)
-     :hitch.selector.spec.kind/positional-params
-     (selector-proto/Selector2 (:hitch.selector/name selector-spec) a b)
-     :hitch.selector.spec.kind/map-param
-     {:hitch.selector/name (:hitch.selector/name selector-spec)})
-    )
-  ([selector-spec a b c]
-   (case (:hitch.selector.spec/kind selector-spec)
-     :hitch.selector.spec.kind/positional-params
-     (selector-proto/Selector3 (:hitch.selector/name selector-spec)  a b c)
-     :hitch.selector.spec.kind/map-param
-     {:hitch.selector/name (:hitch.selector/name selector-spec)})
-    ))
 
-(def sel tyler-sel)
 
-(defn tyler-map->sel [selector-spec data]
-  (case (:hitch.selector.spec/kind selector-spec)
-    :hitch.selector.spec.kind/positional-params
-    (let [positional-params (:hitch.selector.spec/positional-params selector-spec)]
-      (case (count positional-params)
-        0 (selector-proto/Selector0 (:hitch.selector/name selector-spec))
-        1 (let [[a] positional-params]
-            (selector-proto/Selector1 (:hitch.selector/name selector-spec) a))
-        2 (let [[a b] positional-params]
-            (selector-proto/Selector2 (:hitch.selector/name selector-spec) a b))
-        3 (let [[a b c] positional-params]
-            (selector-proto/Selector3 (:hitch.selector/name selector-spec) a b c))))
-    :hitch.selector.spec.kind/map-param
-    (assoc data :hitch.selector/name (:hitch.selector/name selector-spec))))
+(def sel selector-proto/sel)
 
-(def map->sel tyler-map->sel)
+(def map->sel selector-proto/map->sel)
 
 (defn pin
   "Force a selector to remain in the graph even if nothing else depends on it."

@@ -207,3 +207,51 @@ Should be a keyword for dispatching. Values are from:
   InvokeHalting
   (-invoke-halting [sel f gv-tracker]
     (f gv-tracker a)))
+
+(defn tyler-sel
+  ([selector-spec]
+   (case (:hitch.selector.spec/kind selector-spec)
+     :hitch.selector.spec.kind/positional-params
+     (->Selector0 (:hitch.selector/name selector-spec))
+     :hitch.selector.spec.kind/map-param
+     {:hitch.selector/name (:hitch.selector/name selector-spec)}))
+  ([selector-spec a]
+   (case (:hitch.selector.spec/kind selector-spec)
+     :hitch.selector.spec.kind/positional-params
+     (->Selector1 (:hitch.selector/name selector-spec) a)
+     :hitch.selector.spec.kind/map-param
+     {:hitch.selector/name (:hitch.selector/name selector-spec)})
+    )
+  ([selector-spec a b]
+   (case (:hitch.selector.spec/kind selector-spec)
+     :hitch.selector.spec.kind/positional-params
+     (->Selector2 (:hitch.selector/name selector-spec) a b)
+     :hitch.selector.spec.kind/map-param
+     {:hitch.selector/name (:hitch.selector/name selector-spec)})
+    )
+  ([selector-spec a b c]
+   (case (:hitch.selector.spec/kind selector-spec)
+     :hitch.selector.spec.kind/positional-params
+     (->Selector3 (:hitch.selector/name selector-spec)  a b c)
+     :hitch.selector.spec.kind/map-param
+     {:hitch.selector/name (:hitch.selector/name selector-spec)})
+    ))
+
+(def sel tyler-sel)
+
+(defn tyler-map->sel [selector-spec data]
+  (case (:hitch.selector.spec/kind selector-spec)
+    :hitch.selector.spec.kind/positional-params
+    (let [positional-params (:hitch.selector.spec/positional-params selector-spec)]
+      (case (count positional-params)
+        0 (->Selector0 (:hitch.selector/name selector-spec))
+        1 (let [[a] positional-params]
+            (->Selector1 (:hitch.selector/name selector-spec) a))
+        2 (let [[a b] positional-params]
+            (->Selector2 (:hitch.selector/name selector-spec) a b))
+        3 (let [[a b c] positional-params]
+            (->Selector3 (:hitch.selector/name selector-spec) a b c))))
+    :hitch.selector.spec.kind/map-param
+    (assoc data :hitch.selector/name (:hitch.selector/name selector-spec))))
+
+(def map->sel tyler-map->sel)
