@@ -1,10 +1,13 @@
 (ns hitch2.test-common
   #?(:clj (:import (java.io Writer)))
-  (:require [hitch2.protocols.selector :as selector-proto]
+  (:require [hitch2.protocols.selector :as selector-proto
+             :refer [def-selector-spec]]
             [hitch2.selector-impl-registry :as reg]))
 
 (defn return-constant [gv-tracker v]
   v)
+(def-selector-spec constant-spec
+  :hitch.selector.spec.kind/positional-params)
 (def constant-impl (reify
                      selector-proto/ImplementationKind
                      (-imp-kind [machine] :hitch.selector.kind/halting)
@@ -12,9 +15,9 @@
                      (-get-halting-fn [sel]
                        return-constant)))
 
-(reg/def-registered-selector constant ::constant constant-impl)
+(reg/def-registered-selector constant-spec' constant-spec constant-impl)
 (defn Constant [v]
-  (selector-proto/->Selector1 constant v))
+  (selector-proto/sel constant-spec' v))
 
 ;(defrecord Variable [name]
 ;  hitch2.protocols.selector/Selector

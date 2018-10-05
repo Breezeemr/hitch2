@@ -36,7 +36,7 @@
                                     (prn "yay! I got value " val)) (mv/mutable-var :test-name))
 
     (prn "transact" )
-    (gm-proto/-transact! graph-manager (mv/->mutable-machine :test-name) [:set-value 5])
+    (gm-proto/-transact! graph-manager (mv/mutable-machine :test-name) [:set-value 5])
     (is (= @test-atom 5))
     ;; what goes here?
     #_(gm-proto/-transact! graph-manager hook/hook-machine
