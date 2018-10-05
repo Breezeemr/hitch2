@@ -3,11 +3,12 @@
             [hitch2.protocols.machine :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.protocols.selector :as sel-proto
-             :refer [def-selector-spec]]
+             :refer-macros [def-selector-spec]]
             [goog.events :as events]
             [goog.net.EventType :as EventType]
             [clojure.string :as str]
-            [hitch2.selector-impl-registry :as reg]
+            [hitch2.selector-impl-registry :as reg
+             :refer-macros [def-registered-selector]]
             [hitch2.protocols.selector :as selector-proto])
   (:import (goog.net XhrIo)))
 
