@@ -2,11 +2,14 @@
   (:require [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
             [hitch2.protocols.machine :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
-            [hitch2.protocols.selector :as sel-proto]
+            [hitch2.protocols.selector :as sel-proto
+             :refer [def-selector-spec]]
+            [hitch2.graph :as api]
             [goog.events :as events]
             [goog.net.EventType :as EventType]
             [clojure.string :as str]
-            [hitch2.selector-impl-registry :as reg])
+            [hitch2.selector-impl-registry :as reg]
+            [hitch2.protocols.selector :as selector-proto])
   (:import (goog.net XhrIo)))
 
 (def ^:private meths
@@ -39,8 +42,10 @@
     #(.dispose xhr)))
 
 (def initial-node machine-proto/initial-machine-state)
+(def-selector-spec http-machine-spec
+  :hitch.selector.spec.kind/positional-params)
 
-(def http-impl
+(def http-machine-impl
   (reify
     sel-proto/ImplementationKind
     (-imp-kind [machine] :hitch.selector.kind/machine)
@@ -60,13 +65,12 @@
                     (update node :async-effects conj {:type     ::request
                                                       :selector selector}))))))
 
-(reg/def-registered-selector http-m "http machine" http-impl)
-(def http-machine
-  (reify
-    sel-proto/SelectorName
-    (-sname [machine-instance] http-m)))
+(reg/def-registered-selector http-machine-spec' http-machine-spec http-machine-impl)
+(def http-machine (api/sel http-machine-spec'))
 
 
+(def-selector-spec http-spec
+  :hitch.selector.spec.kind/positional-params)
 
 (def http-var-impl
   (reify
@@ -77,11 +81,10 @@
     (-get-machine [var sel]
       http-machine)))
 
-(reg/def-registered-selector http-var :http-var http-var-impl)
+(reg/def-registered-selector http-spec' http-spec http-var-impl)
 
 (defn http [url method serializer deserializer content headers withcreds]
-  (sel-proto/->Selector1
-    http-var
+  (api/sel http-spec'
     {:url          url
      :method       method
      :serializer   serializer
