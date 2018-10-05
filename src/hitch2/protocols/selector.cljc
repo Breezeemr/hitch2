@@ -147,7 +147,15 @@ Should be a keyword for dispatching. Values are from:
   #?@(:clj
       [clojure.lang.Indexed
        (nth [_ _] (throw (IndexOutOfBoundsException. "Selector0 has no arguments.")))
-       (nth [_ _ not-found] not-found)]))
+       (nth [_ _ not-found] not-found)]
+      :cljs
+      [IIndexed
+       (-nth [_ i] (case i
+                     (throw (ex-info "Index out of bounds"
+                                     {:selector :selector0
+                                      :index    i}))))
+       (-nth [_ i not-found] (case i
+                               not-found))]))
 (defrecord Selector1 [impl a]
   SelectorName
   (-sname [_] impl)
@@ -161,7 +169,17 @@ Should be a keyword for dispatching. Values are from:
                     (throw (IndexOutOfBoundsException. "Selector0 has no arguments."))))
        (nth [_ i not-found] (case i
                               0 a
-                              not-found))]))
+                              not-found))]
+      :cljs
+      [IIndexed
+       (-nth [_ i] (case i
+                     0 a
+                     (throw (ex-info "Index out of bounds"
+                                        {:selector :selector1
+                                         :index    i}))))
+       (-nth [_ i not-found] (case i
+                               0 a
+                               not-found))]))
 (defrecord Selector2 [impl a b]
   SelectorName
   (-sname [_] impl)
@@ -177,7 +195,19 @@ Should be a keyword for dispatching. Values are from:
        (nth [_ i not-found] (case i
                               0 a
                               1 b
-                              not-found))]))
+                              not-found))]
+      :cljs
+      [IIndexed
+       (-nth [_ i] (case i
+                     0 a
+                     1 b
+                     (throw (ex-info "Index out of bounds"
+                                     {:selector :selector0
+                                      :index    i}))))
+       (-nth [_ i not-found] (case i
+                               0 a
+                               1 b
+                               not-found))]))
 
 (defrecord Selector3 [impl a b c]
   SelectorName
@@ -196,7 +226,21 @@ Should be a keyword for dispatching. Values are from:
                               0 a
                               1 b
                               2 c
-                              not-found))]))
+                              not-found))]
+      :cljs
+      [IIndexed
+       (-nth [_ i] (case i
+                     0 a
+                     1 b
+                     2 c
+                     (throw (ex-info "Index out of bounds"
+                                     {:selector :selector0
+                                      :index    i}))))
+       (-nth [_ i not-found] (case i
+                               0 a
+                               1 b
+                               2 c
+                               not-found))]))
 
 
 ;;is gv-tracker the best name?
