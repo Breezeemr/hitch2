@@ -43,7 +43,7 @@
           (+ @n-1 @n-2))))
 
 (def fibimpl {:hitch.selector.impl/kind :hitch.selector.kind/halting
-           :halting                     fibmap})
+           :halting                     fibmap-halting})
 
 (reg/def-registered-selector fib-map-spec' fib-map-spec fibimpl)
 (declare fibb-graph)
