@@ -1,13 +1,59 @@
 (ns hitch2.graph
   (:require [hitch2.protocols.graph-manager :as graph-proto]
+            [hitch2.protocols.selector :as selector-proto]
             [hitch2.machine.pin :refer [pin-machine]]
             [hitch2.machine.hook :refer [hook-machine hook-change-machine]]
             [hitch2.protocols.tx-manager :as tx-proto]
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
             [hitch2.halt :as halt]))
 
-(defn get-target-for-tx-context [tx]
-  :target)
+(defn tyler-sel
+  ([selector-spec]
+   (case (:hitch.selector.spec/kind selector-spec)
+     :hitch.selector.spec.kind/positional-params
+     (selector-proto/Selector0 (:hitch.selector/name selector-spec))
+     :hitch.selector.spec.kind/map-param
+     {:hitch.selector/name (:hitch.selector/name selector-spec)}))
+  ([selector-spec a]
+   (case (:hitch.selector.spec/kind selector-spec)
+     :hitch.selector.spec.kind/positional-params
+     (selector-proto/Selector1 (:hitch.selector/name selector-spec) a)
+     :hitch.selector.spec.kind/map-param
+     {:hitch.selector/name (:hitch.selector/name selector-spec)})
+    )
+  ([selector-spec a b]
+   (case (:hitch.selector.spec/kind selector-spec)
+     :hitch.selector.spec.kind/positional-params
+     (selector-proto/Selector2 (:hitch.selector/name selector-spec) a b)
+     :hitch.selector.spec.kind/map-param
+     {:hitch.selector/name (:hitch.selector/name selector-spec)})
+    )
+  ([selector-spec a b c]
+   (case (:hitch.selector.spec/kind selector-spec)
+     :hitch.selector.spec.kind/positional-params
+     (selector-proto/Selector3 (:hitch.selector/name selector-spec)  a b c)
+     :hitch.selector.spec.kind/map-param
+     {:hitch.selector/name (:hitch.selector/name selector-spec)})
+    ))
+
+(def sel tyler-sel)
+
+(defn tyler-map->sel [selector-spec data]
+  (case (:hitch.selector.spec/kind selector-spec)
+    :hitch.selector.spec.kind/positional-params
+    (let [positional-params (:hitch.selector.spec/positional-params selector-spec)]
+      (case (count positional-params)
+        0 (selector-proto/Selector0 (:hitch.selector/name selector-spec))
+        1 (let [[a] positional-params]
+            (selector-proto/Selector1 (:hitch.selector/name selector-spec) a))
+        2 (let [[a b] positional-params]
+            (selector-proto/Selector2 (:hitch.selector/name selector-spec) a b))
+        3 (let [[a b c] positional-params]
+            (selector-proto/Selector3 (:hitch.selector/name selector-spec) a b c))))
+    :hitch.selector.spec.kind/map-param
+    (assoc data :hitch.selector/name (:hitch.selector/name selector-spec))))
+
+(def map->sel tyler-map->sel)
 
 (defn pin
   "Force a selector to remain in the graph even if nothing else depends on it."
@@ -48,29 +94,29 @@
 
 (defn hook
   "Call fn `cb` once with the value of selector returned from
-  selector-constructor and remaining arguments in `graph` as soon as it is
+  selector-spec and remaining arguments in `graph` as soon as it is
   available. `cb` may be called synchronously if the selector's value is already
   known."
-  ([graph-manager cb selector-constructor] (hook-sel graph-manager cb (selector-constructor)))
-  ([graph-manager cb selector-constructor a] (hook-sel graph-manager cb (selector-constructor a)))
-  ([graph-manager cb selector-constructor a b] (hook-sel graph-manager cb (selector-constructor a b)))
-  ([graph-manager cb selector-constructor a b c] (hook-sel graph-manager cb (selector-constructor a b c)))
-  ([graph-manager cb selector-constructor a b c d] (hook-sel graph-manager cb (selector-constructor a b c d)))
-  ([graph-manager cb selector-constructor a b c d f] (hook-sel graph-manager cb (selector-constructor a b c d f)))
-  ([graph-manager cb selector-constructor a b c d f g] (hook-sel graph-manager cb (selector-constructor a b c d f g)))
-  ([graph-manager cb selector-constructor a b c d f g h] (hook-sel graph-manager cb (selector-constructor a b c d f g h))))
+  ([graph-manager cb selector-spec] (hook-sel graph-manager cb (sel selector-spec)))
+  ([graph-manager cb selector-spec a] (hook-sel graph-manager cb (sel selector-spec a)))
+  ([graph-manager cb selector-spec a b] (hook-sel graph-manager cb (sel selector-spec a b)))
+  ([graph-manager cb selector-spec a b c] (hook-sel graph-manager cb (sel selector-spec a b c)))
+  ([graph-manager cb selector-spec a b c d] (hook-sel graph-manager cb (sel selector-spec a b c d)))
+  ([graph-manager cb selector-spec a b c d f] (hook-sel graph-manager cb (sel selector-spec a b c d f)))
+  ([graph-manager cb selector-spec a b c d f g] (hook-sel graph-manager cb (sel selector-spec a b c d f g)))
+  ([graph-manager cb selector-spec a b c d f g h] (hook-sel graph-manager cb (sel selector-spec a b c d f g h))))
 
 (defn hook-change
-  "Like hook-change-sel, but receives a selector-constructor plus arguments
+  "Like hook-change-sel, but receives a selector-spec plus arguments
   instead of a selector."
-  ([graph-manager cb selector-constructor] (hook-change-sel graph-manager cb (selector-constructor)))
-  ([graph-manager cb selector-constructor a] (hook-change-sel graph-manager cb (selector-constructor a)))
-  ([graph-manager cb selector-constructor a b] (hook-change-sel graph-manager cb (selector-constructor a b)))
-  ([graph-manager cb selector-constructor a b c] (hook-change-sel graph-manager cb (selector-constructor a b c)))
-  ([graph-manager cb selector-constructor a b c d] (hook-change-sel graph-manager cb (selector-constructor a b c d)))
-  ([graph-manager cb selector-constructor a b c d f] (hook-change-sel graph-manager cb (selector-constructor a b c d f)))
-  ([graph-manager cb selector-constructor a b c d f g] (hook-change-sel graph-manager cb (selector-constructor a b c d f g)))
-  ([graph-manager cb selector-constructor a b c d f g h] (hook-change-sel graph-manager cb (selector-constructor a b c d f g h))))
+  ([graph-manager cb selector-spec] (hook-change-sel graph-manager cb (sel selector-spec)))
+  ([graph-manager cb selector-spec a] (hook-change-sel graph-manager cb (sel selector-spec a)))
+  ([graph-manager cb selector-spec a b] (hook-change-sel graph-manager cb (sel selector-spec a b)))
+  ([graph-manager cb selector-spec a b c] (hook-change-sel graph-manager cb (sel selector-spec a b c)))
+  ([graph-manager cb selector-spec a b c d] (hook-change-sel graph-manager cb (sel selector-spec a b c d)))
+  ([graph-manager cb selector-spec a b c d f] (hook-change-sel graph-manager cb (sel selector-spec a b c d f)))
+  ([graph-manager cb selector-spec a b c d f g] (hook-change-sel graph-manager cb (sel selector-spec a b c d f g)))
+  ([graph-manager cb selector-spec a b c d f g h] (hook-change-sel graph-manager cb (sel selector-spec a b c d f g h))))
 
 (defn hitch-callback
   "Given a graph, execute fn `body` in a graph transaction context, calling
@@ -114,24 +160,24 @@
   (tx-proto/dget-sel! tx-manager selector nf))
 
 (defn dget!
-  "Return the value (or `nf` if not yet known) for a selector-constructor and
+  "Return the value (or `nf` if not yet known) for a selector-spec and
   its arguments from graph transaction context `tx`."
-  ([tx-manager nf selector-constructor]
-   (dget-sel! tx-manager (selector-constructor) nf))
-  ([tx-manager nf selector-constructor a]
-   (dget-sel! tx-manager (selector-constructor a) nf))
-  ([tx-manager nf selector-constructor a b]
-   (dget-sel! tx-manager (selector-constructor a b) nf))
-  ([tx-manager nf selector-constructor a b c]
-   (dget-sel! tx-manager (selector-constructor a b c) nf))
-  ([tx-manager nf selector-constructor a b c d]
-   (dget-sel! tx-manager (selector-constructor a b c d) nf))
-  ([tx-manager nf selector-constructor a b c d e]
-   (dget-sel! tx-manager (selector-constructor a b c d e) nf))
-  ([tx-manager nf selector-constructor a b c d e f]
-   (dget-sel! tx-manager (selector-constructor a b c d e f) nf))
-  ([tx-manager nf selector-constructor a b c d e f g]
-   (dget-sel! tx-manager (selector-constructor a b c d e f g) nf)))
+  ([tx-manager nf selector-spec]
+   (dget-sel! tx-manager (sel selector-spec) nf))
+  ([tx-manager nf selector-spec a]
+   (dget-sel! tx-manager (sel selector-spec a) nf))
+  ([tx-manager nf selector-spec a b]
+   (dget-sel! tx-manager (sel selector-spec a b) nf))
+  ([tx-manager nf selector-spec a b c]
+   (dget-sel! tx-manager (sel selector-spec a b c) nf))
+  ([tx-manager nf selector-spec a b c d]
+   (dget-sel! tx-manager (sel selector-spec a b c d) nf))
+  ([tx-manager nf selector-spec a b c d e]
+   (dget-sel! tx-manager (sel selector-spec a b c d e) nf))
+  ([tx-manager nf selector-spec a b c d e f]
+   (dget-sel! tx-manager (sel selector-spec a b c d e f) nf))
+  ([tx-manager nf selector-spec a b c d e f g]
+   (dget-sel! tx-manager (sel selector-spec a b c d e f g) nf)))
 
 (defn select-sel!
   "Return a box containing the value for a selector from graph transaction
@@ -143,48 +189,48 @@
        (halt/select-box v)))))
 
 (defn select!
-  "Return a box containing the value for a selector-constructor and its
+  "Return a box containing the value for a selector-spec and its
   arguments from graph transaction context `tx`. Retrieve the value with deref
   (@). If the value is not yet known, deref will throw an exception which the
   transaction context will catch. You can test if a value is available
   using `(realized? box)`."
-  ([tx-manager selector-constructor]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor)]
+  ([tx-manager selector-spec]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-constructor a]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a)]
+  ([tx-manager selector-spec a]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-constructor a b]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a b)]
+  ([tx-manager selector-spec a b]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a b)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-constructor a b c]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a b c)]
+  ([tx-manager selector-spec a b c]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a b c)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-constructor a b c d]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a b c d)]
+  ([tx-manager selector-spec a b c d]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a b c d)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-constructor a b c d e]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a b c d e)]
+  ([tx-manager selector-spec a b c d e]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a b c d e)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-constructor a b c d e f]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a b c d e f)]
+  ([tx-manager selector-spec a b c d e f]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a b c d e f)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-constructor a b c d e f g]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-constructor a b c d e f g)]
+  ([tx-manager selector-spec a b c d e f g]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a b c d e f g)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v)))))
