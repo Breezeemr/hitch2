@@ -4,7 +4,6 @@
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.protocols.selector :as sel-proto
              :refer [def-selector-spec]]
-            [hitch2.graph :as api]
             [goog.events :as events]
             [goog.net.EventType :as EventType]
             [clojure.string :as str]
@@ -66,7 +65,7 @@
                                                       :selector selector}))))))
 
 (reg/def-registered-selector http-machine-spec' http-machine-spec http-machine-impl)
-(def http-machine (api/sel http-machine-spec'))
+(def http-machine (sel-proto/sel http-machine-spec'))
 
 
 (def-selector-spec http-spec
@@ -84,7 +83,7 @@
 (reg/def-registered-selector http-spec' http-spec http-var-impl)
 
 (defn http [url method serializer deserializer content headers withcreds]
-  (api/sel http-spec'
+  (sel-proto/sel http-spec'
     {:url          url
      :method       method
      :serializer   serializer

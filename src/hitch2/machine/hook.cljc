@@ -2,7 +2,8 @@
   (:require [hitch2.protocols.machine :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
-            [hitch2.protocols.selector :as sel-proto]
+            [hitch2.protocols.selector :as sel-proto
+             :refer [def-selector-spec]]
             [hitch2.selector-impl-registry :as reg]))
 
 (def hook-spec
@@ -15,6 +16,9 @@
 
 (defn remove-called-hooks [state selectors]
   (reduce dissoc state selectors))
+
+(def-selector-spec hook-machine-spec
+  :hitch.selector.spec.kind/positional-params)
 
 (def hook-impl
   (reify
@@ -50,12 +54,14 @@
               new-node
               (update new-node :change-parent assoc selector false))))))))
 
-(def hook-machine
-  (reify
-    sel-proto/SelectorName
-    (-sname [machine-instance] ::hook)))
+(reg/def-registered-selector hook-machine-spec' hook-machine-spec hook-impl)
 
-(reg/def-registered-selector hook ::hook hook-impl)
+(def hook-machine
+  (sel-proto/sel hook-machine-spec'))
+
+
+(def-selector-spec hook-change-machine-spec
+  :hitch.selector.spec.kind/positional-params)
 
 (def hook-change-impl
   (reify
@@ -96,12 +102,11 @@
               new-node
               (update new-node :change-parent assoc selector false))))))))
 
-(def hook-change-machine
-  (reify
-    sel-proto/SelectorName
-    (-sname [machine-instance] ::hook-change)))
+(reg/def-registered-selector hook-change-machine-spec' hook-change-machine-spec hook-change-impl)
 
-(reg/def-registered-selector hook-change ::hook-change hook-change-impl)
+
+(def hook-change-machine
+  (sel-proto/sel hook-change-machine-spec'))
 
 (defmethod graph-proto/run-effect :hook-call [graph-manager
                                               {:as effect

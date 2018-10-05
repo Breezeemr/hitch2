@@ -3,10 +3,16 @@
             [hitch2.protocols.machine :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.selector-impl-registry :as reg]
-            [hitch2.protocols.selector :as sel-proto]))
+            [hitch2.protocols.selector :as sel-proto
+             :refer [def-selector-spec]]))
 
 (declare mutable-var)
 (def initial-node (assoc machine-proto/initial-machine-state :state NOT-FOUND-SENTINEL))
+
+(def-selector-spec mutable-var-machine-spec
+  :hitch.selector.spec.kind/map-param
+  :hitch.selector.spec/positional-params
+  [:var-name])
 
 (def machine-impl
   (reify
@@ -23,18 +29,22 @@
         :set-value (let [[_ val] command]
                      (-> node
                          (assoc :state val)
-                         (update :reset-vars assoc (mutable-var (:name machine-selector)) val)))
+                         (update :reset-vars assoc (mutable-var (:var-name machine-selector)) val)))
         :clear (-> node
                    (assoc :state NOT-FOUND-SENTINEL)
-                   (update :reset-vars assoc (mutable-var (:name machine-selector)) NOT-FOUND-SENTINEL))))))
+                   (update :reset-vars assoc (mutable-var (:var-name machine-selector)) NOT-FOUND-SENTINEL))))))
 
-(reg/def-registered-selector mutable-machine-name "mutable var machine" machine-impl)
+(reg/def-registered-selector mutable-var-machine-spec' mutable-var-machine-spec machine-impl)
 
-(defrecord mutable-machine [name]
-  sel-proto/SelectorName
-  (-sname [selector] mutable-machine-name))
+(defn mutable-machine [var-name]
+  (sel-proto/map->sel mutable-var-machine-spec' {:var-name var-name}))
 
-(def var-impl
+(def-selector-spec mutable-var-spec
+  :hitch.selector.spec.kind/map-param
+  :hitch.selector.spec/positional-params
+  [:var-name])
+
+(def mutable-var-impl
   (reify
     sel-proto/ImplementationKind
     (-imp-kind [var]
@@ -42,8 +52,11 @@
     sel-proto/GetMachine
     (-get-machine [var sel]
       (->mutable-machine (:a sel)))))
-(reg/def-registered-selector mutable-machine-var "mutable var" var-impl)
+
+(reg/def-registered-selector mutable-var-spec' mutable-var-spec mutable-var-impl)
 
 (defn mutable-var [var-name]
-  (sel-proto/->Selector1 mutable-machine-var var-name))
+  (sel-proto/map->sel
+    mutable-var-machine-spec'
+    {:var-name var-name}))
 
