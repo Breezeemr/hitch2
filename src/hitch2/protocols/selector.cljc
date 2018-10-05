@@ -143,26 +143,56 @@ Should be a keyword for dispatching. Values are from:
   (-sname [_] impl)
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
-    (f gv-tracker)))
+    (f gv-tracker))
+  clojure.lang.Indexed
+  (nth [_ _] (throw (IndexOutOfBoundsException. "Selector0 has no arguments.")))
+  (nth [_ _ not-found] not-found))
 (defrecord Selector1 [impl a]
   SelectorName
   (-sname [_] impl)
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
-    (f gv-tracker a)))
+    (f gv-tracker a))
+  clojure.lang.Indexed
+  (nth [_ i] (case i
+               0 a
+               (throw (IndexOutOfBoundsException. "Selector0 has no arguments."))))
+  (nth [_ i not-found] (case i
+                         0 a
+                         not-found)))
 (defrecord Selector2 [impl a b]
   SelectorName
   (-sname [_] impl)
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
-    (f gv-tracker a b)))
+    (f gv-tracker a b))
+  clojure.lang.Indexed
+  (nth [_ i] (case i
+               0 a
+               1 b
+               (throw (IndexOutOfBoundsException. "Selector0 has no arguments."))))
+  (nth [_ i not-found] (case i
+                         0 a
+                         1 b
+                         not-found)))
 
 (defrecord Selector3 [impl a b c]
   SelectorName
   (-sname [_] impl)
   InvokeHalting
   (-invoke-halting [_ f gv-tracker]
-    (f gv-tracker a b c)))
+    (f gv-tracker a b c))
+  clojure.lang.Indexed
+  (nth [_ i] (case i
+               0 a
+               1 b
+               2 c
+               (throw (IndexOutOfBoundsException. "Selector0 has no arguments."))))
+  (nth [_ i not-found] (case i
+                         0 a
+                         1 b
+                         2 c
+                         not-found)))
 
 
 ;;is gv-tracker the best name?
