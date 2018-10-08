@@ -4,7 +4,8 @@
   #?(:clj
      (:import (clojure.lang IPersistentMap IPersistentCollection ILookup Keyword
                             MapEntry APersistentVector IHashEq APersistentMap Indexed PersistentVector)
-              (java.util Iterator))))
+              (java.util Iterator)
+              (java.io Writer))))
 
 #?(:cljs nil
    :clj
@@ -434,7 +435,7 @@ Should be a keyword for dispatching. Values are from:
 
      java.io.Serializable
      IFastMapSubset
-     (overflow-map [_] (== 0 (.count extmap)))
+     (overflow-map [_] extmap)
      (fast-keys [_] slot-keys)
      (fast-vals [_] slot-vals)
 
@@ -567,6 +568,15 @@ Should be a keyword for dispatching. Values are from:
      (values [this] (vals this))
      (entrySet [this] (set this))))
 
+#?(:clj
+   (defmethod print-method SlotedSelector [ss ^Writer w]
+     (.write w "#hitch.selector[")
+     (print-method (-sname ss) w)
+     (.write w " ")
+     (print-method (zipmap (fast-keys ss) (fast-vals ss)) w)
+     (.write w " ")
+     (print-method (overflow-map ss) w)
+     (.write w "]")))
 
 (defn- raw-selector [name overflow slot-keys slot-vals]
   ;; INVARIANT: count slot-keys == alength slot-vals
