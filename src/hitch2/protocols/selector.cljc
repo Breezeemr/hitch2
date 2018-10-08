@@ -9,9 +9,10 @@
      {:pre [(simple-symbol? selector-name)
             (keyword? kind)]}
      (let [sel-name (symbol
-                      (or
-                        (str (:name (:ns &env)))   ;; targeting CLJS
-                        (name (ns-name *ns*)))              ;; targeting CLJ
+                      (some-> (or
+                                (:name (:ns &env))          ;; targeting CLJS
+                                (ns-name *ns*))             ;; targeting CLJ
+                        name)
                       (name selector-name))
            qkind    (if (qualified-keyword? kind)
                       kind
