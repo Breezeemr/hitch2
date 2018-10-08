@@ -8,10 +8,16 @@
   v)
 (def-selector-spec constant-spec
   :not-machine
-  :hitch.selector.spec/canonical-form :hitch.selector.spec.canonical-form/positional)
-(def constant-impl (reify
+  :hitch.selector.spec/canonical-form :hitch.selector.spec.canonical-form/positional
+  :hitch.selector.spec/positional-params [:v])
+(def constant-impl
+  {:hitch.selector.impl/kind :hitch.selector.kind/halting
+   :hitch.selector.impl/halting return-constant
+   :hitch.selector.impl/halting-slot-selector (fn [_dt _sel v] v)}
+
+  #_(reify
                      selector-proto/ImplementationKind
-                     (-imp-kind [machine] :hitch.selector.kind/halting)
+                     (-imp-kind [machine] )
                      selector-proto/HaltingImplementation
                      (-get-halting-fn [sel]
                        return-constant)))
