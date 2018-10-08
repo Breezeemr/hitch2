@@ -325,7 +325,7 @@
     graph-manager-value
     dirty-machines-snapshot))
 
-(defn propagate-changes [graph-manager-value work-list dirty-machines recursion-limit]
+(defn propagate-changes [graph-manager-value work-list dirty-machines ^long recursion-limit]
   (let [new-work-list-atom (volatile! (transient #{}))
         graph-manager-value (reduce
                                   (propagate-node-changes
