@@ -145,7 +145,7 @@
         old-deps  (-> graph-manager-value :parents (get selector #{}))
         tx-manager (halting-tx/halting-manager (:graph-value graph-manager-value))
         ;;; NOTE: change this line to switch halting implementations
-        new-value (#_francis-halting tyler-halting selector simpl tx-manager)
+        new-value (francis-halting #_tyler-halting selector simpl tx-manager)
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (and (not= new-value old-value) (not (identical? new-value NOT-FOUND-SENTINEL)))
         added-deps       (into #{} (remove old-deps) deps)
