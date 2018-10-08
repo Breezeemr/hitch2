@@ -121,7 +121,7 @@
 (defn tyler-halting [selector simpl tx-manager]
   (halt/maybe-halt
     (selector-proto/-invoke-halting selector
-      (selector-proto/-get-halting-fn simpl) tx-manager)
+      (:hitch.selector.impl/halting simpl) tx-manager)
     NOT-FOUND-SENTINEL))
 
 (defn run-halting [graph-manager-value

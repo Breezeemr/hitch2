@@ -54,15 +54,15 @@ Should be a keyword for dispatching. Values are from:
   #?@(:cljs
       [cljs.core/PersistentHashMap
        (-get-halting-fn [impl]
-         (:halting impl))
+         (:hitch.selector.impl/halting impl))
        cljs.core/PersistentArrayMap
        (-get-halting-fn [impl]
-         (:halting impl))]
+         (:hitch.selector.impl/halting impl))]
       :clj
       ;; todo probably missing another map type
       [clojure.lang.PersistentArrayMap
        (-get-halting-fn [impl]
-         (:halting impl))]))
+         (:hitch.selector.impl/halting impl))]))
 
 (defprotocol SentinelImplementation
   (-get-sentinel-fn [imp]))
