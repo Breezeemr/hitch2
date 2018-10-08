@@ -62,7 +62,7 @@
     (-apply-command [_ machine-selector graph-value node children parents command]
       (case (nth command 0)
         ::value (let [[_ selector response] command]
-                  (assoc-in node [:reset-vars selector] response))
+                  (assoc-in node [:project-values selector] response))
         ::refresh (let [[_ selector] command]
                     (update node :async-effects conj {:type     ::request
                                                       :selector selector}))))))

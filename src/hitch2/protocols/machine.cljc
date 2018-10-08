@@ -3,17 +3,17 @@
 
 (def selector? any?)
 (s/def ::state any?)
-(s/def ::change-parent (s/map-of selector? boolean?))
-(s/def ::reset-vars (s/map-of selector? any?))
+(s/def ::change-focus (s/map-of selector? boolean?))
+(s/def ::project-values (s/map-of selector? any?))
 (s/def ::async-effects (s/coll-of any?))
 (s/def ::sync-effects (s/coll-of any?))
 
 (s/def ::machine-state
   (s/keys :opt-un
-    [::state ::change-parent ::reset-vars
+    [::state ::change-focus ::project-values
      ::async-effects ::sync-effects]))
 
-(defrecord machine-state [state change-parent reset-vars
+(defrecord machine-state [state change-focus project-values
                        async-effects sync-effects])
 
 (def initial-machine-state (->machine-state nil {} {} [] []))
