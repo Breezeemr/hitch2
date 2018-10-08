@@ -124,6 +124,17 @@
       (:hitch.selector.impl/halting simpl) tx-manager)
     NOT-FOUND-SENTINEL))
 
+(defn francis-halting [selector simpl dtracker]
+  (let [hf (:hitch.selector.impl/halting-slot-selector simpl)
+        vs (selector-proto/fast-vals selector)]
+    (halt/maybe-halt
+      (case (alength vs)
+        0 (hf dtracker selector)
+        1 (hf dtracker selector (aget vs 0))
+        2 (hf dtracker selector (aget vs 0) (aget vs 1))
+        3 (hf dtracker selector (aget vs 0) (aget vs 1) (aget vs 2)))
+      NOT-FOUND-SENTINEL)))
+
 (defn run-halting [graph-manager-value
                    node-state
                    selector
@@ -133,7 +144,8 @@
   (let [old-value (-> graph-manager-value :graph-value (get selector NOT-FOUND-SENTINEL))
         old-deps  (-> graph-manager-value :parents (get selector #{}))
         tx-manager (halting-tx/halting-manager (:graph-value graph-manager-value))
-        new-value (tyler-halting selector simpl tx-manager)
+        ;;; NOTE: change this line to switch halting implementations
+        new-value (#_francis-halting tyler-halting selector simpl tx-manager)
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (and (not= new-value old-value) (not (identical? new-value NOT-FOUND-SENTINEL)))
         added-deps       (into #{} (remove old-deps) deps)

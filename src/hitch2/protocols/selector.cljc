@@ -1,6 +1,10 @@
 (ns hitch2.protocols.selector
   #?(:cljs (:require-macros [hitch2.protocols.selector]))
-  (:require [clojure.spec.alpha :as s]))
+  (:require [clojure.spec.alpha :as s])
+  #?(:clj
+     (:import (clojure.lang IPersistentMap IPersistentCollection ILookup Keyword
+                            MapEntry APersistentVector IHashEq APersistentMap Indexed PersistentVector)
+              (java.util Iterator))))
 
 #?(:cljs nil
    :clj
@@ -335,8 +339,6 @@ Should be a keyword for dispatching. Values are from:
         b-key                b
         c-key                c}))))
 
-(def sel tyler-sel)
-
 (defn tyler-map->sel [selector-spec data]
   (case (:hitch.selector.spec/canonical-form selector-spec)
     :hitch.selector.spec.canonical-form/positional
@@ -352,4 +354,306 @@ Should be a keyword for dispatching. Values are from:
     :hitch.selector.spec.canonical-form/map
     (assoc data :hitch.selector/name (:hitch.selector/name selector-spec))))
 
+
+
+
+
+;;; FRANCIS's Selector
+
+(defprotocol IFastMapSubset
+  "Struct or Record-like where some key lookups and vals are guaranteed to be faster."
+  (overflow-map [o]
+    "Get the map which has entries which are not fast-keys")
+  (fast-keys [o]
+    "Return a THING with only the fast keys.
+
+    Keys will be distinct.")
+  (fast-vals ^objects [o]
+    "Return an array with only the fast values;
+
+    Do not mutate the array."))
+
+;; if slot-keys ends up being an array:
+; (let [l (alength slot-keys)]
+;         (loop [i 0]
+;           (if (< i l)
+;             (let [slot-k (aget slot-keys i)]
+;               (if (identical? k slot-k)
+;                 (aget slot-vals i)
+;                 (recur (unchecked-inc-int i))))
+;             (extmap k else))))
+
+#?(:clj
+   (defmacro ^:private fast-keyword-index
+     [slotkeysym keysym]
+     {:pre [(simple-symbol? slotkeysym) (simple-symbol? keysym)]}
+     (with-meta
+       `(let [~'it (.iterator ~slotkeysym)]
+          (loop [~'i 0]
+            (if (.hasNext ~'it)
+              (let [~'sk (.next ~'it)]
+                (if (identical? ~keysym ~'sk)
+                  ~'i
+                  (recur (unchecked-inc-int ~'i))))
+              -1)))
+       (assoc (meta &form) :tag 'int))))
+
+#?(:clj
+   (deftype SlottedSelectorIterator
+     [^int ^:unsynchronized-mutable i
+      ^int basecnt
+      ^Iterator slot-key-iter
+      ^objects slot-vals
+      ^Iterator extmap-iter]
+     Iterator
+     (hasNext [_]
+       (if (< i basecnt)
+         true
+         (.hasNext extmap-iter)))
+     (next [_]
+       (if (< i basecnt)
+         (let [nextk (.next slot-key-iter)
+               nextv (aget slot-vals i)]
+           (set! i (unchecked-inc-int i))
+           (MapEntry/create nextk nextv))
+         (.next extmap-iter)))
+     (remove [_] (UnsupportedOperationException.))))
+
+;; HACK going to combine KeywordSlotMap with Selector for now
+;; * selector-name and protocol should come off
+;; * Indexed should move off
+
+#?(:clj
+   (deftype SlotedSelector
+     [selector-name
+      ^APersistentVector slot-keys
+      ^objects slot-vals
+      ^IPersistentMap extmap
+      ^int ^:unsynchronized-mutable hash_
+      ^int ^:unsynchronized-mutable hasheq_]
+
+     java.io.Serializable
+     IFastMapSubset
+     (overflow-map [_] (== 0 (.count extmap)))
+     (fast-keys [_] slot-keys)
+     (fast-vals [_] slot-vals)
+
+
+     SelectorName
+     (-sname [_] selector-name)
+
+     Indexed
+     (nth [_ i]
+       (aget slot-vals i))
+     (nth [_ i nf]
+       (if (< i (alength slot-vals))
+         (aget slot-vals i)
+         nf))
+
+     IHashEq
+     (hasheq [this]
+       (let [h hasheq_]
+         (if (== 0 h)
+           (let [h (clojure.lang.Util/hashCombine
+                     (hash selector-name)
+                     (APersistentMap/mapHasheq this))]
+             (set! hasheq_ h)
+             h)
+           h)))
+
+     Object
+     (hashCode [this]
+       (let [h hash_]
+         (if (== 0 h)
+           (let [h (APersistentMap/mapHash this)]
+             (set! hasheq_ h)
+             h)
+           h)))
+     (equals [this other] (APersistentMap/mapEquals this other))
+
+     ILookup
+     (valAt [this k]
+       (.valAt this k nil))
+     (valAt [_ k else]
+       (let [^int i (fast-keyword-index slot-keys k)]
+         (if (== i -1)
+           (.valAt extmap k else)
+           (aget slot-vals i))))
+
+     IPersistentMap
+     (count [_]
+       (unchecked-add-int
+         (alength slot-vals)
+         (.count extmap)))
+     (empty [_]
+       (throw (UnsupportedOperationException. "Can't create empty KeywordSlotMap")))
+     (cons [this e]
+       (#'clojure.core/imap-cons this e))
+     (equiv [this other]
+       (or
+         (identical? this other)
+         (and
+           (instance? SlotedSelector other)
+           (= selector-name (-sname other))
+           (.equiv ^IPersistentCollection slot-keys (fast-keys other))
+           (let [other-vals (fast-vals other)]
+             (or (identical? slot-vals other-vals)
+               (let [ls (alength slot-vals) lo (alength other-vals)]
+                 (and
+                   (== ls lo)
+                   (loop [i 0]
+                     (if (< i ls)
+                       (if (= (aget slot-vals i) (aget other-vals i))
+                         (recur (unchecked-inc-int i))
+                         false)
+                       true)))))
+             (.equiv extmap (overflow-map other)))
+           false)))
+     (containsKey [_ k]
+       (let [^int i (fast-keyword-index slot-keys k)]
+         (if (== -1 i)
+           (.containsKey extmap k)
+           true)))
+     (entryAt [_ k]
+       (let [^int i (fast-keyword-index slot-keys k)]
+         (if (== -1 i)
+           (.entryAt extmap k)
+           (MapEntry/create k (aget slot-vals i)))))
+     (seq [this]
+       (iterator-seq (.iterator this)))
+     (iterator [_]
+       (assert (== (count slot-keys) (alength slot-vals))
+         (pr-str selector-name slot-keys (seq slot-vals)))
+       (->SlottedSelectorIterator
+         0
+         (alength slot-vals)
+         (.iterator slot-keys)
+         slot-vals
+         (.iterator extmap)))
+     (assoc [this k v]
+       (let [^int i (fast-keyword-index slot-keys k)]
+         (if (== -1 i)
+           (let [extmap' (.assoc extmap k v)]
+             (if (= extmap extmap')
+               this
+               (SlotedSelector. selector-name slot-keys slot-vals extmap' 0 0)))
+           (if (= v (aget slot-vals i))
+             this
+             (let [slot-vals' (aclone slot-vals)]
+               (aset slot-vals' i v)
+               (SlotedSelector. selector-name slot-keys slot-vals' extmap 0 0))))))
+     (without [this k]
+       (let [^int i (fast-keyword-index slot-keys k)]
+         (if (== -1 i)
+           (let [extmap' (.without extmap k)]
+             (if (identical? extmap extmap')
+               this
+               (SlotedSelector. selector-name slot-keys slot-vals extmap' 0 0)))
+           (dissoc (into extmap
+                     (map-indexed (fn [i k]
+                                    (MapEntry/create k (aget slot-vals i))))
+                     slot-keys) k))))
+
+     java.util.Map
+     (size [this] (.count this))
+     (isEmpty [this] (== 0 (.count this)))
+     (containsValue [this v] (boolean (some #(= v %) (vals this))))
+     (get [this k] (.valAt this k))
+     (put [this k v] (throw (UnsupportedOperationException.)))
+     (remove [this k] (throw (UnsupportedOperationException.)))
+     (putAll [this m] (throw (UnsupportedOperationException.)))
+     (clear [this] (throw (UnsupportedOperationException.)))
+     (keySet [this] (set (keys this)))
+     (values [this] (vals this))
+     (entrySet [this] (set this))))
+
+
+(defn- raw-selector [name overflow slot-keys slot-vals]
+  ;; INVARIANT: count slot-keys == alength slot-vals
+  #?(:cljs (throw (ex-info "NOT IMPLEMENTED" {}))
+     :clj  (->SlotedSelector name slot-keys slot-vals overflow 0 0)))
+
+(defn selector? [x]
+  #?(:cljs (throw (ex-info "NOT IMPLEMENTED" {}))
+     :clj  (instance? SlotedSelector x)))
+
+(defn- map->pos-sel [selname slot-keys data-map]
+  (let [slot-vals (object-array (count slot-keys))
+        extmap    (persistent!
+                    (reduce-kv
+                      (fn [data-map i k]
+                        (let [v (data-map k)]
+                          (aset slot-vals i v)
+                          (dissoc! data-map k)))
+                      (transient data-map)
+                      slot-keys))]
+    (raw-selector selname extmap slot-keys slot-vals)))
+
+(let [empty-array (object-array 0)]
+  (defn francis-sel [{selname :hitch.selector/name :as sspec} data]
+    (if (selector? data)
+      (if (= selname (-sname data))
+        ;; fast path when we already have a similar selector
+        (raw-selector selname (overflow-map data) (fast-keys data) (fast-vals data))
+        (let [slot-keys (:hitch.selector.spec/positional-params sspec [])
+              m         (into {} data)]
+          (if (zero? (count slot-keys))
+            (raw-selector selname m [] empty-array)
+            (map->pos-sel selname slot-keys m))))
+      (let [slot-keys (:hitch.selector.spec/positional-params sspec [])]
+        (cond
+          (zero? (count slot-keys))
+          (raw-selector selname data [] empty-array)
+
+          #?@(:clj
+              ;; Zero-copy sharing of the underlying PV's tail array!
+              [(and (instance? PersistentVector data)
+                 ;; INVARIANT: if slot-keys >0, so should data be!
+                 (<= (.count ^PersistentVector data) 32))
+               (.arrayFor ^PersistentVector data 0)])
+
+          (vector? data)
+          ;;; TODO: in CLJ, when data is a PersistentVector, use arrayFor to avoid array copying
+          (let [slot-vals (object-array (count slot-keys))]
+            (reduce-kv (fn [_ i v] (aset slot-vals i v)) nil data)
+            (raw-selector selname {} slot-keys slot-vals))
+
+          ;; data is a map
+          :else
+          (map->pos-sel selname slot-keys data)))))
+
+
+  (defn francis-psel
+    ;; TODO: check for mismatch between params and args
+    ([sspec]
+     (raw-selector (:hitch.selector/name sspec) {}
+       (:hitch.selector.spec/positional-params sspec [])
+       empty-array))
+    ([sspec a]
+     (let [slot-vals (object-array 1)]
+       (aset slot-vals 0 a)
+       (raw-selector (:hitch.selector/name sspec) {}
+         (:hitch.selector.spec/positional-params sspec [])
+         slot-vals)))
+    ([sspec a b]
+     (let [slot-vals (object-array 2)]
+       (aset slot-vals 0 a)
+       (aset slot-vals 1 b)
+       (raw-selector (:hitch.selector/name sspec) {}
+         (:hitch.selector.spec/positional-params sspec [])
+         slot-vals)))
+    ([sspec a b c]
+     (let [slot-vals (object-array 3)]
+       (aset slot-vals 0 a)
+       (aset slot-vals 1 b)
+       (aset slot-vals 2 c)
+       (raw-selector (:hitch.selector/name sspec) {}
+         (:hitch.selector.spec/positional-params sspec [])
+         slot-vals)))))
+
+(def sel tyler-sel)
 (def map->sel tyler-map->sel)
+
+#_#_
+(def sel francis-psel)
+(def map->sel francis-sel)
