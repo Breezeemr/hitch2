@@ -33,17 +33,27 @@
     binding-form))
 
 (defn tylers-def-selector [name constructor-binding-forms body]
-  (let [record-field-names   (param-names (rest constructor-binding-forms))
-        eval-fn-name         (symbol (str name "-eval-fn"))
-        impl              (symbol (str name "-impl"))
-        spec              (symbol (str name "-spec"))]
+  (let [record-field-names (param-names (rest constructor-binding-forms))
+        eval-fn-name       (symbol (str name "-eval-fn"))
+        slot-eval-fn-name  (symbol (str name "-slot-eval-fn"))
+        impl               (symbol (str name "-impl"))
+        spec               (symbol (str name "-spec"))]
     `(do
        (hitch2.protocols.selector/def-selector-spec
          ~spec
          :not-machine
          :hitch.selector.spec/canonical-form
-         :hitch.selector.spec.canonical-form/positional)
+         :hitch.selector.spec.canonical-form/positional
+         :hitch.selector.spec/positional-params
+         ~(mapv #(keyword (namespace %) (clojure.core/name %)) record-field-names))
        (defn ~eval-fn-name ~constructor-binding-forms ~@body)
+       ;; This is Francis' selector. Halting fn signature is different:
+       ;; (fn [dt MAP-LIKE-SELECTOR-WITH-NON-POS-ENTRIES pos1 pos2 ...] ...)
+       ;; For now we just ignore the second arg
+       (defn ~slot-eval-fn-name
+         ~(into [(first constructor-binding-forms) '_]
+            (rest constructor-binding-forms))
+         ~@body)
        (def ~impl
          (reify
            hitch2.protocols.selector/ImplementationKind
