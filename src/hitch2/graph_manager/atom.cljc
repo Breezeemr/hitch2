@@ -118,21 +118,22 @@
     graph-manager-value
     reset-vars))
 
-(defn tyler-halting [graph-manager-value selector h-fn tx-manager]
+(defn tyler-halting [selector simpl tx-manager]
   (halt/maybe-halt
-    (selector-proto/-invoke-halting selector h-fn tx-manager)
+    (selector-proto/-invoke-halting selector
+      (selector-proto/-get-halting-fn simpl) tx-manager)
     NOT-FOUND-SENTINEL))
 
 (defn run-halting [graph-manager-value
                    node-state
                    selector
-                   h-fn
+                   simpl
                    worklist-atom
                    dirty-machines]
   (let [old-value (-> graph-manager-value :graph-value (get selector NOT-FOUND-SENTINEL))
         old-deps  (-> graph-manager-value :parents (get selector #{}))
         tx-manager (halting-tx/halting-manager (:graph-value graph-manager-value))
-        new-value (tyler-halting graph-manager-value selector h-fn tx-manager)
+        new-value (tyler-halting selector simpl tx-manager)
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (and (not= new-value old-value) (not (identical? new-value NOT-FOUND-SENTINEL)))
         added-deps       (into #{} (remove old-deps) deps)
@@ -228,7 +229,7 @@
                                           graph-manager-value
                                           node-state
                                           selector
-                                          (selector-proto/-get-halting-fn sel-impl)
+                                          sel-impl
                                           worklist-atom
                                           dirty-machines)]
                 graph-manager-value)
@@ -412,7 +413,7 @@
                                                  (->deriving-state
                                                    [] #{} false)
                                                  parent
-                                                 (selector-proto/-get-halting-fn sel-impl)
+                                                 sel-impl
                                                  worklist-atom
                                                  dirty-machines)]
 
