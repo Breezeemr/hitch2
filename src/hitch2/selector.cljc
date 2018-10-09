@@ -55,7 +55,10 @@
             (rest constructor-binding-forms))
          ~@body)
        (def ~impl
-         (reify
+         {:hitch.selector.impl/kind                  :hitch.selector.kind/halting
+          :hitch.selector.impl/halting               ~eval-fn-name
+          :hitch.selector.impl/halting-slot-selector ~slot-eval-fn-name}
+         #_(reify
            hitch2.protocols.selector/ImplementationKind
            (~'-imp-kind [~'_] :hitch.selector.kind/halting)
            hitch2.protocols.selector/HaltingImplementation
