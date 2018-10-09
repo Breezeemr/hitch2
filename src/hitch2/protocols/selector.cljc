@@ -388,18 +388,63 @@ Should be a keyword for dispatching. Values are from:
    (defmacro ^:private fast-keyword-index
      [slotkeysym keysym]
      {:pre [(simple-symbol? slotkeysym) (simple-symbol? keysym)]}
-     (with-meta
-       `(let [~'it (.iterator ~slotkeysym)]
-          (loop [~'i 0]
-            (if (.hasNext ~'it)
-              (let [~'sk (.next ~'it)]
-                (if (identical? ~keysym ~'sk)
-                  ~'i
-                  (recur (unchecked-inc-int ~'i))))
-              -1)))
-       (assoc (meta &form) :tag 'int))))
+     (if (:name (:env &env))
+       ;; cljs target
+       (with-meta
+         `(let [~'it (-iterator ~slotkeysym)]
+            (loop [~'i 0]
+              (if (.hasNext ~'it)
+                (let [~'sk (.next ~'it)]
+                  (if (cljs.core/keyword-identical? ~keysym ~'sk)
+                    ~'i
+                    (recur (unchecked-inc-int ~'i))))
+                -1)))
+         (assoc (meta &form) :tag 'number))
+       ;; clj target
+       (with-meta
+         `(let [~'it (.iterator ~slotkeysym)]
+            (loop [~'i 0]
+              (if (.hasNext ~'it)
+                (let [~'sk (.next ~'it)]
+                  (if (identical? ~keysym ~'sk)
+                    ~'i
+                    (recur (unchecked-inc-int ~'i))))
+                -1)))
+         (assoc (meta &form) :tag 'int)))))
 
-#?(:clj
+#_(deftype RecordIter [^:mutable i record base-count fields ext-map-iter]
+    Object
+    (hasNext [_]
+      (or (< i base-count) (.hasNext ext-map-iter)))
+    (next [_]
+      (if (< i base-count)
+        (let [k (nth fields i)]
+          (set! i (inc i))
+          (MapEntry. k (-lookup record k) nil))
+        (.next ext-map-iter)))
+    (remove [_] (js/Error. "Unsupported operation")))
+
+#?(:cljs
+   (deftype SlottedSelectorIterator
+     [^:mutable ^number i
+      ^number basecnt
+      slot-key-iter
+      ^array slot-vals
+      extmap-iter]
+     Object
+     (hasNext [_]
+       (if (< i basecnt)
+         true
+         (.hasNext extmap-iter)))
+     (next [_]
+       (if (< i basecnt)
+         (let [nextk (.next slot-key-iter)
+               nextv (aget slot-vals i)]
+           (set! i (unchecked-inc-int i))
+           (new cljs.core/MapEntry nextk nextv nil))
+         (.next extmap-iter)))
+     (remove [_] (js/Error. "unsupported")))
+   :clj
    (deftype SlottedSelectorIterator
      [^int ^:unsynchronized-mutable i
       ^int basecnt
@@ -424,7 +469,173 @@ Should be a keyword for dispatching. Values are from:
 ;; * selector-name and protocol should come off
 ;; * Indexed should move off
 
-#?(:clj
+#?(:cljs
+   (deftype SlotedSelector
+     [selector-name
+      ^not-native slot-keys
+      ^array slot-vals
+      ^not-native extmap
+      ^:mutable ^number __hash]
+     Object
+     (__fast-keyword-index ^number [_ k]
+       (let [it (-iterator slot-keys)]
+         (loop [i 0]
+           (if (.hasNext it)
+             (let [sk (.next it)]
+               (if (cljs.core/keyword-identical? k sk)
+                 i
+                 (recur (unchecked-inc-int i))))
+             -1))))
+     (__hash-slotted-selector ^number [_]
+       (let [sit (-iterator slot-keys)
+             eit (-iterator extmap)
+             c   (unchecked-add-int
+                   (alength slot-vals)
+                   (-count extmap))
+             slot-hash
+                 (loop [i 0 hash-code 0]
+                   (if (.hasNext sit)
+                     (recur (inc i)
+                       ;; This hashes one virtual MapEntry
+                       (->
+                         (->> (+ 31 (-hash ^not-native (.next sit)))
+                              (imul 31)
+                              (+ (hash (aget slot-vals i))))
+                         (bit-or 0)
+                         (mix-collection-hash 2)))
+                     hash-code))
+             extmap-hash
+                 (loop [hash-code slot-hash]
+                   (if (.hasNext eit)
+                     (recur (bit-or (+ hash-code (-hash ^not-native (.next eit))) 0))
+                     hash-code))]
+         (hash-combine
+           (hash selector-name)
+           (mix-collection-hash extmap-hash c))))
+
+     IFastMapSubset
+     (overflow-map [_] extmap)
+     (fast-keys [_] slot-keys)
+     (fast-vals [_] slot-vals)
+
+
+     SelectorName
+     (-sname [_] selector-name)
+
+     ICloneable
+     (-clone [_]
+       (new SlotedSelector selector-name slot-keys slot-vals extmap __hash))
+     IHash
+     (-hash [this]
+       (let [h __hash]
+         (if (nil? h)
+           (let [h (.__hash-slotted-selector this)]
+             (set! __hash h)
+             h)
+           h)))
+     IEquiv
+     (-equiv [this other]
+       (or
+         (identical? this other)
+         (and
+           (instance? SlotedSelector other)
+           (-equiv selector-name (-sname other))
+           (-equiv slot-keys (fast-keys other))
+           (let [^array other-vals (fast-vals other)]
+             (or (identical? slot-vals other-vals)
+               (let [ls (alength slot-vals) lo (alength other-vals)]
+                 (and
+                   (== ls lo)
+                   (loop [i 0]
+                     (if (< i ls)
+                       (if (= (aget slot-vals i) (aget other-vals i))
+                         (recur (unchecked-inc-int i))
+                         false)
+                       true))))))
+           (-equiv extmap (overflow-map other)))))
+     ILookup
+     (-lookup [this k] (-lookup this k nil))
+     (-lookup [this k else]
+       (let [^number i (.__fast-keyword-index this k)]
+         (if (== i -1)
+           (-lookup extmap k else)
+           (aget slot-vals i))))
+     IFind
+     (-find [this k]
+       (let [^number i (.__fast-keyword-index this k)]
+         (if (== -1 i)
+           (-find extmap k)
+           (new cljs.core/MapEntry k (aget slot-vals i) nil))))
+     ICounted
+     (-count [_]
+       (unchecked-add-int
+         (alength slot-vals)
+         (-count ^not-native extmap)))
+     ICollection
+     (-conj [this entry]
+       (if (vector? entry)
+         (-assoc this (-nth entry 0) (-nth entry 1))
+         (reduce -conj this entry)))
+     IAssociative
+     (-assoc [this k v]
+       (let [^number i (.__fast-keyword-index this k)]
+         (if (== -1 i)
+           (let [extmap' (-assoc extmap k v)]
+             (if (= extmap extmap')
+               this
+               (SlotedSelector. selector-name slot-keys slot-vals extmap' nil)))
+           (if (= v (aget slot-vals i))
+             this
+             (let [slot-vals' (aclone slot-vals)]
+               (aset slot-vals' i v)
+               (SlotedSelector. selector-name slot-keys slot-vals' extmap nil))))))
+     (-contains-key? [this k]
+       (let [^number i (.__fast-keyword-index this k)]
+         (if (== -1 i)
+           (-contains-key? extmap k)
+           true)))
+     IMap
+     (-dissoc [this k]
+       (let [^number i (.__fast-keyword-index this k)]
+         (if (== -1 i)
+           (let [extmap' (-dissoc extmap k)]
+             (if (identical? extmap extmap')
+               this
+               (SlotedSelector. selector-name slot-keys slot-vals extmap' nil)))
+           (dissoc
+             (into extmap
+               (map-indexed
+                 (fn [i k] (new cljs.core/MapEntry k (aget slot-vals i) nil)))
+               slot-keys) k))))
+     ISeqable
+     (-seq [_]
+       (seq
+         (concat
+           (map-indexed
+             (fn [i k] (new cljs.core/MapEntry k (aget slot-vals i) nil))
+             slot-keys)
+           extmap)))
+
+     IIterable
+     (-iterator [_]
+       (SlottedSelectorIterator.
+         0
+         (alength slot-vals)
+         (-iterator slot-keys)
+         slot-vals
+         (-iterator extmap)))
+
+     IPrintWithWriter
+     (-pr-writer [_ w opts]
+       (-write w "#hitch.selector[")
+       (-pr-writer selector-name w opts)
+       (-write w " ")
+       (-pr-writer (zipmap slot-keys slot-vals) w opts)
+       (-write w " ")
+       (-pr-writer extmap w opts)
+       (-write w "]")))
+
+   :clj
    (deftype SlotedSelector
      [selector-name
       ^APersistentVector slot-keys
@@ -522,8 +733,6 @@ Should be a keyword for dispatching. Values are from:
      (seq [this]
        (iterator-seq (.iterator this)))
      (iterator [_]
-       (assert (== (count slot-keys) (alength slot-vals))
-         (pr-str selector-name slot-keys (seq slot-vals)))
        (->SlottedSelectorIterator
          0
          (alength slot-vals)
@@ -579,12 +788,11 @@ Should be a keyword for dispatching. Values are from:
 
 (defn- raw-selector [name overflow slot-keys slot-vals]
   ;; INVARIANT: count slot-keys == alength slot-vals
-  #?(:cljs (throw (ex-info "NOT IMPLEMENTED" {}))
+  #?(:cljs (->SlotedSelector name slot-keys slot-vals overflow nil)
      :clj  (->SlotedSelector name slot-keys slot-vals overflow 0 0)))
 
 (defn selector? [x]
-  #?(:cljs (throw (ex-info "NOT IMPLEMENTED" {}))
-     :clj  (instance? SlotedSelector x)))
+  (instance? SlotedSelector x))
 
 (defn- map->pos-sel [selname slot-keys data-map]
   (let [slot-vals (object-array (count slot-keys))
