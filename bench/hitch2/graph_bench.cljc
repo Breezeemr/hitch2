@@ -9,7 +9,8 @@
             [hitch2.protocols.selector :as sel-proto
              :refer [def-selector-spec]]
     #?(:clj
-            [criterium.core :refer [bench]])))
+            [criterium.core :refer [bench]]
+       :cljs [figwheel.main.async-result :as async-result])))
 
 (def bench-times 100000)
 (defn test-header [subject]
@@ -122,20 +123,28 @@
                (api/apply-commands g [[machine-sel [:set-value (rand-int 54)]]])
                bench-times)
        :clj  (bench (api/apply-commands g [[machine-sel [:set-value (rand-int 54)]]])))))
+(defn runner [f]
+  #?(:cljs  (js/setTimeout #(async-result/send (f)) 0)
+     :clj (f)))
 
-(defn -main []
+(defn bench []
   (depends-bench "depends-record " (sel-proto/sel depends-on 100))
   (depends-bench "depends-map" (sel-proto/map->sel
                                  depends-on-map-spec'
                                  {:n   100}))
   (deep-value-change-bench  "deep-value-change-bench-record"
-    (sel-proto/sel depends-on 100))
+    (sel-proto/sel depends-on 10))
   (deep-value-change-bench  "deep-value-change-bench-map"
     (sel-proto/map->sel
       depends-on-map-spec'
-                                                            {:n   100}))
+                                                            {:n   10}))
   (fib-bench "fib-record" (fn [] (sel-proto/sel fibb-graph 40)))
   (fib-bench "fib-map" (fn []
                          (sel-proto/map->sel
                            fib-map-spec'
                            {:n   40}))))
+
+(defn -main [& args]
+  (runner bench)
+
+  #?(:cljs [:figwheel.main.async-result/wait 100000]))

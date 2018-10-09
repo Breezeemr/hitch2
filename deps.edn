@@ -10,6 +10,9 @@
                        :extra-paths ["test" "target" "bench"]}
            :bench     {:extra-paths ["bench"]
                        :extra-deps  {criterium {:mvn/version "0.4.4"}}}
+           :bench-cljs {:extra-paths ["bench"]
+                       :extra-deps  {com.bhauman/figwheel-main {:mvn/version "0.1.9"}}
+                        :main-opts   ["-m" "figwheel.main" "-co" "bench.cljs.edn" "-m" hitch2.graph-bench]}
 
            ;; raw repls
            :clj       {:extra-paths ["test"]}
