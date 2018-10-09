@@ -507,9 +507,8 @@ Should be a keyword for dispatching. Values are from:
                        (if (= (aget slot-vals i) (aget other-vals i))
                          (recur (unchecked-inc-int i))
                          false)
-                       true)))))
-             (.equiv extmap (overflow-map other)))
-           false)))
+                       true))))))
+           (.equiv extmap (overflow-map other)))))
      (containsKey [_ k]
        (let [^int i (fast-keyword-index slot-keys k)]
          (if (== -1 i)
