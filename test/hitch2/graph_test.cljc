@@ -1,5 +1,5 @@
 (ns hitch2.graph-test
-  (:require #?(:cljs [cljs.test :refer [deftest is testing]]
+  (:require #?(:cljs [cljs.test :refer-macros [deftest is testing]]
                :clj [clojure.test :refer [deftest is testing]])
     [hitch2.machine.mutable-var :refer  [mutable-var]]
     [hitch2.graph :as h :refer [pin unpin]]

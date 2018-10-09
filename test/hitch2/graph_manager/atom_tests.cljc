@@ -8,7 +8,7 @@
     [hitch2.protocols.selector :as sel-proto]
     [hitch2.selector-impl-registry :as reg
      :refer [registry-resolver]]
-    #?(:cljs [cljs.test :refer [deftest is testing]]
+    #?(:cljs [cljs.test :refer-macros [deftest is testing]]
        :clj  [clojure.test :refer [deftest is testing]])))
 
 (def initial-node (assoc machine-proto/initial-machine-state :state {}))

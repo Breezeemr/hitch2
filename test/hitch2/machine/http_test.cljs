@@ -1,5 +1,5 @@
 (ns hitch2.machine.http-test
-  (:require [cljs.test :refer [deftest is testing async]]
+  (:require [cljs.test :refer-macros [deftest is testing async]]
             [hitch2.machine.http :as http]
             [hitch2.graph :as graph]
             [hitch2.machine.mutable-var :refer  [mutable-var]]
