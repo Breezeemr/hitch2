@@ -42,10 +42,10 @@
   (deftest simple-get-error
     (let [graph (gctor)]
       (async done
-        (graph/hook graph (fn [[status error :as result]]
+        (graph/hook-sel graph (fn [[status error :as result]]
                             (is (= status :error) graph-name)
                             (done))
-          http/http "/DOES-NOT-EXIST" :get nil nil nil nil nil))))
+          (http/http "/DOES-NOT-EXIST" :get nil nil nil nil nil)))))
 
   (deftest simple-refresh
     (testing "Additional http request is issued after a ::http/refresh command. (Must verify manually in dev console.)"

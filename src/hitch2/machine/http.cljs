@@ -74,7 +74,7 @@
 (def-selector-spec http-spec
   :not-machine
   :hitch.selector.spec/canonical-form
-  :hitch.selector.spec.canonical-form/positional)
+  :hitch.selector.spec.canonical-form/map)
 
 (def http-var-impl
   (reify
@@ -88,7 +88,7 @@
 (reg/def-registered-selector http-spec' http-spec http-var-impl)
 
 (defn http [url method serializer deserializer content headers withcreds]
-  (sel-proto/sel http-spec'
+  (sel-proto/map->sel http-spec'
     {:url          url
      :method       method
      :serializer   serializer
