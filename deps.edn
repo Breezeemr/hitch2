@@ -9,7 +9,8 @@
                         criterium                 {:mvn/version "0.4.4"}}
                        :extra-paths ["test" "target" "bench"]}
            :bench     {:extra-paths ["bench"]
-                       :extra-deps  {criterium {:mvn/version "0.4.4"}}}
+                       :extra-deps  {criterium {:mvn/version "0.4.4"}}
+                       :main-opts   ["-m" "hitch2.graph-bench"]}
            :bench-cljs {:extra-paths ["bench"]
                        :extra-deps  {com.bhauman/figwheel-main {:mvn/version "0.1.9"}}
                         :main-opts   ["-m" "figwheel.main" "-co" "bench.cljs.edn" "-m" hitch2.graph-bench]}

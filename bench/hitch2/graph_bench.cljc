@@ -127,7 +127,7 @@
   #?(:cljs  (js/setTimeout #(async-result/send (f)) 0)
      :clj (f)))
 
-(defn bench []
+(defn bench-runner []
   (depends-bench "depends-record " (sel-proto/sel depends-on 100))
   (depends-bench "depends-map" (sel-proto/map->sel
                                  depends-on-map-spec'
@@ -145,6 +145,6 @@
                            {:n   40}))))
 
 (defn -main [& args]
-  (runner bench)
+  (runner bench-runner)
 
   #?(:cljs [:figwheel.main.async-result/wait 100000]))
