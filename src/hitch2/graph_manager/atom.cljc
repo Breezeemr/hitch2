@@ -10,9 +10,9 @@
 
 
 (defrecord GraphManagerValue [graph-value
-                                node-state
-                                parents
-                                children
+                              node-state
+                              observes
+                              observed-by
                               resolver])
 (defrecord deriving-state [change-focus waiting value-changed?])
 (defrecord var-state [value-changed?])
@@ -43,24 +43,24 @@
                         :derivation-state
                         ::derivation-state)))
 
-(s/def ::parents (s/map-of ::selector (s/coll-of ::selector)))
-(s/def ::children (s/map-of ::selector (s/coll-of ::selector)))
+(s/def ::observes (s/map-of ::selector (s/coll-of ::selector)))
+(s/def ::observed-by (s/map-of ::selector (s/coll-of ::selector)))
 
 (s/def ::graph-manager-value
   (s/keys
     :req-un [::graph-value
              ::node-state
-             ::parents
-             ::children]))
+             ::observes
+             ::observed-by]))
 
 (defn get-impl [{:keys [resolver]} selector]
   (resolver selector))
 
-(defn get-parents [graph-manager-value selector]
-  (-> graph-manager-value :parents (get selector)))
+(defn get-observes [graph-manager-value selector]
+  (-> graph-manager-value :observes (get selector)))
 
-(defn get-children [graph-manager-value selector]
-  (-> graph-manager-value :children (get selector)))
+(defn get-observed-by [graph-manager-value selector]
+  (-> graph-manager-value :observed-by (get selector)))
 
 (defn get-node-state [graph-manager-value selector]
   (-> graph-manager-value :node-state (get selector)))
@@ -140,7 +140,7 @@
                    worklist-atom
                    dirty-machines]
   (let [old-value (-> graph-manager-value :graph-value (get selector NOT-FOUND-SENTINEL))
-        old-deps  (-> graph-manager-value :parents (get selector #{}))
+        old-deps  (-> graph-manager-value :observes (get selector #{}))
         tx-manager (halting-tx/halting-manager (:graph-value graph-manager-value))
         ;;; NOTE: change this line to switch halting implementations
         new-value (francis-halting #_tyler-halting selector simpl tx-manager)
@@ -241,7 +241,7 @@
                 graph-manager-value)
               (assoc-in graph-manager-value [:node-state selector] node-state))))))
     graph-manager-value
-    (-> graph-manager-value :children (get parent))))
+    (-> graph-manager-value :observed-by (get parent))))
 
 (defn propagate-node-changes [worklist-atom dirty-machines]
   (fn [graph-manager-value selector]
@@ -391,10 +391,10 @@
               (record! [:child-change :var
                         (selector-proto/-sname sel-impl)]))
             (case added|removed
-              true (if (get-in graph-manager-value [:parents parent machine])
+              true (if (get-in graph-manager-value [:observes parent machine])
                      graph-manager-value
                      (propagate-dependency-changes graph-manager-value parent {machine true} worklist-atom dirty-machines))
-              false (if-some [children (not-empty (get-in graph-manager-value [:children parent]))]
+              false (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by parent]))]
                       graph-manager-value
                       (-> graph-manager-value
                           (update :graph-value dissoc parent)
@@ -420,9 +420,9 @@
                        (add-to-working-set worklist-atom parent)
                        graph-manager-value)
                      graph-manager-value)
-              false (if-some [children (not-empty (get-in graph-manager-value [:children parent]))]
+              false (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by parent]))]
                       graph-manager-value
-                      (if-some [parents (not-empty (get-in graph-manager-value [:parents parent]))]
+                      (if-some [observes (not-empty (get-in graph-manager-value [:observes parent]))]
                         (-> graph-manager-value
                             (update :graph-value dissoc parent)
                             (propagate-dependency-changes
@@ -430,29 +430,29 @@
                               (into {}
                                 (map (fn [x]
                                        [x false]))
-                                parents)
+                                observes)
                               worklist-atom
                               dirty-machines))
                         graph-manager-value)))))))
     graph-manager-value
     changes))
 
-(defn update-children [children child changes]
+(defn update-observed-by [observed-by child changes]
   (reduce-kv
     (fn [acc parent add|remove]
       (if add|remove
         (addval acc parent child)
         (removeval acc parent child)))
-    children
+    observed-by
     changes))
 
-(defn update-parents [parents child changes]
+(defn update-observes [observes child changes]
   (reduce-kv
     (fn [acc parent add|remove]
       (if add|remove
         (addval acc child parent)
         (removeval acc child parent)))
-    parents
+    observes
     changes)
   )
 
@@ -460,8 +460,8 @@
   (let []
     (apply-child-change-commands
       (-> graph-manager-value
-          (update :children update-children child changes)
-          (update :parents update-parents child changes))
+          (update :observed-by update-observed-by child changes)
+          (update :observes update-observes child changes))
       child
       changes
       worklist-atom
@@ -473,8 +473,8 @@
           :machine any?
           :command vector?
           :graph-value ::graph-value
-          :children (s/coll-of ::selector)
-          :parents (s/coll-of ::selector))
+          :observed-by (s/coll-of ::selector)
+          :observes (s/coll-of ::selector))
   :ret ::machine-proto/curator-state)
 
 (defn remove-effects [node-state machines]
