@@ -72,7 +72,9 @@
 (defn init-machine [node-state resolver selector]
   (let [curator-state (if node-state
                         node-state
-                        (machine-proto/-initialize (resolver selector) selector))]
+                        (if-some [init (::machine-proto/init (resolver selector))]
+                          (init selector)
+                          machine-proto/initial-curator-state))]
     (s/assert ::machine-proto/curator-state curator-state)
     curator-state))
 
@@ -85,11 +87,9 @@
     node-state
     (do
       (add-to-working-set disturbed-machines selector)
-      (machine-proto/-init-tx
-        (get-impl graph-manager-value selector)
-          selector
-          (get-graph-value graph-manager-value)
-          node-state))))
+      (if-some [tx-init (::machine-proto/tx-init (get-impl graph-manager-value selector))]
+        (tx-init selector (get-graph-value graph-manager-value) node-state)
+        node-state))))
 
 (defn ensure-inits [node-state graph-manager-value selector disturbed-machines]
   (-> node-state
@@ -202,12 +202,11 @@
                  new-set-projections     :set-projections
                  new-change-focus :change-focus
                  :as                new-node-state}
-                (machine-proto/-parent-value-changes
-                  sel-impl
-                  selector
-                  graph-value
-                  (ensure-inits node-state graph-manager-value selector dirty-machines)
-                  #{parent})]
+                (if-some [observed-value-changes (::machine-proto/observed-value-changes sel-impl)]
+                  (observed-value-changes selector graph-value
+                    (ensure-inits node-state graph-manager-value selector dirty-machines)
+                    #{parent})
+                  (assert false))]
             (s/assert ::machine-proto/curator-state new-node-state)
             (when (or (not-empty new-set-projections)
                     (not-empty sync-effects)
@@ -311,10 +310,8 @@
   :ret ::graph-manager-value)
 
 (defn flush-tx [node-state graph-manager-value selector]
-  (machine-proto/-flush-tx
-    (get-impl graph-manager-value selector)
-    selector
-    (:graph-value graph-manager-value)
+  (if-some [flush-tx (::machine-proto/flush-tx  (get-impl graph-manager-value selector))]
+    (flush-tx selector (:graph-value graph-manager-value) node-state)
     node-state))
 
 (defn flush-worklist [graph-manager-value dirty-machines-snapshot flush-worklist-atom]
@@ -361,15 +358,14 @@
                  new-change-focus :change-focus
                  set-projections         :set-projections
                  :as                new-node-state}
-                (machine-proto/-child-changes
-                  sel-impl
-                  parent
-                  graph-value
-                  (ensure-inits node-state graph-manager-value parent dirty-machines)
-                  (when added|removed
-                    #{child})
-                  (when (not added|removed)
-                    #{child}))]
+                (if-some [curation-changes (::machine-proto/curation-changes sel-impl)]
+                  (curation-changes parent graph-value
+                    (ensure-inits node-state graph-manager-value parent dirty-machines)
+                    (when added|removed
+                      #{child})
+                    (when (not added|removed)
+                      #{child}))
+                  (assert false))]
             (s/assert ::machine-proto/curator-state new-node-state)
             (when (or (not-empty set-projections)
                     (not-empty sync-effects)
@@ -485,12 +481,9 @@
     machines))
 
 (defn finalize-tx [node-state graph-value graph-manager-value selector]
-  (machine-proto/-finalize
-    (get-impl graph-manager-value selector)
-    selector
-    graph-value
-    node-state
-    ))
+  (if-some [finalize (::finalize (get-impl graph-manager-value selector))]
+    (finalize selector graph-value node-state)
+    node-state))
 
 (defn assert-valid-finalized-node-state [{:keys [change-focus set-projections]}]
   (assert (empty? change-focus))
@@ -555,12 +548,11 @@
       :hitch.selector.kind/machine
       (let [graph-value        (get-graph-value graph-manager-value)]
         (assoc-in graph-manager-value [:node-state selector]
-          (machine-proto/-apply-command
-            sel-impl
-            selector
-            graph-value
-            (ensure-inits node-state graph-manager-value selector disturbed-machines)
-            command)))
+          (if-some [apply-command (::machine-proto/apply-command sel-impl)]
+            (apply-command selector graph-value
+              (ensure-inits node-state graph-manager-value selector disturbed-machines)
+              command)
+            (assert false))))
       :hitch.selector.kind/var
       (-apply-command graph-manager-value (selector-proto/-get-machine sel-impl selector)
                      command disturbed-machines))))
