@@ -13,34 +13,30 @@
   :hitch.selector.spec.canonical-form/positional)
 
 (def pin-machine-impl
-  (reify
-    sel-proto/ImplementationKind
-    (-imp-kind [machine] :hitch.selector.kind/machine)
-    machine-proto/Init
-    (-initialize [machine-instance machine-selector]
-      initial-node)
-    machine-proto/ParentChanges
-    (-parent-value-changes [_ machine-selector graph-value node parent-selectors]
-      node)
-    machine-proto/Commandable
-    (-apply-command [_ machine-selector graph-value node command]
-      (case (nth command 0)
-        :pin
-        (let [[_ selector] command
-              there? (get-in node [:state selector])]
-          (if there?
-            node
-            (-> node
-                (update :state conj selector)
-                (update :change-focus assoc selector true))))
-        :unpin
-        (let [[_ selector] command
-              there? (get-in node [:state selector])]
-          (if there?
-            (-> node
-                (update :state disj selector)
-                (update :change-focus assoc selector false))
-            node))))))
+  {:hitch.selector.impl/kind :hitch.selector.kind/machine
+   ::machine-proto/init (fn [machine-selector] initial-node)
+   ::machine-proto/observed-value-changes
+                             (fn [machine-selector graph-value node parent-selectors]
+                               node)
+   ::machine-proto/apply-command
+                             (fn [machine-selector graph-value node command]
+                               (case (nth command 0)
+                                 :pin
+                                 (let [[_ selector] command
+                                       there? (get-in node [:state selector])]
+                                   (if there?
+                                     node
+                                     (-> node
+                                         (update :state conj selector)
+                                         (update :change-focus assoc selector true))))
+                                 :unpin
+                                 (let [[_ selector] command
+                                       there? (get-in node [:state selector])]
+                                   (if there?
+                                     (-> node
+                                         (update :state disj selector)
+                                         (update :change-focus assoc selector false))
+                                     node))))})
 
 (reg/def-registered-selector pin-machine-spec' pin-machine-spec pin-machine-impl)
 

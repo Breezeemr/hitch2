@@ -48,24 +48,21 @@
   :hitch.selector.spec.canonical-form/positional)
 
 (def http-machine-impl
-  (reify
-    sel-proto/ImplementationKind
-    (-imp-kind [machine] :hitch.selector.kind/machine)
-    machine-proto/Init
-    (-initialize [machine-instance machine-selector] initial-node)
-    machine-proto/ChildChanges
-    (-child-changes [machine-instance machine-selector graph-value node children-added children-removed]
-      (update node :async-effects into (map (fn [child] {:type     ::request
-                                                         :selector child})
-                                         children-added)))
-    machine-proto/Commandable
-    (-apply-command [_ machine-selector graph-value node command]
-      (case (nth command 0)
-        ::value (let [[_ selector response] command]
-                  (assoc-in node [:set-projections selector] response))
-        ::refresh (let [[_ selector] command]
-                    (update node :async-effects conj {:type     ::request
-                                                      :selector selector}))))))
+  {:hitch.selector.impl/kind :hitch.selector.kind/machine
+   ::machine-proto/init (fn [machine-selector] initial-node)
+   ::machine-proto/curation-changes
+                             (fn [machine-selector graph-value node children-added children-removed]
+                               (update node :async-effects into (map (fn [child] {:type     ::request
+                                                                                  :selector child})
+                                                                  children-added)))
+   ::machine-proto/apply-command
+                             (fn [machine-selector graph-value node command]
+                               (case (nth command 0)
+                                 ::value (let [[_ selector response] command]
+                                           (assoc-in node [:set-projections selector] response))
+                                 ::refresh (let [[_ selector] command]
+                                             (update node :async-effects conj {:type     ::request
+                                                                               :selector selector}))))})
 
 (reg/def-registered-selector http-machine-spec' http-machine-spec http-machine-impl)
 (def http-machine (sel-proto/sel http-machine-spec'))
@@ -77,13 +74,10 @@
   :hitch.selector.spec.canonical-form/map)
 
 (def http-var-impl
-  (reify
-    sel-proto/ImplementationKind
-    (-imp-kind [var]
-      :hitch.selector.kind/var)
-    sel-proto/GetMachine
-    (-get-machine [var sel]
-      http-machine)))
+  {:hitch.selector.impl/kind :hitch.selector.kind/var
+   :hitch.selector.impl/get-machine
+   (fn [sel]
+     http-machine)})
 
 (reg/def-registered-selector http-spec' http-spec http-var-impl)
 

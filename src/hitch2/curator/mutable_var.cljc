@@ -17,24 +17,29 @@
   [:var-name])
 
 (def machine-impl
-  (reify
-    sel-proto/ImplementationKind
-    (-imp-kind [machine] :hitch.selector.kind/machine)
-    machine-proto/Init
-    (-initialize [machine-instance machine-selector] initial-node)
-    machine-proto/ChildChanges
-    (-child-changes [machine-instance machine-selector graph-value node children-added children-removed]
-      node)
-    machine-proto/Commandable
-    (-apply-command [_ machine-selector graph-value node command]
-      (case (nth command 0)
-        :set-value (let [[_ val] command]
-                     (-> node
-                         (assoc :state val)
-                         (update :set-projections assoc (mutable-var (:var-name machine-selector)) val)))
-        :clear (-> node
-                   (assoc :state NOT-FOUND-SENTINEL)
-                   (update :set-projections assoc (mutable-var (:var-name machine-selector)) NOT-FOUND-SENTINEL))))))
+  {:hitch.selector.impl/kind :hitch.selector.kind/machine
+   ::machine-proto/init      (fn [machine-selector] initial-node)
+   ::machine-proto/curation-changes
+                             (fn [machine-selector graph-value node children-added children-removed]
+                               (assoc node
+                                 :set-projections
+                                 (-> (:set-projections node)
+                                     (into
+                                       (keep
+                                         (fn [x]
+                                           (when-not (identical? (:state node) NOT-FOUND-SENTINEL)
+                                             [(mutable-var (:var-name machine-selector)) x])))
+                                       children-added))))
+   ::machine-proto/apply-command
+                             (fn [machine-selector graph-value node command]
+                               (case (nth command 0)
+                                 :set-value (let [[_ val] command]
+                                              (-> node
+                                                  (assoc :state val)
+                                                  (update :set-projections assoc (mutable-var (:var-name machine-selector)) val)))
+                                 :clear (-> node
+                                            (assoc :state NOT-FOUND-SENTINEL)
+                                            (update :set-projections assoc (mutable-var (:var-name machine-selector)) NOT-FOUND-SENTINEL))))})
 
 (reg/def-registered-selector mutable-var-machine-spec' mutable-var-machine-spec machine-impl)
 
@@ -49,13 +54,10 @@
   [:var-name])
 
 (def mutable-var-impl
-  (reify
-    sel-proto/ImplementationKind
-    (-imp-kind [var]
-      :hitch.selector.kind/var)
-    sel-proto/GetMachine
-    (-get-machine [var sel]
-      (mutable-machine (:var-name sel)))))
+  {:hitch.selector.impl/kind :hitch.selector.kind/var
+   :hitch.selector.impl/get-machine
+                             (fn [sel]
+                               (mutable-machine (:var-name sel)))})
 
 (reg/def-registered-selector mutable-var-spec' mutable-var-spec mutable-var-impl)
 

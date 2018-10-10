@@ -14,17 +14,14 @@
 (def initial-node (assoc machine-proto/initial-curator-state :state {}))
 
 (defn no-op-machine [state]
-  (reify
-    sel-proto/ImplementationKind
-    (-imp-kind [_machine] :hitch.selector.kind/machine)
-    machine-proto/Init
-    (-initialize [_machine machine-selector] initial-node)
-    machine-proto/ParentChanges
-    (-parent-value-changes [_ machine-selector g-v node parent-selectors]
-      (swap! state update :parent-changes (fnil conj #{}) parent-selectors))
-    machine-proto/Commandable
-    (-apply-command [_ machine-selector graph-value node command]
-      )))
+  {:hitch.selector.impl/kind :hitch.selector.kind/machine
+   ::machine-proto/init (fn [machine-selector] initial-node)
+   ::machine-proto/observed-value-changes
+                             (fn [machine-selector graph-value node parent-selectors]
+                               (swap! state update :parent-changes (fnil conj #{}) parent-selectors))
+   ::machine-proto/apply-command
+                             (fn [machine-selector graph-value node command]
+                               node)})
 
 (deftest atom-tests
   (let [graph-manager (g/make-gm registry-resolver)
