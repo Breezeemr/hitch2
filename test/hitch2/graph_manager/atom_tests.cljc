@@ -11,7 +11,7 @@
     #?(:cljs [cljs.test :refer-macros [deftest is testing]]
        :clj  [clojure.test :refer [deftest is testing]])))
 
-(def initial-node (assoc machine-proto/initial-machine-state :state {}))
+(def initial-node (assoc machine-proto/initial-curator-state :state {}))
 
 (defn no-op-machine [state]
   (reify

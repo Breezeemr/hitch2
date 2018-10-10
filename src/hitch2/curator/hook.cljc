@@ -12,7 +12,7 @@
 
 (defrecord node-state [state change-parent reset-vars
                        async-effects sync-effects])
-(def initial-node (assoc machine-proto/initial-machine-state :state {}))
+(def initial-node (assoc machine-proto/initial-curator-state :state {}))
 
 (defn remove-called-hooks [state selectors]
   (reduce dissoc state selectors))

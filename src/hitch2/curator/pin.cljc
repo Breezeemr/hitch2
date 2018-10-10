@@ -5,7 +5,7 @@
              :refer [def-selector-spec]]
             [hitch2.selector-impl-registry :as reg]))
 
-(def initial-node (assoc machine-proto/initial-machine-state :state #{}))
+(def initial-node (assoc machine-proto/initial-curator-state :state #{}))
 
 (def-selector-spec pin-machine-spec
   :machine

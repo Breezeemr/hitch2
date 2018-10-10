@@ -41,7 +41,7 @@
            (clj->js headers))
     #(.dispose xhr)))
 
-(def initial-node machine-proto/initial-machine-state)
+(def initial-node machine-proto/initial-curator-state)
 (def-selector-spec http-machine-spec
   :machine
   :hitch.selector.spec/canonical-form

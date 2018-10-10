@@ -7,7 +7,7 @@
              :refer [def-selector-spec]]))
 
 (declare mutable-var)
-(def initial-node (assoc machine-proto/initial-machine-state :state NOT-FOUND-SENTINEL))
+(def initial-node (assoc machine-proto/initial-curator-state :state NOT-FOUND-SENTINEL))
 
 (def-selector-spec mutable-var-machine-spec
   :machine

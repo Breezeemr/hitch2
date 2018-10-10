@@ -38,8 +38,8 @@
 (s/def ::node-state (s/map-of
                       ::selector
                       (s/or
-                        :machine-state
-                        ::machine-proto/machine-state
+                        :curator-state
+                        ::machine-proto/curator-state
                         :derivation-state
                         ::derivation-state)))
 
@@ -70,11 +70,11 @@
 
 
 (defn init-machine [node-state resolver selector]
-  (let [machine-state (if node-state
+  (let [curator-state (if node-state
                         node-state
                         (machine-proto/-initialize (resolver selector) selector))]
-    (s/assert ::machine-proto/machine-state machine-state)
-    machine-state))
+    (s/assert ::machine-proto/curator-state curator-state)
+    curator-state))
 
 (defn- add-to-working-set [working-set selector]
   (vswap! working-set conj! selector)
@@ -214,7 +214,7 @@
                   children
                   parents
                   #{parent})]
-            (s/assert ::machine-proto/machine-state new-node-state)
+            (s/assert ::machine-proto/curator-state new-node-state)
             (when (or (not-empty new-reset-vars)
                     (not-empty sync-effects)
                     (not-empty async-effects))
@@ -258,7 +258,7 @@
         :hitch.selector.kind/machine
         (let [{:keys [change-parent reset-vars]}
               node-state]
-          (s/assert ::machine-proto/machine-state node-state)
+          (s/assert ::machine-proto/curator-state node-state)
           (when (not-empty reset-vars)
             (add-to-working-set worklist-atom selector))
           (when *trace* (record! [:node-changes :machine (selector-proto/-sname sel-impl)
@@ -382,7 +382,7 @@
                     #{child})
                   (when (not added|removed)
                     #{child}))]
-            (s/assert ::machine-proto/machine-state new-node-state)
+            (s/assert ::machine-proto/curator-state new-node-state)
             (when (or (not-empty reset-vars)
                     (not-empty sync-effects)
                     (not-empty async-effects))
@@ -481,13 +481,13 @@
 
 (s/fdef -apply-command
   :args (s/cat
-          :machine-state  ::machine-proto/machine-state
+          :curator-state  ::machine-proto/curator-state
           :machine any?
           :command vector?
           :graph-value ::graph-value
           :children (s/coll-of ::selector)
           :parents (s/coll-of ::selector))
-  :ret ::machine-proto/machine-state)
+  :ret ::machine-proto/curator-state)
 
 (defn remove-effects [node-state machines]
   (reduce
