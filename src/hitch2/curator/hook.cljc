@@ -10,7 +10,7 @@
   {:hitch.selector/name ::hook
    :hitch.selector.spec/kind :machine})
 
-(defrecord node-state [state change-parent reset-vars
+(defrecord node-state [state change-focus set-projections
                        async-effects sync-effects])
 (def initial-node (assoc machine-proto/initial-curator-state :state {}))
 
@@ -48,13 +48,13 @@
         (let [[_ selector target] command]
           (-> node
               (update-in [:state selector] (fnil conj #{}) target)
-              (update :change-parent assoc selector true)))
+              (update :change-focus assoc selector true)))
         :hook-unsubscribe
         (let [[_ selector target] command]
           (let [new-node (update-in node [:state selector] (fnil disj #{}) target)]
             (if (not-empty (get-in new-node [:state selector]))
               new-node
-              (update new-node :change-parent assoc selector false))))))))
+              (update new-node :change-focus assoc selector false))))))))
 
 (reg/def-registered-selector hook-machine-spec' hook-machine-spec hook-impl)
 
@@ -94,7 +94,7 @@
           (cond->
             (-> node
                 (update-in [:state selector] (fnil conj #{}) target)
-                (update :change-parent assoc selector true))
+                (update :change-focus assoc selector true))
             (not (identical? current-selector-value NOT-FOUND-SENTINEL))
             (update :sync-effects conj {:type     :hook-changes-call
                                         :target   target
@@ -104,7 +104,7 @@
           (let [new-node (update-in node [:state selector] disj target)]
             (if (not-empty (get-in new-node [:state selector]))
               new-node
-              (update new-node :change-parent assoc selector false))))))))
+              (update new-node :change-focus assoc selector false))))))))
 
 (reg/def-registered-selector hook-change-machine-spec' hook-change-machine-spec hook-change-impl)
 

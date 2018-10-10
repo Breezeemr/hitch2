@@ -14,7 +14,7 @@
                                 parents
                                 children
                               resolver])
-(defrecord deriving-state [change-parent waiting value-changed?])
+(defrecord deriving-state [change-focus waiting value-changed?])
 (defrecord var-state [value-changed?])
 
 (def #?(:cljs    ^:dynamic ^boolean *trace*
@@ -98,7 +98,7 @@
 
 (declare propagate-dependency-changes)
 
-(defn propagate-reset-vars [graph-manager-value reset-vars worklist-atom]
+(defn propagate-set-projections [graph-manager-value set-projections worklist-atom]
   (reduce-kv (fn [gv sel value]
                (let [old-value (-> gv :graph-value (get sel NOT-FOUND-SENTINEL))]
                  (if (= old-value value)
@@ -114,7 +114,7 @@
                            (assoc-in [:graph-value sel] value))
                        )))))
     graph-manager-value
-    reset-vars))
+    set-projections))
 
 (defn tyler-halting [selector simpl tx-manager]
   (halt/maybe-halt
@@ -147,7 +147,7 @@
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (and (not= new-value old-value) (not (identical? new-value NOT-FOUND-SENTINEL)))
         added-deps       (into #{} (remove old-deps) deps)
-        change-parent (-> {}
+        change-focus (-> {}
                            (into (map (fn [dep]
                                         [dep true]))
                              added-deps)
@@ -173,8 +173,8 @@
       (assoc-in
         [:graph-value selector]
         new-value)
-      (not-empty change-parent)
-      (propagate-dependency-changes selector change-parent worklist-atom dirty-machines))))
+      (not-empty change-focus)
+      (propagate-dependency-changes selector change-focus worklist-atom dirty-machines))))
 
 
 (defn addval [x k v]
@@ -199,8 +199,8 @@
           :hitch.selector.kind/machine
           (let [graph-value    (get-graph-value graph-manager-value)
                 {:keys [sync-effects async-effects]
-                 new-reset-vars     :reset-vars
-                 new-change-parent :change-parent
+                 new-set-projections     :set-projections
+                 new-change-focus :change-focus
                  :as                new-node-state}
                 (machine-proto/-parent-value-changes
                   sel-impl
@@ -209,18 +209,18 @@
                   (ensure-inits node-state graph-manager-value selector dirty-machines)
                   #{parent})]
             (s/assert ::machine-proto/curator-state new-node-state)
-            (when (or (not-empty new-reset-vars)
+            (when (or (not-empty new-set-projections)
                     (not-empty sync-effects)
                     (not-empty async-effects))
               (add-to-working-set worklist-atom selector))
             (cond-> (assoc-in graph-manager-value
                       [:node-state selector]
                       new-node-state)
-              (not-empty new-change-parent)
+              (not-empty new-change-focus)
               (->
                 (assoc-in
-                  [:node-state selector :change-parent] {})
-                (propagate-dependency-changes selector new-change-parent worklist-atom dirty-machines))))
+                  [:node-state selector :change-focus] {})
+                (propagate-dependency-changes selector new-change-focus worklist-atom dirty-machines))))
           ;:hitch.selector.kind/var
           ;(assert false "should not happen")
           :hitch.selector.kind/halting
@@ -250,27 +250,27 @@
           node-state (get-node-state graph-manager-value selector)]
       (case sel-kind
         :hitch.selector.kind/machine
-        (let [{:keys [change-parent reset-vars]}
+        (let [{:keys [change-focus set-projections]}
               node-state]
           (s/assert ::machine-proto/curator-state node-state)
-          (when (not-empty reset-vars)
+          (when (not-empty set-projections)
             (add-to-working-set worklist-atom selector))
           (when *trace* (record! [:node-changes :machine (selector-proto/-sname sel-impl)
                                   selector
                                   node-state]))
           (cond-> graph-manager-value
-            (not-empty change-parent)
+            (not-empty change-focus)
             (->
               (update-in [:node-state selector]
                 assoc
-                :change-parent {})
-              (propagate-dependency-changes selector change-parent worklist-atom dirty-machines))
-            (not-empty reset-vars)
+                :change-focus {})
+              (propagate-dependency-changes selector change-focus worklist-atom dirty-machines))
+            (not-empty set-projections)
             (->
               (update-in [:node-state selector]
                 assoc
-                :reset-vars {})
-              (propagate-reset-vars reset-vars worklist-atom))))
+                :set-projections {})
+              (propagate-set-projections set-projections worklist-atom))))
         :hitch.selector.kind/var
         (let [{:keys [value-changed?]}
               node-state]
@@ -284,19 +284,19 @@
                 :value-changed? false)
               (propagate-value-changes selector worklist-atom dirty-machines))))
         :hitch.selector.kind/halting
-        (let [{:keys [value-changed? change-parent]}
+        (let [{:keys [value-changed? change-focus]}
               node-state]
           (when *trace*
             (record! [:node-changes :halting (selector-proto/-sname sel-impl)
                       selector (-> graph-manager-value :graph-value (get selector))])
                 )
           (cond-> graph-manager-value
-            (not-empty change-parent)
+            (not-empty change-focus)
             (->
               (update-in [:node-state selector]
                 assoc
-                :change-parent {})
-              (propagate-dependency-changes selector change-parent worklist-atom dirty-machines))
+                :change-focus {})
+              (propagate-dependency-changes selector change-focus worklist-atom dirty-machines))
             value-changed?
             (->
               (update-in [:node-state selector]
@@ -358,8 +358,8 @@
           :hitch.selector.kind/machine
           (let [graph-value        (get-graph-value graph-manager-value)
                 {:keys [sync-effects async-effects]
-                 new-change-parent :change-parent
-                 reset-vars         :reset-vars
+                 new-change-focus :change-focus
+                 set-projections         :set-projections
                  :as                new-node-state}
                 (machine-proto/-child-changes
                   sel-impl
@@ -371,7 +371,7 @@
                   (when (not added|removed)
                     #{child}))]
             (s/assert ::machine-proto/curator-state new-node-state)
-            (when (or (not-empty reset-vars)
+            (when (or (not-empty set-projections)
                     (not-empty sync-effects)
                     (not-empty async-effects))
               (add-to-working-set worklist-atom parent))
@@ -382,9 +382,9 @@
               (assoc-in graph-manager-value
                 [:node-state parent]
                 (assoc new-node-state
-                  :change-parent {}))
-              (not-empty new-change-parent)
-              (propagate-dependency-changes  parent new-change-parent worklist-atom dirty-machines)))
+                  :change-focus {}))
+              (not-empty new-change-focus)
+              (propagate-dependency-changes  parent new-change-focus worklist-atom dirty-machines)))
           :hitch.selector.kind/var
           (let [machine (selector-proto/-get-machine sel-impl parent)]
             (when *trace*
@@ -492,9 +492,9 @@
     node-state
     ))
 
-(defn assert-valid-finalized-node-state [{:keys [change-parent reset-vars]}]
-  (assert (empty? change-parent))
-  (assert (empty? reset-vars)))
+(defn assert-valid-finalized-node-state [{:keys [change-focus set-projections]}]
+  (assert (empty? change-focus))
+  (assert (empty? set-projections)))
 
 (defn into! [target source]
   (reduce

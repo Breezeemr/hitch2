@@ -32,14 +32,14 @@
             node
             (-> node
                 (update :state conj selector)
-                (update :change-parent assoc selector true))))
+                (update :change-focus assoc selector true))))
         :unpin
         (let [[_ selector] command
               there? (get-in node [:state selector])]
           (if there?
             (-> node
                 (update :state disj selector)
-                (update :change-parent assoc selector false))
+                (update :change-focus assoc selector false))
             node))))))
 
 (reg/def-registered-selector pin-machine-spec' pin-machine-spec pin-machine-impl)

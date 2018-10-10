@@ -31,10 +31,10 @@
         :set-value (let [[_ val] command]
                      (-> node
                          (assoc :state val)
-                         (update :reset-vars assoc (mutable-var (:var-name machine-selector)) val)))
+                         (update :set-projections assoc (mutable-var (:var-name machine-selector)) val)))
         :clear (-> node
                    (assoc :state NOT-FOUND-SENTINEL)
-                   (update :reset-vars assoc (mutable-var (:var-name machine-selector)) NOT-FOUND-SENTINEL))))))
+                   (update :set-projections assoc (mutable-var (:var-name machine-selector)) NOT-FOUND-SENTINEL))))))
 
 (reg/def-registered-selector mutable-var-machine-spec' mutable-var-machine-spec machine-impl)
 
