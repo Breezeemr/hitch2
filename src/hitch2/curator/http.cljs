@@ -1,6 +1,6 @@
 (ns hitch2.curator.http
   (:require [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
-            [hitch2.protocols.machine :as machine-proto]
+            [hitch2.protocols.curator :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.protocols.selector :as sel-proto
              :refer-macros [def-selector-spec]]
@@ -54,12 +54,12 @@
     machine-proto/Init
     (-initialize [machine-instance machine-selector] initial-node)
     machine-proto/ChildChanges
-    (-child-changes [machine-instance machine-selector graph-value node children parents children-added children-removed]
+    (-child-changes [machine-instance machine-selector graph-value node children-added children-removed]
       (update node :async-effects into (map (fn [child] {:type     ::request
                                                          :selector child})
                                          children-added)))
     machine-proto/Commandable
-    (-apply-command [_ machine-selector graph-value node children parents command]
+    (-apply-command [_ machine-selector graph-value node command]
       (case (nth command 0)
         ::value (let [[_ selector response] command]
                   (assoc-in node [:reset-vars selector] response))

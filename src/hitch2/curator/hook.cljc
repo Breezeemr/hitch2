@@ -29,7 +29,7 @@
     machine-proto/Init
     (-initialize [machine-instance machine-selector] initial-node)
     machine-proto/ParentChanges
-    (-parent-value-changes [_ machine-selector graph-value node children parents parent-selectors]
+    (-parent-value-changes [_ machine-selector graph-value node parent-selectors]
       (let [selector->targets (:state node)]
         (-> node
             (update :async-effects
@@ -42,7 +42,7 @@
               parent-selectors)
             (update :state remove-called-hooks parent-selectors))))
     machine-proto/Commandable
-    (-apply-command [_ machine-selector graph-value node children parents command]
+    (-apply-command [_ machine-selector graph-value node command]
       (case (nth command 0)
         :hook-subscribe
         (let [[_ selector target] command]
@@ -74,7 +74,7 @@
     machine-proto/Init
     (-initialize [machine-instance machine-selector] initial-node)
     machine-proto/ParentChanges
-    (-parent-value-changes [_ machine-selector graph-value node children parents parent-selectors]
+    (-parent-value-changes [_ machine-selector graph-value node parent-selectors]
       (let [selector->targets (:state node)]
         (-> node
             (update :async-effects
@@ -86,7 +86,7 @@
                            :selector selector})))
               parent-selectors))))
     machine-proto/Commandable
-    (-apply-command [_ machine-selector graph-value node children parents command]
+    (-apply-command [_ machine-selector graph-value node command]
       (case (nth command 0)
         :hook-change-subscribe
         (let [[_ selector target] command

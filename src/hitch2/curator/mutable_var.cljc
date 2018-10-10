@@ -23,10 +23,10 @@
     machine-proto/Init
     (-initialize [machine-instance machine-selector] initial-node)
     machine-proto/ChildChanges
-    (-child-changes [machine-instance machine-selector graph-value node children parents children-added children-removed]
+    (-child-changes [machine-instance machine-selector graph-value node children-added children-removed]
       node)
     machine-proto/Commandable
-    (-apply-command [_ machine-selector graph-value node children parents command]
+    (-apply-command [_ machine-selector graph-value node command]
       (case (nth command 0)
         :set-value (let [[_ val] command]
                      (-> node

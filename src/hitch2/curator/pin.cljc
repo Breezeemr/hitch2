@@ -20,10 +20,10 @@
     (-initialize [machine-instance machine-selector]
       initial-node)
     machine-proto/ParentChanges
-    (-parent-value-changes [_ machine-selector graph-value node children parents parent-selectors]
+    (-parent-value-changes [_ machine-selector graph-value node parent-selectors]
       node)
     machine-proto/Commandable
-    (-apply-command [_ machine-selector graph-value node children parents command]
+    (-apply-command [_ machine-selector graph-value node command]
       (case (nth command 0)
         :pin
         (let [[_ selector] command

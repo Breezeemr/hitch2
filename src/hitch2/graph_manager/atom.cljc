@@ -89,9 +89,7 @@
         (get-impl graph-manager-value selector)
           selector
           (get-graph-value graph-manager-value)
-          node-state
-          (get-children graph-manager-value selector)
-          (get-parents graph-manager-value selector)))))
+          node-state))))
 
 (defn ensure-inits [node-state graph-manager-value selector disturbed-machines]
   (-> node-state
@@ -200,8 +198,6 @@
         (case sel-kind
           :hitch.selector.kind/machine
           (let [graph-value    (get-graph-value graph-manager-value)
-                children       (get-children graph-manager-value selector)
-                parents        (get-parents graph-manager-value selector)
                 {:keys [sync-effects async-effects]
                  new-reset-vars     :reset-vars
                  new-change-parent :change-parent
@@ -211,8 +207,6 @@
                   selector
                   graph-value
                   (ensure-inits node-state graph-manager-value selector dirty-machines)
-                  children
-                  parents
                   #{parent})]
             (s/assert ::machine-proto/curator-state new-node-state)
             (when (or (not-empty new-reset-vars)
@@ -321,9 +315,7 @@
     (get-impl graph-manager-value selector)
     selector
     (:graph-value graph-manager-value)
-    node-state
-    (get-children graph-manager-value selector)
-    (get-parents graph-manager-value selector)))
+    node-state))
 
 (defn flush-worklist [graph-manager-value dirty-machines-snapshot flush-worklist-atom]
   (reduce
@@ -365,8 +357,6 @@
         (case sel-kind
           :hitch.selector.kind/machine
           (let [graph-value        (get-graph-value graph-manager-value)
-                children           (get-children graph-manager-value parent)
-                parents            (get-parents graph-manager-value parent)
                 {:keys [sync-effects async-effects]
                  new-change-parent :change-parent
                  reset-vars         :reset-vars
@@ -376,8 +366,6 @@
                   parent
                   graph-value
                   (ensure-inits node-state graph-manager-value parent dirty-machines)
-                  children
-                  parents
                   (when added|removed
                     #{child})
                   (when (not added|removed)
@@ -502,8 +490,6 @@
     selector
     graph-value
     node-state
-    (get-children graph-manager-value selector)
-    (get-parents graph-manager-value selector)
     ))
 
 (defn assert-valid-finalized-node-state [{:keys [change-parent reset-vars]}]
@@ -567,16 +553,14 @@
         node-state (get-node-state graph-manager-value selector)]
     (case sel-kind
       :hitch.selector.kind/machine
-      (let [graph-value        (get-graph-value graph-manager-value)
-            children           (get-children graph-manager-value selector)
-            parents            (get-parents graph-manager-value selector)]
+      (let [graph-value        (get-graph-value graph-manager-value)]
         (assoc-in graph-manager-value [:node-state selector]
           (machine-proto/-apply-command
             sel-impl
             selector
             graph-value
             (ensure-inits node-state graph-manager-value selector disturbed-machines)
-            children parents command)))
+            command)))
       :hitch.selector.kind/var
       (-apply-command graph-manager-value (selector-proto/-get-machine sel-impl selector)
                      command disturbed-machines))))

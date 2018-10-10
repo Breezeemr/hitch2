@@ -42,38 +42,38 @@
 
 ;; people depending on this curator changed
 (defprotocol ChildChanges
-  (-child-changes [machine-instance machine-selector graph-value ^curator-state node children parents children-added children-removed]))
+  (-child-changes [machine-instance machine-selector graph-value ^curator-state node children-added children-removed]))
 
 ;; things you depended on value's changed
 (defprotocol ParentChanges
-  (-parent-value-changes [machine-instance machine-selector graph-value ^curator-state node children parents parent-selectors]))
+  (-parent-value-changes [machine-instance machine-selector graph-value ^curator-state node parent-selectors]))
 (defprotocol Commandable
-  (-apply-command [machine-instance machine-selector graph-value ^curator-state node children parents command]))
+  (-apply-command [machine-instance machine-selector graph-value ^curator-state node command]))
 
 ;; batching use cases (really wanted on the server). any time in this tx
 (defprotocol InitForTX
-  (-init-tx [machine-instance machine-selector graph-value ^curator-state node children parents]))
+  (-init-tx [machine-instance machine-selector graph-value ^curator-state node]))
 
 (extend-protocol InitForTX
   #?(:clj  Object
      :cljs default)
-  (-init-tx [machine-instance machine-selector graph-value ^curator-state node children parents]
+  (-init-tx [machine-instance machine-selector graph-value ^curator-state node]
     node))
 
 (defprotocol FlushForTX
-  (-flush-tx [machine-instance machine-selector graph-value ^curator-state node children parents]))
+  (-flush-tx [machine-instance machine-selector graph-value ^curator-state node]))
 
 (extend-protocol FlushForTX
   #?(:clj  Object
      :cljs default)
-  (-flush-tx [machine-instance machine-selector graph-value ^curator-state node children parents]
+  (-flush-tx [machine-instance machine-selector graph-value ^curator-state node]
     node))
 
 (defprotocol FinalizeForTX
-  (-finalize [machine-instance machine-selector graph-value ^curator-state node children parents]))
+  (-finalize [machine-instance machine-selector graph-value ^curator-state node]))
 
 (extend-protocol FinalizeForTX
   #?(:clj  Object
      :cljs default)
-  (-finalize [machine-instance machine-selector graph-value ^curator-state node children parents]
+  (-finalize [machine-instance machine-selector graph-value ^curator-state node]
     node))

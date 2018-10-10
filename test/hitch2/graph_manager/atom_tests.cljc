@@ -20,10 +20,10 @@
     machine-proto/Init
     (-initialize [_machine machine-selector] initial-node)
     machine-proto/ParentChanges
-    (-parent-value-changes [_ machine-selector g-v node children parents parent-selectors]
+    (-parent-value-changes [_ machine-selector g-v node parent-selectors]
       (swap! state update :parent-changes (fnil conj #{}) parent-selectors))
     machine-proto/Commandable
-    (-apply-command [_ machine-selector graph-value node children parents command]
+    (-apply-command [_ machine-selector graph-value node command]
       )))
 
 (deftest atom-tests
