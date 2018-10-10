@@ -28,14 +28,14 @@
             :hitch.selector/name ~(list 'quote sel-name)
             :hitch.selector.spec/kind ~qkind)))))
 
-;; selector kind? what generalizes selector and machine? Graphable?
+;; selector kind? what generalizes selector and curator? Graphable?
 ;; Hitchable? HitchKind Hitchtype?
 (defprotocol ImplementationKind
   (-imp-kind [impl]
-    "Returns the kind of selector or machine.
+    "Returns the kind of selector or curator.
 Should be a keyword for dispatching. Values are from:
 :hitch.selector.kind/var
-:hitch.selector.kind/machine
+:hitch.selector.kind/curator
 :hitch.selector.kind/sentinel
 :hitch.selector.kind/halting"))
 
@@ -77,7 +77,7 @@ Should be a keyword for dispatching. Values are from:
 
 (defprotocol GetMachine
   (-get-machine [impl sel]
-    "return a machine selector from impl"))
+    "return a curator selector from impl"))
 
 (s/def :hitch.selector/name qualified-symbol?)
 (s/def :hitch.selector.spec/kind

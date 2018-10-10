@@ -2,7 +2,7 @@
   (:require  [clojure.spec.alpha :as s]
              [hitch2.protocols.graph-manager :as g]
              [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
-             [hitch2.protocols.machine :as machine-proto]
+             [hitch2.protocols.curator :as machine-proto]
              [hitch2.protocols.selector :as selector-proto]
              [hitch2.protocols.tx-manager :as tx-manager-proto]
              [hitch2.tx-manager.halting :as halting-tx]
@@ -559,7 +559,7 @@
 (def recursion-limit 1000)
 
 (defn -apply-command
-  "Apply command to machine and then allow the graph to settle. Returns
+  "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
   [graph-manager-value selector command disturbed-machines]
   (let [sel-impl   (get-impl graph-manager-value selector)
@@ -582,7 +582,7 @@
                      command disturbed-machines))))
 
 (defn apply-command
-  "Apply command to machine and then allow the graph to settle. Returns
+  "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
   [graph-manager-value selector command sync-effects-atom async-effects-atom]
   (let [disturbed-machines (volatile! (transient #{}))
@@ -599,7 +599,7 @@
     ))
 
 (defn apply-commands
-  "Apply command to machine and then allow the graph to settle. Returns
+  "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
   [graph-manager-value cmds sync-effects-atom async-effects-atom]
   (let [disturbed-machines (volatile! (transient #{}))

@@ -3,7 +3,7 @@
             [hitch2.graph :as api]
             [hitch2.graph-manager.atom :as atom-gm]
             [hitch2.protocols.graph-manager :as gm-proto]
-            [hitch2.machine.mutable-var :as mv]
+            [hitch2.curator.mutable-var :as mv]
             [hitch2.selector-impl-registry :as reg
              :refer [registry-resolver]]
             [hitch2.protocols.selector :as sel-proto

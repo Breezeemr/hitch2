@@ -1,4 +1,4 @@
-(ns hitch2.protocols.machine
+(ns hitch2.protocols.curator
   (:require [clojure.spec.alpha :as s]))
 
 (def selector? any?)
@@ -40,7 +40,7 @@
   (-uninitialize [machine-instance machine-selector ^machine-state node]
     nil))
 
-;; people depending on this machine changed
+;; people depending on this curator changed
 (defprotocol ChildChanges
   (-child-changes [machine-instance machine-selector graph-value ^machine-state node children parents children-added children-removed]))
 

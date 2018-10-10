@@ -1,8 +1,8 @@
-(ns hitch2.machine.http-test
+(ns hitch2.curator.http-test
   (:require [cljs.test :refer-macros [deftest is testing async]]
-            [hitch2.machine.http :as http]
+            [hitch2.curator.http :as http]
             [hitch2.graph :as graph]
-            [hitch2.machine.mutable-var :refer  [mutable-var]]
+            [hitch2.curator.mutable-var :refer  [mutable-var]]
             [hitch2.graph-manager.atom :as atom-gm]
             [hitch2.selector-impl-registry :as reg
              :refer [registry-resolver]]))

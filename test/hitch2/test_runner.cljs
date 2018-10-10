@@ -7,7 +7,7 @@
     [figwheel.main.async-result :as async-result]
     [hitch2.graph-manager.atom-tests]
     [hitch2.graph-test]
-    [hitch2.machine.http-test]
+    [hitch2.curator.http-test]
     ))
 
 
@@ -21,6 +21,6 @@
 (defn -main [& args]
   (run-tests-async 50000
     'hitch2.graph-test
-    'hitch2.machine.http-test
+    'hitch2.curator.http-test
     'hitch2.graph-manager.atom-tests
     ))

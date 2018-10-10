@@ -1,4 +1,4 @@
-(ns hitch2.machine.http
+(ns hitch2.curator.http
   (:require [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
             [hitch2.protocols.machine :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]

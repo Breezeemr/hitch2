@@ -1,8 +1,8 @@
 (ns hitch2.graph
   (:require [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.protocols.selector :as selector-proto]
-            [hitch2.machine.pin :refer [pin-machine]]
-            [hitch2.machine.hook :refer [hook-machine hook-change-machine]]
+            [hitch2.curator.pin :refer [pin-machine]]
+            [hitch2.curator.hook :refer [hook-machine hook-change-machine]]
             [hitch2.protocols.tx-manager :as tx-proto]
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
             [hitch2.halt :as halt]))

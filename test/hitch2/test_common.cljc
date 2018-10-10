@@ -56,7 +56,7 @@
 ;;; Machine which will var-reset its vars with their own :v param
 ;(defrecord EchoMachine []
 ;  hitch2.protocols.selector/Machine
-;  (apply-machine-commands [_ g s commands]
+;  (apply-curator-commands [_ g s commands]
 ;    (reduce
 ;      (fn [r [cmd sel [varcmd v]]]
 ;        (case cmd
@@ -72,7 +72,7 @@
 ;;; The value of an EchoVar
 ;(defrecord EchoVar [initial]
 ;  hitch2.protocols.selector/Var
-;  (machine-selector [_] (->EchoMachine)))
+;  (curator-selector [_] (->EchoMachine)))
 ;
 ;(defrecord LogMachine [log-volatile]
 ;  hitch2.protocols.selector/StatefulSelector
@@ -83,7 +83,7 @@
 ;    (vswap! log-volatile conj [:destroy (:count s)])
 ;    nil)
 ;  hitch2.protocols.selector/Machine
-;  (apply-machine-commands [_ g {:keys [state] :as sn} commands]
+;  (apply-curator-commands [_ g {:keys [state] :as sn} commands]
 ;    (vswap! log-volatile conj [:commands (:count state) commands])
 ;    (reduce (fn [r [type parent-sel [subcmd f]]]
 ;              (case type
@@ -105,11 +105,11 @@
 ;
 ;(defrecord LogVar [log-volatile]
 ;  hitch2.protocols.selector/Var
-;  (machine-selector [_] (->LogMachine log-volatile)))
+;  (curator-selector [_] (->LogMachine log-volatile)))
 ;
 ;(defrecord LogVar2 [log-volatile]
 ;  hitch2.protocols.selector/Var
-;  (machine-selector [_] (->LogMachine log-volatile)))
+;  (curator-selector [_] (->LogMachine log-volatile)))
 ;
 ;#?(:cljs
 ;   (extend-protocol IPrintWithWriter
