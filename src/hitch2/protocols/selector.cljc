@@ -75,29 +75,10 @@ Should be a keyword for dispatching. Values are from:
 (defprotocol SelectorName
   (-sname [imp] "returns the selector name"))
 
-(defprotocol GetMachine
-  (-get-machine [impl sel]
-    "return a curator selector from impl"))
-
-(extend-protocol GetMachine
-  #?@(:cljs
-      [cljs.core/PersistentHashMap
-       (-get-machine [impl sel]
-         (if-some [f (:hitch.selector.impl/get-machine impl)]
-           (f sel)
-           (assert false)))
-       cljs.core/PersistentArrayMap
-       (-get-machine [impl sel]
-         (if-some [f (:hitch.selector.impl/get-machine impl)]
-           (f sel)
-           (assert false)))]
-      :clj
-      ;; todo probably missing another map type
-      [clojure.lang.PersistentArrayMap
-       (-get-machine [impl sel]
-         (if-some [f (:hitch.selector.impl/get-machine impl)]
-           (f sel)
-           (assert false)))]))
+(defn get-machine [impl sel]
+  (if-some [f (:hitch.selector.impl/get-machine impl)]
+    (f sel)
+    (assert false)))
 
 (s/def :hitch.selector/name qualified-symbol?)
 (s/def :hitch.selector.spec/kind

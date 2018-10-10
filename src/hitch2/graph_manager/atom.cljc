@@ -382,7 +382,7 @@
               (not-empty new-change-focus)
               (propagate-dependency-changes  parent new-change-focus worklist-atom dirty-machines)))
           :hitch.selector.kind/var
-          (let [machine (selector-proto/-get-machine sel-impl parent)]
+          (let [machine (selector-proto/get-machine sel-impl parent)]
             (when *trace*
               (record! [:child-change :var
                         (selector-proto/-sname sel-impl)]))
@@ -554,7 +554,7 @@
               command)
             (assert false))))
       :hitch.selector.kind/var
-      (-apply-command graph-manager-value (selector-proto/-get-machine sel-impl selector)
+      (-apply-command graph-manager-value (selector-proto/get-machine sel-impl selector)
                      command disturbed-machines))))
 
 (defn apply-command
@@ -602,7 +602,7 @@
       :hitch.selector.kind/machine
       selector
       :hitch.selector.kind/var
-      (selector-proto/-get-machine sel-impl selector))))
+      (selector-proto/get-machine sel-impl selector))))
 
 (deftype gm [state]
   g/Snapshot
