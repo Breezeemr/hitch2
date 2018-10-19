@@ -481,7 +481,7 @@
     machines))
 
 (defn finalize-tx [node-state graph-value graph-manager-value selector]
-  (if-some [finalize (::finalize (get-impl graph-manager-value selector))]
+  (if-some [finalize (::machine-proto/finalize (get-impl graph-manager-value selector))]
     (finalize selector graph-value node-state)
     node-state))
 
