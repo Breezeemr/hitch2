@@ -1,4 +1,4 @@
-(ns hitch2.protocols.selector
+ (ns hitch2.protocols.selector
   #?(:cljs (:require-macros [hitch2.protocols.selector]))
   (:require [clojure.spec.alpha :as s])
   #?(:clj
