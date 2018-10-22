@@ -39,3 +39,19 @@
 
       (is (= @results [{:type :rerender-components, :components #{:react-component}}]))
       (reset! results []))))
+
+(doseq [[gname gctor] gctors]
+  (deftest Var-changes-trigger-batched-event
+    (testing "updating an observed value will batch rerender all components"
+      (let [g          (gctor)
+            mv-sel     (mutable-var :mv)
+            components (set (range 1000))]
+        (reset! results [])
+        (doseq [c components] (reset-rc-parents g c #{mv-sel}))
+
+        ;; no events from selectors with no values
+        (is (= @results []))
+
+        (graph/apply-commands g [[mv-sel [:set-value 2]]])
+
+        (is (= components (-> @results first :components)))))))

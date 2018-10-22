@@ -7,7 +7,7 @@
             [hitch2.selector-impl-registry :as reg]
             [clojure.set :as set]))
 
-(def react-hook-spec
+#_(def react-hook-spec
   {:hitch.selector/name      ::react-hook
    :hitch.selector.spec/kind :machine})
 
