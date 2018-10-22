@@ -9,6 +9,7 @@
     [hitch2.graph-test]
     [hitch2.curator.http-test]
     [hitch2.curator.react-hook-test]
+    [hitch2.curator.rtx-test]
     ))
 
 
@@ -25,4 +26,5 @@
     'hitch2.curator.http-test
     'hitch2.graph-manager.atom-tests
     'hitch2.curator.react-hook-test
+    'hitch2.curator.rtx-test
     ))
