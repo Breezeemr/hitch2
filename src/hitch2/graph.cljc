@@ -146,21 +146,45 @@
   "Return the value (or `nf` if not yet known) for a selector-spec and
   its arguments from graph transaction context `tx`."
   ([tx-manager nf selector-spec]
-   (dget-sel! tx-manager (sel selector-spec) nf))
+   (dget-sel! tx-manager
+     (if (fn? selector-spec)
+       (selector-spec)
+       (sel selector-spec)) nf))
   ([tx-manager nf selector-spec a]
-   (dget-sel! tx-manager (sel selector-spec a) nf))
+   (dget-sel! tx-manager
+     (if (fn? selector-spec)
+       (selector-spec a)
+       (sel selector-spec a)) nf))
   ([tx-manager nf selector-spec a b]
-   (dget-sel! tx-manager (sel selector-spec a b) nf))
+   (dget-sel! tx-manager
+     (if (fn? selector-spec)
+       (selector-spec a b)
+       (sel selector-spec a b)) nf))
   ([tx-manager nf selector-spec a b c]
-   (dget-sel! tx-manager (sel selector-spec a b c) nf))
+   (dget-sel! tx-manager
+     (if (fn? selector-spec)
+       (selector-spec a b c)
+       (sel selector-spec a b c)) nf))
   ([tx-manager nf selector-spec a b c d]
-   (dget-sel! tx-manager (sel selector-spec a b c d) nf))
+   (dget-sel! tx-manager
+     (if (fn? selector-spec)
+       (selector-spec a b c d)
+       (sel selector-spec a b c d)) nf))
   ([tx-manager nf selector-spec a b c d e]
-   (dget-sel! tx-manager (sel selector-spec a b c d e) nf))
+   (dget-sel! tx-manager
+     (if (fn? selector-spec)
+       (selector-spec a b c d e)
+       (sel selector-spec a b c d e)) nf))
   ([tx-manager nf selector-spec a b c d e f]
-   (dget-sel! tx-manager (sel selector-spec a b c d e f) nf))
+   (dget-sel! tx-manager
+     (if (fn? selector-spec)
+       (selector-spec a b c d e f)
+       (sel selector-spec a b c d e f)) nf))
   ([tx-manager nf selector-spec a b c d e f g]
-   (dget-sel! tx-manager (sel selector-spec a b c d e f g) nf)))
+   (dget-sel! tx-manager
+     (if (fn? selector-spec)
+       (selector-spec a b c d e f g)
+       (sel selector-spec a b c d e f g)) nf)))
 
 (defn select-sel!
   "Return a box containing the value for a selector from graph transaction
