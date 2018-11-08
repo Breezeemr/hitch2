@@ -27,12 +27,10 @@
   (let [graph-manager (g/make-gm registry-resolver)
         test-atom (atom nil)]
     ;needs to be async
-    (prn "hook")
     (hitch/hook-sel graph-manager (fn [val]
-                                    (reset! test-atom val)
-                                    (prn "yay! I got value " val)) (mv/mutable-var :test-name))
+                                    (reset! test-atom val))
+                    (mv/mutable-var :test-name))
 
-    (prn "transact" )
     (gm-proto/-transact! graph-manager (mv/mutable-machine :test-name) [:set-value 5])
     (is (= @test-atom 5))
     ;; what goes here?
