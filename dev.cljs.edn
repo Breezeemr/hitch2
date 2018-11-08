@@ -1,4 +1,5 @@
 ^{:watch-dirs ["test" "src"]
-  :css-dirs ["resources/public/css"]
-  :auto-testing true}
+  :css-dirs ["dev-resources/public/css"]
+  :auto-testing true
+  :extra-main-files {:test {:main hitch2.continuous-test-runner}}}
 {:main hitch2.hitch2}
