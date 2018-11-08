@@ -3,6 +3,7 @@
             [hitch2.protocols.selector :as selector-proto]
             [hitch2.curator.pin :refer [pin-machine]]
             [hitch2.curator.hook :refer [hook-machine hook-change-machine]]
+            [hitch2.curator.hitch-callback :as h-cb :refer [hitch-callback-machine]]
             [hitch2.protocols.tx-manager :as tx-proto]
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
             [hitch2.halt :as halt]))
@@ -85,22 +86,46 @@
   If body uses `select!` and derefs unavailable values, the exception will
   be caught and body will be called again when the value is available.
   This continues until body returns without throwing an exception."
-  ([graph-manager cb body]
-    )
-  ([graph-manager cb body a]
-    )
-  ([graph-manager cb body a b]
-    )
-  ([graph-manager cb body a b c]
-    )
-  ([graph-manager cb body a b c d]
-    )
-  ([graph-manager cb body a b c d e]
-    )
-  ([graph-manager cb body a b c d e f]
-    )
-  ([graph-manager cb body a b c d e f g]
-    ))
+  ([graph-manager cb halt-fn]
+   (h-cb/first-run graph-manager
+                   (fn [rtx] (halt-fn rtx))
+                   cb)
+   nil)
+  ([graph-manager cb halt-fn a]
+   (h-cb/first-run graph-manager
+                   (fn [rtx] (halt-fn rtx a))
+                   cb)
+   nil)
+  ([graph-manager cb halt-fn a b]
+   (h-cb/first-run graph-manager
+                   (fn [rtx] (halt-fn rtx a b))
+                   cb)
+   nil)
+  ([graph-manager cb halt-fn a b c]
+   (h-cb/first-run graph-manager
+                   (fn [rtx] (halt-fn rtx a b c))
+                   cb)
+   nil)
+  ([graph-manager cb halt-fn a b c d]
+   (h-cb/first-run graph-manager
+                   (fn [rtx] (halt-fn rtx a b c d))
+                   cb)
+   nil)
+  ([graph-manager cb halt-fn a b c d e]
+   (h-cb/first-run graph-manager
+                   (fn [rtx] (halt-fn rtx a b c d e))
+                   cb)
+   nil)
+  ([graph-manager cb halt-fn a b c d e f]
+   (h-cb/first-run graph-manager
+                   (fn [rtx] (halt-fn rtx a b c d e f))
+                   cb)
+   nil)
+  ([graph-manager cb halt-fn a b c d e f g]
+   (h-cb/first-run graph-manager
+                   (fn [rtx] (halt-fn rtx a b c d e f g))
+                   cb)
+   nil))
 
 (defn apply-commands
   "Issue a list of selector-command pairs to a graph. Selector-command-pairs

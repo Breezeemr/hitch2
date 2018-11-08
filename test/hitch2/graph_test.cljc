@@ -182,6 +182,22 @@
       (h/apply-commands g [[mvsel [:set-value 2]]])
 
       (is (= @results [0 1])
-        (str gname "Hook-change's cb should not be called after unhook"))))
-  )
+          (str gname "Hook-change's cb should not be called after unhook"))))
+
+  (deftest hook-callback-test-immediate-resolution
+    (let [g       (gctor)
+          results (volatile! [])
+          cb-sel  (mutable-var :callback-sel)
+          _       (pin g cb-sel)
+          unhook  (h/hitch-callback g
+                                    #(vswap! results conj %)
+                                    (fn [rtx] @(h/select-sel! rtx cb-sel)))]
+
+      (is (= @results [])
+          (str gname "Hook-callback's cb should see initial resolved value"))
+
+      (h/apply-commands g [[cb-sel [:set-value 1]]])
+
+      (is (= @results [1])
+          (str gname "Hook-callback's cb should see changed value")))))
 
