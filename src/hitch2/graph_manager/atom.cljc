@@ -168,7 +168,7 @@
                 (not-empty added-deps)
                 (assoc
                   :waiting
-                  added-deps)))
+                  (into #{} (remove (:graph-value graph-manager-value)) deps))))
       value-changed?
       (assoc-in
         [:graph-value selector]
