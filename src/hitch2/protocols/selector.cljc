@@ -78,7 +78,7 @@ Should be a keyword for dispatching. Values are from:
 (extend-protocol SelectorName
   #?(:clj Object
      :cljs default)
-  (-sname [imp] nil)
+  (-sname [imp] nil))
 
 (defn get-machine [impl sel]
   (if-some [f (:hitch.selector.impl/get-machine impl)]
