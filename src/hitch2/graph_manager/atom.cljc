@@ -497,32 +497,32 @@
 
 (defn finalize-effects
   [graph-manager-value disturbed-machines  sync-effects-atom async-effects-atom]
-  (let [graph-value         (get-graph-value graph-manager-value)
-        new-node-state      (reduce
-                              (fn [node-state selector]
-                                (let [old-state (get node-state selector)
-                                      {:keys [sync-effects async-effects]
-                                       :as new-state} (finalize-tx
-                                                  old-state
-                                                  graph-value
-                                                  graph-manager-value
-                                                  selector)]
-                                  (assert-valid-finalized-node-state new-state)
-                                  (when (not-empty sync-effects)
-                                    (vswap! sync-effects-atom into! sync-effects))
-                                  (when (not-empty async-effects)
-                                    (vswap! async-effects-atom into! async-effects))
-                                  (assoc
-                                    node-state
-                                    selector
-                                    (cond-> new-state
-                                      (not-empty sync-effects)
-                                      (assoc :sync-effects [])
-                                      (not-empty async-effects)
-                                      (assoc :async-effects [])))))
-                              (:node-state graph-manager-value)
-                              disturbed-machines)]
-    (assoc graph-manager-value :node-state new-node-state)))
+  (let [graph-value         (get-graph-value graph-manager-value)]
+    (reduce
+      (fn [{:keys [node-state] :as graph-manager-value} selector]
+        (let [old-state (get node-state selector)
+              {:keys [sync-effects async-effects]
+               :as new-state} (finalize-tx
+                                old-state
+                                graph-value
+                                graph-manager-value
+                                selector)]
+          (assert-valid-finalized-node-state new-state)
+          (when (not-empty sync-effects)
+            (vswap! sync-effects-atom into! sync-effects))
+          (when (not-empty async-effects)
+            (vswap! async-effects-atom into! async-effects))
+          (assoc-in
+            graph-manager-value
+            [:node-state
+             selector]
+            (cond-> new-state
+              (not-empty sync-effects)
+              (assoc :sync-effects [])
+              (not-empty async-effects)
+              (assoc :async-effects [])))))
+      graph-manager-value
+      disturbed-machines)))
 
 (defn apply-effects
   [graph-manager sync-effects async-effects]
