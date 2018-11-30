@@ -8,6 +8,47 @@
              [hitch2.tx-manager.halting :as halting-tx]
              [hitch2.halt :as halt]))
 
+(defprotocol Editable?
+  (editable? [_]))
+(extend-protocol Editable?
+  cljs.core/TransientHashSet
+  (editable? [thing] (editable? (.-transient_map thing)))
+  
+  cljs.core/TransientArrayMap
+  (editable? [thing] (.-editable? thing))
+  
+  cljs.core/TransientHashMap
+  (editable? [thing] (.-edit thing)))
+
+(defn assert-transient-state [state tag]
+  (when (and (:batch state)
+             (:unsub-batch state))
+    (assert (= (type (:batch state)) cljs.core/TransientHashSet)
+            (str "bad batch type: " (pr-str (:batch state))
+                 tag))
+    (assert (editable? (:batch state))
+            (str "bad batch editable: " (pr-str (:batch state))
+                 tag))
+    (assert (= (type (:unsub-batch state)) cljs.core/TransientHashSet)
+            (str "bad unsub batch type" (pr-str (:unsub-batch state))
+                 tag))
+    (assert (editable? (:unsub-batch state))
+            (str "bad unsub batch editable" (pr-str (:unsub-batch state))
+                 tag)))
+  state)
+
+(defn assert-transient [node tag]
+  (let [state (:state node)]
+    (assert-transient-state state tag))
+  node)
+
+(defn assert-transient-gmv [gmv tag]
+  (let [node-state (:node-state gmv)]
+    (reduce-kv (fn [_ k v] (assert-transient v tag))
+               nil
+               node-state))
+  gmv)
+
 
 (defrecord GraphManagerValue [graph-value
                               node-state
@@ -244,32 +285,36 @@
 
 (defn propagate-node-changes [worklist-atom dirty-machines]
   (fn [graph-manager-value selector]
+    (assert-transient-gmv graph-manager-value :top-propagate-node-changes)
     (let [sel-impl (get-impl graph-manager-value selector)
           sel-kind (selector-proto/-imp-kind sel-impl)
           node-state (get-node-state graph-manager-value selector)]
       (case sel-kind
         :hitch.selector.kind/machine
-        (let [{:keys [change-focus set-projections]}
-              node-state]
-          (s/assert ::machine-proto/curator-state node-state)
-          (when (not-empty set-projections)
-            (add-to-working-set worklist-atom selector))
-          (when *trace* (record! [:node-changes :machine (selector-proto/-sname sel-impl)
-                                  selector
-                                  node-state]))
-          (cond-> graph-manager-value
-            (not-empty change-focus)
-            (->
+        (assert-transient-gmv
+         (let [{:keys [change-focus set-projections]}
+               node-state]
+           (s/assert ::machine-proto/curator-state node-state)
+           (assert-transient-state node-state :top-propagate-node-changes)
+           (when (not-empty set-projections)
+             (add-to-working-set worklist-atom selector))
+           (when *trace* (record! [:node-changes :machine (selector-proto/-sname sel-impl)
+                                   selector
+                                   node-state]))
+           (cond-> (assert-transient-gmv graph-manager-value :propagating-node-changes)
+             (not-empty change-focus)
+             (->
               (update-in [:node-state selector]
-                assoc
-                :change-focus {})
+                         assoc
+                         :change-focus {})
               (propagate-dependency-changes selector change-focus worklist-atom dirty-machines))
-            (not-empty set-projections)
-            (->
+             (not-empty set-projections)
+             (->
               (update-in [:node-state selector]
-                assoc
-                :set-projections {})
+                         assoc
+                         :set-projections {})
               (propagate-set-projections set-projections worklist-atom))))
+         (str selector))
         :hitch.selector.kind/var
         (let [{:keys [value-changed?]}
               node-state]
@@ -327,13 +372,16 @@
     dirty-machines-snapshot))
 
 (defn propagate-changes [graph-manager-value work-list dirty-machines ^long recursion-limit]
+  (assert-transient-gmv graph-manager-value :incoming-top-propagate-changes)
   (let [new-work-list-atom (volatile! (transient #{}))
-        graph-manager-value (reduce
-                                  (propagate-node-changes
-                                    new-work-list-atom
-                                    dirty-machines)
-                                  graph-manager-value
-                                  work-list)]
+        graph-manager-value (assert-transient-gmv
+                             (reduce
+                              (propagate-node-changes
+                               new-work-list-atom
+                               dirty-machines)
+                              graph-manager-value
+                              work-list)
+                             :during-propagate)]
     (assert (not (zero? recursion-limit)))
     (if-some [new-work-list (not-empty (persistent! @new-work-list-atom))]
       (recur graph-manager-value new-work-list dirty-machines (dec recursion-limit))
@@ -455,9 +503,11 @@
 (defn propagate-dependency-changes [graph-manager-value child changes worklist-atom dirty-machines]
   (let []
     (apply-child-change-commands
+     (assert-transient-gmv
       (-> graph-manager-value
-          (update :observed-by update-observed-by child changes)
-          (update :observes update-observes child changes))
+           (update :observed-by update-observed-by child changes)
+           (update :observes update-observes child changes))
+      :apply-child-change-commands)
       child
       changes
       worklist-atom
@@ -544,14 +594,21 @@
   (let [sel-impl   (get-impl graph-manager-value selector)
         sel-kind   (selector-proto/-imp-kind sel-impl)
         node-state (get-node-state graph-manager-value selector)]
+    (assert-transient-state node-state :top_-apply-command)
     (case sel-kind
       :hitch.selector.kind/machine
       (let [graph-value        (get-graph-value graph-manager-value)]
         (assoc-in graph-manager-value [:node-state selector]
           (if-some [apply-command (::machine-proto/apply-command sel-impl)]
-            (apply-command selector graph-value
-              (ensure-inits node-state graph-manager-value selector disturbed-machines)
-              command)
+            (assert-transient 
+             (let [node (apply-command selector graph-value
+                                       (assert-transient-state
+                                        (ensure-inits node-state graph-manager-value selector disturbed-machines)
+                                        (str :ensuring-initted-for command))
+                                       command)]
+               (prn "returned from applying-command in machine. now validate")
+               node)
+             (str :apply-command-to-machine command))
             (assert false))))
       :hitch.selector.kind/var
       (-apply-command graph-manager-value (selector-proto/get-machine sel-impl selector)
@@ -561,8 +618,10 @@
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
   [graph-manager-value selector command sync-effects-atom async-effects-atom]
+  (assert-transient-gmv graph-manager-value :beginning-of-apply-command)
   (let [disturbed-machines (volatile! (transient #{}))
         graph-manager-value (-apply-command graph-manager-value selector command disturbed-machines)
+        graph-manager-value (assert-transient-gmv graph-manager-value :after--apply-command)
         disturbed-machines-snapshot (persistent! @disturbed-machines)
         _  (vreset! disturbed-machines (transient disturbed-machines-snapshot))
         graph-manager-value (propagate-changes graph-manager-value
@@ -578,18 +637,23 @@
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
   [graph-manager-value cmds sync-effects-atom async-effects-atom]
+  (prn "applying commands: " cmds)
   (let [disturbed-machines (volatile! (transient #{}))
         graph-manager-value
-                           (reduce
-                             (fn [gmv [selector command]]
-                               (-apply-command gmv selector command disturbed-machines))
-                             graph-manager-value
-                             cmds)
+        (assert-transient-gmv
+         (reduce
+          (fn [gmv [selector command]]
+            (-apply-command gmv selector command disturbed-machines))
+          graph-manager-value
+          cmds)
+         :applied-commands)
         disturbed-machines-snapshot (persistent! @disturbed-machines)
         _ (vreset! disturbed-machines (transient disturbed-machines-snapshot))
-        graph-manager-value (propagate-changes graph-manager-value
-                              disturbed-machines-snapshot disturbed-machines
-                              recursion-limit)]
+        graph-manager-value (assert-transient-gmv
+                             (propagate-changes graph-manager-value
+                                                disturbed-machines-snapshot disturbed-machines
+                                                recursion-limit)
+                             :after-propagate-changes)]
     (finalize-effects graph-manager-value
       (persistent! @disturbed-machines)
       sync-effects-atom async-effects-atom)
@@ -612,6 +676,8 @@
   (-transact! [graph-manager machine command]
     (let [sync-effects-atom (volatile! (transient []))
           async-effects-atom (volatile! (transient []))]
+      (prn "transacting -transact" command)
+      (assert-transient-gmv @state :beginning-of-transact)
       (swap! state apply-command machine command sync-effects-atom async-effects-atom)
       (apply-effects graph-manager
         (persistent! @sync-effects-atom)
@@ -620,6 +686,8 @@
   (-transact-commands! [graph-manager cmds]
     (let [sync-effects-atom (volatile! (transient []))
           async-effects-atom (volatile! (transient []))]
+      (prn "transacting -commands! " cmds)
+      (assert-transient-gmv @state :beginning-of-transact)
       (swap! state apply-commands cmds sync-effects-atom async-effects-atom)
       (apply-effects graph-manager
         (persistent! @sync-effects-atom)
