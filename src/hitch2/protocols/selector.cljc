@@ -246,12 +246,90 @@ Should be a keyword for dispatching. Values are from:
                      1 b
                      2 c
                      (throw (ex-info "Index out of bounds"
-                                     {:selector :selector0
-                                      :index    i}))))
+                              {:selector :selector0
+                               :index    i}))))
        (-nth [_ i not-found] (case i
                                0 a
                                1 b
                                2 c
+                               not-found))]))
+
+(defrecord Selector4 [impl a b c d]
+  SelectorName
+  (-sname [_] impl)
+  InvokeHalting
+  (-invoke-halting [_ f gv-tracker]
+    (f gv-tracker a b c))
+  #?@(:clj
+      [clojure.lang.Indexed
+       (nth [_ i] (case i
+                    0 a
+                    1 b
+                    2 c
+                    3 d
+                    (throw (IndexOutOfBoundsException. "Selector0 has no arguments."))))
+       (nth [_ i not-found] (case i
+                              0 a
+                              1 b
+                              2 c
+                              3 d
+                              not-found))]
+      :cljs
+      [IIndexed
+       (-nth [_ i] (case i
+                     0 a
+                     1 b
+                     2 c
+                     4 d
+                     (throw (ex-info "Index out of bounds"
+                              {:selector :selector0
+                               :index    i}))))
+       (-nth [_ i not-found] (case i
+                               0 a
+                               1 b
+                               2 c
+                               3 d
+                               not-found))]))
+
+(defrecord Selector5 [impl a b c d e]
+  SelectorName
+  (-sname [_] impl)
+  InvokeHalting
+  (-invoke-halting [_ f gv-tracker]
+    (f gv-tracker a b c))
+  #?@(:clj
+      [clojure.lang.Indexed
+       (nth [_ i] (case i
+                    0 a
+                    1 b
+                    2 c
+                    3 d
+                    4 e
+                    (throw (IndexOutOfBoundsException. "Selector0 has no arguments."))))
+       (nth [_ i not-found] (case i
+                              0 a
+                              1 b
+                              2 c
+                              3 d
+                              4 e
+                              not-found))]
+      :cljs
+      [IIndexed
+       (-nth [_ i] (case i
+                     0 a
+                     1 b
+                     2 c
+                     3 d
+                     4 e
+                     (throw (ex-info "Index out of bounds"
+                              {:selector :selector0
+                               :index    i}))))
+       (-nth [_ i not-found] (case i
+                               0 a
+                               1 b
+                               2 c
+                               3 d
+                               4 e
                                not-found))]))
 
 
@@ -344,7 +422,34 @@ Should be a keyword for dispatching. Values are from:
        {:hitch.selector/name (:hitch.selector/name selector-spec)
         a-key                a
         b-key                b
-        c-key                c}))))
+        c-key                c})))
+  ([selector-spec a b c d]
+   (case (:hitch.selector.spec/canonical-form selector-spec)
+     :hitch.selector.spec.canonical-form/positional
+     (->Selector3 (:hitch.selector/name selector-spec)  a b c)
+     :hitch.selector.spec.canonical-form/map
+     (let [params              (:hitch.selector.spec/positional-params selector-spec)
+           _                   (assert (= 3 (count params)))
+           [a-key b-key c-key d-key] params]
+       {:hitch.selector/name (:hitch.selector/name selector-spec)
+        a-key                a
+        b-key                b
+        c-key                c
+        d-key                d})))
+  ([selector-spec a b c d e]
+   (case (:hitch.selector.spec/canonical-form selector-spec)
+     :hitch.selector.spec.canonical-form/positional
+     (->Selector3 (:hitch.selector/name selector-spec)  a b c)
+     :hitch.selector.spec.canonical-form/map
+     (let [params              (:hitch.selector.spec/positional-params selector-spec)
+           _                   (assert (= 3 (count params)))
+           [a-key b-key c-key d-key e-key] params]
+       {:hitch.selector/name (:hitch.selector/name selector-spec)
+        a-key                a
+        b-key                b
+        c-key                c
+        d-key                d
+        e-key                e}))))
 
 (defn tyler-map->sel [selector-spec data]
   (case (:hitch.selector.spec/canonical-form selector-spec)
@@ -357,7 +462,11 @@ Should be a keyword for dispatching. Values are from:
         2 (let [[a b] positional-params]
             (->Selector2 (:hitch.selector/name selector-spec) (a data) (b data)))
         3 (let [[a b c] positional-params]
-            (->Selector3 (:hitch.selector/name selector-spec) (a data) (b data) (c data)))))
+            (->Selector3 (:hitch.selector/name selector-spec) (a data) (b data) (c data)))
+        4 (let [[a b c d] positional-params]
+            (->Selector4 (:hitch.selector/name selector-spec) (a data) (b data) (c data) (d data)))
+        5 (let [[a b c d e] positional-params]
+            (->Selector5 (:hitch.selector/name selector-spec) (a data) (b data) (c data) (d data)  (e data)))))
     :hitch.selector.spec.canonical-form/map
     (assoc data :hitch.selector/name (:hitch.selector/name selector-spec))))
 
