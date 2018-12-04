@@ -14,8 +14,7 @@
                               node-state
                               observes
                               observed-by
-                              resolver
-                              scheduler])
+                              resolver])
 (defrecord deriving-state [change-focus waiting value-changed?])
 (defrecord var-state [value-changed?])
 
@@ -528,9 +527,9 @@
 
 (defn apply-effects
   [graph-manager sync-effects async-effects]
-  (let [scheduler (:scheduler graph-manager)]
-    (graph-proto/-run-sync scheduler graph-manager sync-effects)
-    (graph-proto/-run-async scheduler graph-manager sync-effects)))
+  (let [scheduler (.-scheduler graph-manager)]
+    (g/-run-sync scheduler graph-manager sync-effects)
+    (g/-run-async scheduler graph-manager async-effects)))
 
 (s/fdef apply-command
   :args (s/cat
@@ -607,7 +606,8 @@
       :hitch.selector.kind/var
       (selector-proto/get-machine sel-impl selector))))
 
-(deftype gm [state]
+
+(deftype gm [state scheduler]
   g/Snapshot
   (-get-graph [graph-manager]
     (:graph-value @state))
@@ -654,7 +654,7 @@
                 {}
                 {}
                 {}
-                resolver
-                scheduler)))))
+                resolver))
+         scheduler)))
 
 

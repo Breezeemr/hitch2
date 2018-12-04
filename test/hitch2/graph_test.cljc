@@ -4,13 +4,13 @@
     [hitch2.curator.mutable-var :refer  [mutable-var]]
     [hitch2.graph :as h :refer [pin unpin]]
     [hitch2.graph-manager.atom :as atom-gm]
-    [hitch2.test-common :refer [Constant]]
+    [hitch2.test-common :refer [Constant]
+     :as common]
     [hitch2.selector-impl-registry :as reg
      :refer [registry-resolver]]))
 
-
 (def gctors
-  [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver))]])
+  [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver common/sync-scheduler))]])
 
 (def mvsel (mutable-var :mvsel))
 

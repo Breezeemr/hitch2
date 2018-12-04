@@ -2,6 +2,7 @@
   #?(:clj (:import (java.io Writer)))
   (:require [hitch2.protocols.selector :as selector-proto
              :refer [def-selector-spec]]
+            [hitch2.protocols.graph-manager :as g]
             [hitch2.selector-impl-registry :as reg]))
 
 (defn return-constant [gv-tracker v]
@@ -25,6 +26,18 @@
 (reg/def-registered-selector constant-spec' constant-spec constant-impl)
 (defn Constant [v]
   (selector-proto/sel constant-spec' v))
+
+(def sync-scheduler
+  #?(:clj (reify g/IScheduler
+            (-run-sync [_ gm effects]
+              (run! (fn [effect] (g/run-effect gm effect)) effects))
+            (-run-async [_ gm effects]
+              (run! (fn [effect] (g/run-effect gm effect)) effects)))
+     :cljs (reify g/IScheduler
+             (-run-sync [_ gm effects]
+               (run! (fn [effect] (g/run-effect gm effect)) effects))
+             (-run-async [_ gm effects]
+               (run! (fn [effect] (g/run-effect gm effect)) effects)))))
 
 ;(defrecord Variable [name]
 ;  hitch2.protocols.selector/Selector

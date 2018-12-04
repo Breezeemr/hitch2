@@ -8,6 +8,7 @@
     [hitch2.protocols.selector :as sel-proto]
     [hitch2.selector-impl-registry :as reg
      :refer [registry-resolver]]
+    [hitch2.test-common :as common]
     #?(:cljs [cljs.test :refer-macros [deftest is testing]]
        :clj  [clojure.test :refer [deftest is testing]])))
 
@@ -24,7 +25,7 @@
                                node)})
 
 (deftest atom-tests
-  (let [graph-manager (g/make-gm registry-resolver)
+  (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
         test-atom (atom nil)]
     ;needs to be async
     (hitch/hook-sel graph-manager (fn [val]
