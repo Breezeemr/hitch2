@@ -55,3 +55,7 @@
 
 (defmulti run-effect (fn [graph-manager effect] (:type effect)))
 
+(defprotocol IScheduler
+  (-run-sync [this gmv effects])
+  (-run-async [this gmv effects]))
+

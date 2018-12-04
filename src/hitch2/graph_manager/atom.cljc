@@ -6,14 +6,16 @@
              [hitch2.protocols.selector :as selector-proto]
              [hitch2.protocols.tx-manager :as tx-manager-proto]
              [hitch2.tx-manager.halting :as halting-tx]
-             [hitch2.halt :as halt]))
+             [hitch2.halt :as halt])
+  #?(:cljs (:import goog.async.run)))
 
 
 (defrecord GraphManagerValue [graph-value
                               node-state
                               observes
                               observed-by
-                              resolver])
+                              resolver
+                              scheduler])
 (defrecord deriving-state [change-focus waiting value-changed?])
 (defrecord var-state [value-changed?])
 
@@ -630,12 +632,28 @@
   (-transact-commands-async! [graph-manager cmds])
   )
 
-(defn make-gm [resolver]
-  (->gm (atom (->GraphManagerValue
+(def default-scheduler
+  #?(:clj (reify g/IScheduler
+            (-run-sync [_ gm effects]
+              (run! (fn [effect] (g/run-effect gm effect)) effects))
+            (-run-async [_ gm effects]
+              (run! (fn [effect] (g/run-effect gm effect)) effects)))
+     :cljs (reify g/IScheduler
+             (-run-sync [_ gm effects]
+               (run! (fn [effect] (g/run-effect gm effect)) effects))
+             (-run-async [_ gm effects]
+               (goog.async.run (fn []
+                                 (run! (fn [effect] (g/run-effect gm effect)) effects)))))))
+
+(defn make-gm
+  ([resolver] (make-gm resolver default-scheduler))
+  ([resolver scheduler]
+   (->gm (atom (->GraphManagerValue
                 {}
                 {}
                 {}
                 {}
-                resolver))))
+                resolver
+                scheduler)))))
 
 
