@@ -51,7 +51,8 @@
       (get-selector-impl sname)
       (throw (ex-info (str "Could not find implementation in selector registry " sname)
                {::ca/category  ::ca/not-found
-                :selector-name sname})))))
+                :selector-name sname
+                :selector      selector})))))
 
 #?(:cljs nil
    :clj
