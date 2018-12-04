@@ -528,8 +528,9 @@
 
 (defn apply-effects
   [graph-manager sync-effects async-effects]
-  (run! (fn [effect] (g/run-effect graph-manager effect)) sync-effects)
-  (run! (fn [effect] (g/run-effect graph-manager effect)) async-effects))
+  (let [scheduler (:scheduler graph-manager)]
+    (graph-proto/-run-sync scheduler graph-manager sync-effects)
+    (graph-proto/-run-async scheduler graph-manager sync-effects)))
 
 (s/fdef apply-command
   :args (s/cat
