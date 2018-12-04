@@ -247,3 +247,5 @@
        halt/halt-box
        (halt/select-box v)))))
 
+(defn snapshot [graph]
+  (graph-proto/-get-graph graph))
