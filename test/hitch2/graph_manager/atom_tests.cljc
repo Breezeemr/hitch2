@@ -6,9 +6,11 @@
     [hitch2.protocols.graph-manager :as gm-proto]
     [hitch2.protocols.curator :as machine-proto]
     [hitch2.protocols.selector :as sel-proto]
+    [hitch2.selector :as sel]
     [hitch2.selector-impl-registry :as reg
      :refer [registry-resolver]]
     [hitch2.test-common :as common]
+    [hitch2.graph-manager.debug :as debug]
     #?(:cljs [cljs.test :refer-macros [deftest is testing]]
        :clj  [clojure.test :refer [deftest is testing]])))
 
@@ -36,4 +38,23 @@
     (is (= @test-atom 5))
     ;; what goes here?
     #_(gm-proto/-transact! graph-manager hook/hook-machine
-                         [:hook-subscribe ])))
+                           [:hook-subscribe ])))
+
+(declare fibb-graph)
+
+(sel/defselector fibb-graph [G n]
+  (cond (= n 0) 0
+        (= n 1) 1
+        :else
+        (let [n-1 (hitch/select! G fibb-graph (dec n))
+              n-2 (hitch/select! G fibb-graph (dec (dec n)))]
+          (+ @n-1 @n-2))))
+
+(deftest instrument-tests
+  (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
+        test-atom (atom nil)
+        fibber (fn [n] (sel-proto/sel fibb-graph n))]
+                                        ;needs to be async
+    (hitch/pin graph-manager (fibber 30))
+    (is (= #{(fibber 29) (fibber 28)}
+           (gm-proto/-observes graph-manager (fibber 30))))))

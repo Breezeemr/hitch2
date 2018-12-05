@@ -59,3 +59,10 @@
   (-run-sync [this gmv effects])
   (-run-async [this gmv effects]))
 
+(defprotocol Resolver
+  (-get-resolver [gm]))
+
+(defprotocol Inspect
+  (-observed-by [gm selector])
+  (-observes [gm selector]))
+

@@ -1,7 +1,7 @@
 (ns hitch2.graph-manager.atom
   (:require  [clojure.spec.alpha :as s]
              [hitch2.protocols.graph-manager :as g]
-             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
+             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
              [hitch2.protocols.curator :as machine-proto]
              [hitch2.protocols.selector :as selector-proto]
              [hitch2.protocols.tx-manager :as tx-manager-proto]
@@ -631,6 +631,13 @@
   g/GraphManagerAsync
   (-transact-async! [graph-manager v command])
   (-transact-commands-async! [graph-manager cmds])
+  g/Inspect
+  (-observed-by [gm selector]
+    (get-in @state [:observed-by selector] NOT-IN-GRAPH-SENTINEL))
+  (-observes [gm selector]
+    (get-in @state [:observes selector] NOT-IN-GRAPH-SENTINEL))
+  g/Resolver
+  (-get-resolver [gm] (:resolver @state))
   )
 
 (def default-scheduler
