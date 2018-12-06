@@ -11,7 +11,7 @@
      :refer [registry-resolver]]
     [hitch2.test-common :as common]
     [hitch2.graph-manager.debug :as debug]
-    #?(:cljs [cljs.test :refer-macros [deftest is testing]]
+    #?(:cljs [cljs.test :refer-macros [deftest is testing async]]
        :clj  [clojure.test :refer [deftest is testing]])))
 
 (def initial-node (assoc machine-proto/initial-curator-state :state {}))
@@ -58,3 +58,25 @@
     (hitch/pin graph-manager (fibber 30))
     (is (= #{(fibber 29) (fibber 28)}
            (gm-proto/-observes graph-manager (fibber 30))))))
+
+(deftest redepend-on-selector-bug
+  (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
+        test-atom (atom nil)
+        fibber (fn [n] (sel-proto/sel fibb-graph n))]
+                                        ;needs to be async
+    (hitch/pin graph-manager (fibber 6))
+    (hitch/unpin graph-manager (fibber 6))
+    #?(:cljs (async done
+                    (let [failure (js/setTimeout (fn [] (is false) (done)) 500)]
+                      (hitch/hook-sel graph-manager
+                                      (fn [fib-result]
+                                        (js/clearTimeout failure)
+                                        (is (= fib-result 8))
+                                        (done))
+                                      (fibber 6))))
+       :clj (let [result (promise )]
+              (hitch/hook-sel graph-manager
+                              (fn [fib-result]
+                                (deliver result fib-result))
+                              (fibber 6))
+              (is (= 6 (deref result 500 :failure)))))))
