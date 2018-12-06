@@ -426,10 +426,10 @@ Should be a keyword for dispatching. Values are from:
   ([selector-spec a b c d]
    (case (:hitch.selector.spec/canonical-form selector-spec)
      :hitch.selector.spec.canonical-form/positional
-     (->Selector3 (:hitch.selector/name selector-spec)  a b c)
+     (->Selector4 (:hitch.selector/name selector-spec)  a b c d)
      :hitch.selector.spec.canonical-form/map
      (let [params              (:hitch.selector.spec/positional-params selector-spec)
-           _                   (assert (= 3 (count params)))
+           _                   (assert (= 4 (count params)))
            [a-key b-key c-key d-key] params]
        {:hitch.selector/name (:hitch.selector/name selector-spec)
         a-key                a
@@ -439,10 +439,10 @@ Should be a keyword for dispatching. Values are from:
   ([selector-spec a b c d e]
    (case (:hitch.selector.spec/canonical-form selector-spec)
      :hitch.selector.spec.canonical-form/positional
-     (->Selector3 (:hitch.selector/name selector-spec)  a b c)
+     (->Selector5 (:hitch.selector/name selector-spec)  a b c d e)
      :hitch.selector.spec.canonical-form/map
      (let [params              (:hitch.selector.spec/positional-params selector-spec)
-           _                   (assert (= 3 (count params)))
+           _                   (assert (= 5 (count params)))
            [a-key b-key c-key d-key e-key] params]
        {:hitch.selector/name (:hitch.selector/name selector-spec)
         a-key                a
