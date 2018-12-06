@@ -183,11 +183,12 @@
     (assoc x k (conj a v))
     (assoc x k (conj #{} v))))
 
-(defn removeval [x k v]
+(defn removeval [x toremove k v]
   (if-some [a (get x k)]
     (if-some [nv (not-empty (disj a v))]
       (assoc x k nv)
-      (dissoc x k))
+      (do (conj! toremove k)
+        (dissoc x k)))
     x))
 
 (defn propagate-value-changes [graph-manager-value parent worklist-atom dirty-machines]
@@ -434,35 +435,59 @@
     graph-manager-value
     changes))
 
-(defn update-observed-by [observed-by child changes]
+(defn update-observed-by [observed-by toremove child changes]
   (reduce-kv
     (fn [acc parent add|remove]
       (if add|remove
         (addval acc parent child)
-        (removeval acc parent child)))
+        (removeval acc toremove parent child)))
     observed-by
     changes))
 
-(defn update-observes [observes child changes]
+(defn update-observes [observes toremove child changes]
   (reduce-kv
     (fn [acc parent add|remove]
       (if add|remove
         (addval acc child parent)
-        (removeval acc child parent)))
+        (removeval acc toremove child parent)))
     observes
     changes)
   )
+(defn sel-type-extractor [{:keys [resolver] :as graph-manager-value}]
+  (fn [selector]
+    (-> selector
+        resolver
+        selector-proto/-imp-kind )))
+
+(defn clean-up-nodes [graph-manager-value selectors]
+  (let [node-state       (:node-state graph-manager-value)
+        get-type (sel-type-extractor graph-manager-value)]
+    (assoc graph-manager-value
+      :node-state
+      (transduce
+        (remove (comp
+                  #{:hitch.selector.kind/machine}
+                  get-type
+                  ))
+        dissoc
+        node-state
+        selectors))))
 
 (defn propagate-dependency-changes [graph-manager-value child changes worklist-atom dirty-machines]
-  (let []
-    (apply-child-change-commands
-      (-> graph-manager-value
-          (update :observed-by update-observed-by child changes)
-          (update :observes update-observes child changes))
-      child
-      changes
-      worklist-atom
-      dirty-machines)))
+  (let [toremove (transient #{})
+        new-graph-manager-value
+                 (apply-child-change-commands
+                   (-> graph-manager-value
+                       (update :observed-by update-observed-by toremove child changes)
+                       (update :observes update-observes toremove child changes))
+                   child
+                   changes
+                   worklist-atom
+                   dirty-machines)
+        toremove (persistent! toremove)]
+    (clean-up-nodes
+      new-graph-manager-value toremove)
+    ))
 
 (s/fdef -apply-command
   :args (s/cat
