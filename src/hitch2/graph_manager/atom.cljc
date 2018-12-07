@@ -511,9 +511,9 @@
     (finalize selector graph-value node-state)
     node-state))
 
-(defn assert-valid-finalized-node-state [{:keys [change-focus set-projections]}]
-  (assert (empty? change-focus))
-  (assert (empty? set-projections)))
+(defn assert-valid-finalized-node-state [{:keys [change-focus set-projections]} selector-name]
+  (assert (empty? change-focus) selector-name)
+  (assert (empty? set-projections) selector-name))
 
 (defn into! [target source]
   (reduce
@@ -533,7 +533,7 @@
                                 graph-value
                                 graph-manager-value
                                 selector)]
-          (assert-valid-finalized-node-state new-state)
+          (assert-valid-finalized-node-state new-state (selector-proto/selector-name selector))
           (when (not-empty sync-effects)
             (vswap! sync-effects-atom into! sync-effects))
           (when (not-empty async-effects)
