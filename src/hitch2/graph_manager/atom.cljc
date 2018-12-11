@@ -183,14 +183,6 @@
     (assoc x k (conj a v))
     (assoc x k (conj #{} v))))
 
-(defn removeval-recording-collapse [x toremove k v]
-  (if-some [a (get x k)]
-    (if-some [nv (not-empty (disj a v))]
-      (assoc x k nv)
-      (do (conj! toremove k)
-        (dissoc x k)))
-    x))
-
 (defn remove-val [x k v]
   (if-some [a (get x k)]
     (if-some [nv (not-empty (disj a v))]
@@ -383,13 +375,20 @@
             (when *trace*
               (record! [:child-change :machine
                         (selector-proto/-sname sel-impl)]))
-            (cond->
-              (assoc-in graph-manager-value
-                [:node-state parent]
-                (assoc new-node-state
-                  :change-focus {}))
-              (not-empty new-change-focus)
-              (propagate-dependency-changes  parent new-change-focus worklist-atom dirty-machines)))
+            (let [new-graph-manager-value
+                  (cond->
+                    (assoc-in graph-manager-value
+                      [:node-state parent]
+                      (assoc new-node-state
+                        :change-focus {}))
+                    (not-empty new-change-focus)
+                    (propagate-dependency-changes parent new-change-focus worklist-atom dirty-machines))]
+              (case added|removed
+                true new-graph-manager-value
+                false (-> ;deinit lifecycle
+                        (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by parent]))]
+                          new-graph-manager-value
+                          new-graph-manager-value)))))
           :hitch.selector.kind/var
           (let [machine (selector-proto/get-machine sel-impl parent)]
             (when *trace*
@@ -399,11 +398,13 @@
               true (if (get-in graph-manager-value [:observes parent machine])
                      graph-manager-value
                      (propagate-dependency-changes graph-manager-value parent {machine true} worklist-atom dirty-machines))
-              false (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by parent]))]
-                      graph-manager-value
-                      (-> graph-manager-value
-                          (update :graph-value dissoc parent)
-                          (propagate-dependency-changes parent {machine false} worklist-atom dirty-machines)))))
+              false (->                                     ;deinit
+                      (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by parent]))]
+                        graph-manager-value
+                        (-> graph-manager-value
+                            (update :graph-value dissoc parent)
+                            (propagate-dependency-changes parent {machine false} worklist-atom dirty-machines)))
+                      (update :node-state dissoc parent))))
           :hitch.selector.kind/halting
           (let [node-state (get-in graph-manager-value [:node-state parent] NOT-FOUND-SENTINEL)]
             (when *trace*
@@ -427,31 +428,33 @@
                      graph-manager-value)
               false (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by parent]))]
                       graph-manager-value
-                      (if-some [observes (not-empty (get-in graph-manager-value [:observes parent]))]
-                        (-> graph-manager-value
-                            (update :graph-value dissoc parent)
-                            (propagate-dependency-changes
-                              parent
-                              (into {}
-                                (map (fn [x]
-                                       [x false]))
-                                observes)
-                              worklist-atom
-                              dirty-machines))
-                        graph-manager-value)))))))
+                      (->                                   ;deinit
+                        (if-some [observes (not-empty (get-in graph-manager-value [:observes parent]))]
+                          (-> graph-manager-value
+                              (update :graph-value dissoc parent)
+                              (propagate-dependency-changes
+                                parent
+                                (into {}
+                                  (map (fn [x]
+                                         [x false]))
+                                  observes)
+                                worklist-atom
+                                dirty-machines))
+                          graph-manager-value)
+                        (update :node-state dissoc parent))))))))
     graph-manager-value
     changes))
 
-(defn update-observed-by [observed-by toremove selector changes]
+(defn update-observed-by [observed-by selector changes]
   (reduce-kv
     (fn [acc focus add|remove]
       (if add|remove
         (addval acc focus selector)
-        (removeval-recording-collapse acc toremove focus selector)))
+        (remove-val acc focus selector)))
     observed-by
     changes))
 
-(defn update-observes [observes toremove selector changes]
+(defn update-observes [observes selector changes]
   (reduce-kv
     (fn [acc focus add|remove]
       (if add|remove
@@ -466,33 +469,15 @@
         resolver
         selector-proto/-imp-kind )))
 
-(defn clean-up-nodes [graph-manager-value selectors]
-  (let [node-state       (:node-state graph-manager-value)
-        get-type (sel-type-extractor graph-manager-value)]
-    (assoc graph-manager-value
-      :node-state
-      (transduce
-        (remove (comp
-                  #{:hitch.selector.kind/machine}
-                  get-type
-                  ))
-        dissoc
-        node-state
-        selectors))))
-
 (defn propagate-dependency-changes [graph-manager-value selector changes worklist-atom dirty-machines]
-  (let [toremove (transient #{})
-        new-graph-manager-value
-                 (apply-child-change-commands
-                   (-> graph-manager-value
-                       (update :observed-by update-observed-by toremove selector changes)
-                       (update :observes update-observes toremove selector changes))
-                   selector
-                   changes
-                   worklist-atom
-                   dirty-machines)
-        toremove (persistent! toremove)]
-    (clean-up-nodes new-graph-manager-value toremove)))
+  (apply-child-change-commands
+    (-> graph-manager-value
+        (update :observed-by update-observed-by selector changes)
+        (update :observes update-observes selector changes))
+    selector
+    changes
+    worklist-atom
+    dirty-machines))
 
 (s/fdef -apply-command
   :args (s/cat
