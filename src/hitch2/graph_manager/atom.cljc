@@ -183,12 +183,19 @@
     (assoc x k (conj a v))
     (assoc x k (conj #{} v))))
 
-(defn removeval [x toremove k v]
+(defn removeval-recording-collapse [x toremove k v]
   (if-some [a (get x k)]
     (if-some [nv (not-empty (disj a v))]
       (assoc x k nv)
       (do (conj! toremove k)
         (dissoc x k)))
+    x))
+
+(defn remove-val [x k v]
+  (if-some [a (get x k)]
+    (if-some [nv (not-empty (disj a v))]
+      (assoc x k nv)
+      (dissoc x k))
     x))
 
 (defn propagate-value-changes [graph-manager-value parent worklist-atom dirty-machines]
@@ -435,21 +442,21 @@
     graph-manager-value
     changes))
 
-(defn update-observed-by [observed-by toremove child changes]
+(defn update-observed-by [observed-by toremove selector changes]
   (reduce-kv
-    (fn [acc parent add|remove]
+    (fn [acc focus add|remove]
       (if add|remove
-        (addval acc parent child)
-        (removeval acc toremove parent child)))
+        (addval acc focus selector)
+        (removeval-recording-collapse acc toremove focus selector)))
     observed-by
     changes))
 
-(defn update-observes [observes toremove child changes]
+(defn update-observes [observes toremove selector changes]
   (reduce-kv
-    (fn [acc parent add|remove]
+    (fn [acc focus add|remove]
       (if add|remove
-        (addval acc child parent)
-        (removeval acc toremove child parent)))
+        (addval acc selector focus)
+        (remove-val acc selector focus)))
     observes
     changes)
   )
@@ -473,21 +480,19 @@
         node-state
         selectors))))
 
-(defn propagate-dependency-changes [graph-manager-value child changes worklist-atom dirty-machines]
+(defn propagate-dependency-changes [graph-manager-value selector changes worklist-atom dirty-machines]
   (let [toremove (transient #{})
         new-graph-manager-value
                  (apply-child-change-commands
                    (-> graph-manager-value
-                       (update :observed-by update-observed-by toremove child changes)
-                       (update :observes update-observes toremove child changes))
-                   child
+                       (update :observed-by update-observed-by toremove selector changes)
+                       (update :observes update-observes toremove selector changes))
+                   selector
                    changes
                    worklist-atom
                    dirty-machines)
         toremove (persistent! toremove)]
-    (clean-up-nodes
-      new-graph-manager-value toremove)
-    ))
+    (clean-up-nodes new-graph-manager-value toremove)))
 
 (s/fdef -apply-command
   :args (s/cat
