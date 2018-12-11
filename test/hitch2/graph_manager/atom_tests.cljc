@@ -62,12 +62,13 @@
 (deftest redepend-on-selector-bug
   (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
         test-atom (atom nil)
-        fibber (fn [n] (sel-proto/sel fibb-graph n))]
+        fibber (fn [n] (sel-proto/sel fibb-graph n))
+        fib-sel   (fibber 2)]
                                         ;needs to be async
-    (hitch/pin graph-manager (fibber 6))
-    (hitch/unpin graph-manager (fibber 6))
+    (hitch/pin graph-manager fib-sel)
+    (hitch/unpin graph-manager fib-sel)
     #?(:cljs (async done
-                    (let [failure (js/setTimeout (fn [] (is false) (done)) 500)]
+                    (let [failure (js/setTimeout (fn [] (is false "test timeout") (done)) 500)]
                       (hitch/hook-sel graph-manager
                                       (fn [fib-result]
                                         (js/clearTimeout failure)
@@ -78,5 +79,5 @@
               (hitch/hook-sel graph-manager
                               (fn [fib-result]
                                 (deliver result fib-result))
-                              (fibber 6))
-              (is (= 6 (deref result 500 :failure)))))))
+                fib-sel)
+              (is (= 1 (deref result 500 :failure)))))))
