@@ -10,10 +10,9 @@
     (defselector TEST-SELECTOR [G A [B1 B2 :as B] {C1 :k :as C}]
       [A B C]))
   (testing "defselector eval-fn generation"
-    (is (= TEST-SELECTOR-eval-fn-source ()))
-    (is (= (TEST-SELECTOR-eval-fn nil {{1 :A [2] :B {:k 3} :C} :value}) [1 [2] {:k 3}])))
+    (is (= (TEST-SELECTOR-eval-fn nil {:value {:A 1 :B [2] :C {:k 3} } }) [1 [2] {:k 3}])))
   (testing "defselector record property names are correct"
-    (let [[a b c] (sel/sel TEST-SELECTOR 1 [2] {:k 3})]
+    (let [{{a :A b :B c :C} :value} (sel/sel TEST-SELECTOR 1 [2] {:k 3})]
       (is (= a 1))
       (is (= b [2]))
       (is (= c {:k 3})))))
