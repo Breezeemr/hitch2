@@ -10,7 +10,7 @@
 (def gctors
   [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver))]])
 
-#_(doseq [[graph-name gctor] gctors]
+(doseq [[graph-name gctor] gctors]
   (deftest simple-get-ok
     (let [graph (gctor)]
       (async done

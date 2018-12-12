@@ -60,7 +60,7 @@
     (is (= #{(fibber 29) (fibber 28)}
            (gm-proto/-observes graph-manager (fibber 30))))))
 
-#_(deftest redepend-on-selector-bug
+(deftest redepend-on-selector-bug
   (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
         test-atom (atom nil)
         fibber (fn [n] (sel/sel fibb-graph n))
