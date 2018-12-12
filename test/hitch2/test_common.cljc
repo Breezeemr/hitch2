@@ -6,7 +6,7 @@
             [hitch2.protocols.graph-manager :as g]
             [hitch2.selector-impl-registry :as reg]))
 
-(defn return-constant [gv-tracker v]
+(defn return-constant [gv-tracker {[v] :value}]
   v)
 (def-selector-spec constant-spec
   :not-machine
