@@ -382,7 +382,7 @@
                           new-graph-manager-value)))))
           :hitch.selector.kind/var
           (let [machine (selector-proto/get-machine sel-impl parent)]
-            (assert (sel/selector? machine))
+            (assert (sel/selector? machine) (pr-str parent))
             (when *trace*
               (record! [:child-change :var
                         (selector-proto/-sname sel-impl)]))
