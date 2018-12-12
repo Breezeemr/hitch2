@@ -23,7 +23,7 @@
 (defmethod graph-proto/run-effect ::request
   [gm {:keys [selector] :as effect}]
   (let [{:keys [url method serializer deserializer content headers withcreds]}
-        selector
+        (:value selector)
         cb  (fn [response]
               (graph-proto/-transact! gm selector [::value selector response]))
         xhr (XhrIo.)]
