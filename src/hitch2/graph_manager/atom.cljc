@@ -4,6 +4,7 @@
              [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
              [hitch2.protocols.curator :as machine-proto]
              [hitch2.protocols.selector :as selector-proto]
+             [hitch2.sel :as sel]
              [hitch2.protocols.tx-manager :as tx-manager-proto]
              [hitch2.tx-manager.halting :as halting-tx]
              [hitch2.halt :as halt])
@@ -381,6 +382,7 @@
                           new-graph-manager-value)))))
           :hitch.selector.kind/var
           (let [machine (selector-proto/get-machine sel-impl parent)]
+            (assert (sel/selector? machine))
             (when *trace*
               (record! [:child-change :var
                         (selector-proto/-sname sel-impl)]))
