@@ -6,7 +6,8 @@
     [hitch2.protocols.graph-manager :as gm-proto]
     [hitch2.protocols.curator :as machine-proto]
     [hitch2.protocols.selector :as sel-proto]
-    [hitch2.selector :as sel]
+    [hitch2.sel :as sel]
+    [hitch2.selector :refer [defselector]]
     [hitch2.selector-impl-registry :as reg
      :refer [registry-resolver]]
     [hitch2.test-common :as common]
@@ -42,7 +43,7 @@
 
 (declare fibb-graph)
 
-(sel/defselector fibb-graph [G n]
+(defselector fibb-graph [G n]
   (cond (= n 0) 0
         (= n 1) 1
         :else
@@ -53,16 +54,16 @@
 (deftest instrument-tests
   (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
         test-atom (atom nil)
-        fibber (fn [n] (sel-proto/sel fibb-graph n))]
+        fibber (fn [n] (sel/sel fibb-graph n))]
                                         ;needs to be async
     (hitch/pin graph-manager (fibber 30))
     (is (= #{(fibber 29) (fibber 28)}
            (gm-proto/-observes graph-manager (fibber 30))))))
 
-(deftest redepend-on-selector-bug
+#_(deftest redepend-on-selector-bug
   (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
         test-atom (atom nil)
-        fibber (fn [n] (sel-proto/sel fibb-graph n))
+        fibber (fn [n] (sel/sel fibb-graph n))
         fib-sel   (fibber 2)]
                                         ;needs to be async
     (hitch/pin graph-manager fib-sel)

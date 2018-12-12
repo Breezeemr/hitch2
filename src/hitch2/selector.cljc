@@ -32,6 +32,26 @@
                       :bad-param x}))))
     binding-form))
 
+(defn make-eval-arg-binding [x]
+  (assert (not= x '&)
+    "Variadic parameters are not allowed on defselector.")
+  (cond
+    (symbol? x) [x (keyword x)]
+    (and (map? x) (:as x)) [x (keyword (:as x) )]
+    (and (vector? x)
+      (>= (count x) 2)
+      (= (-> x pop peek) :as)) [x (keyword (peek x))]
+    :else
+    (throw (ex-info "Every parameter to defselector must have a name, either directly or with a top-level :as"
+             {:bad-param x})))
+  )
+(defn make-eval-binding-form [graph-symbol record-field-names ]
+  [graph-symbol
+   {(into {}
+      (map make-eval-arg-binding)
+      record-field-names)
+    :value}])
+
 (defn tylers-def-selector [name constructor-binding-forms body]
   (let [record-field-names (param-names (rest constructor-binding-forms))
         eval-fn-name       (symbol (str name "-eval-fn"))
@@ -43,10 +63,12 @@
          ~spec
          :not-machine
          :hitch.selector.spec/canonical-form
-         :hitch.selector.spec.canonical-form/positional
+         :hitch.selector.spec.canonical-form/map
          :hitch.selector.spec/positional-params
          ~(mapv #(keyword (namespace %) (clojure.core/name %)) record-field-names))
-       (defn ~eval-fn-name ~constructor-binding-forms ~@body)
+       (defn ~eval-fn-name ~(make-eval-binding-form (first constructor-binding-forms) record-field-names) ~@body)
+       (def ~(symbol (str name "-eval-fn-source")) ~(quote [(make-eval-binding-form (first constructor-binding-forms) record-field-names)
+                                                            body]))
        ;; This is Francis' selector. Halting fn signature is different:
        ;; (fn [dt MAP-LIKE-SELECTOR-WITH-NON-POS-ENTRIES pos1 pos2 ...] ...)
        ;; For now we just ignore the second arg

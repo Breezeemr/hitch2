@@ -1,7 +1,8 @@
 (ns hitch2.test-common
   #?(:clj (:import (java.io Writer)))
-  (:require [hitch2.protocols.selector :as selector-proto
+  (:require [hitch2.protocols.selector
              :refer [def-selector-spec]]
+            [hitch2.sel :as sel]
             [hitch2.protocols.graph-manager :as g]
             [hitch2.selector-impl-registry :as reg]))
 
@@ -25,7 +26,7 @@
 
 (reg/def-registered-selector constant-spec' constant-spec constant-impl)
 (defn Constant [v]
-  (selector-proto/sel constant-spec' v))
+  (sel/sel constant-spec' v))
 
 (def sync-scheduler
   #?(:clj (reify g/IScheduler

@@ -3,6 +3,7 @@
             [hitch2.protocols.curator :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.selector-impl-registry :as reg]
+            [hitch2.sel :as sel]
             [hitch2.protocols.selector :as sel-proto
              :refer [def-selector-spec]]))
 
@@ -36,15 +37,15 @@
                                  :set-value (let [[_ val] command]
                                               (-> node
                                                   (assoc :state val)
-                                                  (update :set-projections assoc (mutable-var (:var-name machine-selector)) val)))
+                                                  (update :set-projections assoc (mutable-var (:var-name (:value machine-selector))) val)))
                                  :clear (-> node
                                             (assoc :state NOT-FOUND-SENTINEL)
-                                            (update :set-projections assoc (mutable-var (:var-name machine-selector)) NOT-FOUND-SENTINEL))))})
+                                            (update :set-projections assoc (mutable-var (:var-name (:value machine-selector))) NOT-FOUND-SENTINEL))))})
 
 (reg/def-registered-selector mutable-var-machine-spec' mutable-var-machine-spec machine-impl)
 
 (defn mutable-machine [var-name]
-  (sel-proto/map->sel mutable-var-machine-spec' {:var-name var-name}))
+  (sel/map->sel mutable-var-machine-spec' {:var-name var-name}))
 
 (def-selector-spec mutable-var-spec
   :not-machine
@@ -62,7 +63,7 @@
 (reg/def-registered-selector mutable-var-spec' mutable-var-spec mutable-var-impl)
 
 (defn mutable-var [var-name]
-  (sel-proto/map->sel
+  (sel/map->sel
     mutable-var-spec'
     {:var-name var-name}))
 
