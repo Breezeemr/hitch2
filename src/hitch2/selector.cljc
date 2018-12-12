@@ -67,8 +67,6 @@
          :hitch.selector.spec/positional-params
          ~(mapv #(keyword (namespace %) (clojure.core/name %)) record-field-names))
        (defn ~eval-fn-name ~(make-eval-binding-form (first constructor-binding-forms) record-field-names) ~@body)
-       (def ~(symbol (str name "-eval-fn-source")) ~(quote [(make-eval-binding-form (first constructor-binding-forms) record-field-names)
-                                                            body]))
        ;; This is Francis' selector. Halting fn signature is different:
        ;; (fn [dt MAP-LIKE-SELECTOR-WITH-NON-POS-ENTRIES pos1 pos2 ...] ...)
        ;; For now we just ignore the second arg
