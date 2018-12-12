@@ -29,7 +29,7 @@
                                        (keep
                                          (fn [x]
                                            (when-not (identical? (:state node) NOT-FOUND-SENTINEL)
-                                             [(mutable-var (:var-name machine-selector)) x])))
+                                             [(mutable-var (:var-name (:value machine-selector))) x])))
                                        children-added))))
    ::machine-proto/apply-command
                              (fn [machine-selector graph-value node command]
@@ -58,7 +58,7 @@
   {:hitch.selector.impl/kind :hitch.selector.kind/var
    :hitch.selector.impl/get-machine
                              (fn [sel]
-                               (mutable-machine (:var-name sel)))})
+                               (mutable-machine (:var-name (:value sel))))})
 
 (reg/def-registered-selector mutable-var-spec' mutable-var-spec mutable-var-impl)
 
