@@ -120,7 +120,7 @@
 (defn halting [selector simpl tx-manager]
   (halt/maybe-halt
     ((:hitch.selector.impl/halting simpl) tx-manager
-      (:value selector))
+      selector)
     NOT-FOUND-SENTINEL))
 ;todo partial evaluate the destructuring and return an clojure that takes a graph.
 
