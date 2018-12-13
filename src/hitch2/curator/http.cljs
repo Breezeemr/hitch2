@@ -7,6 +7,7 @@
             [goog.events :as events]
             [goog.net.EventType :as EventType]
             [clojure.string :as str]
+            [hitch2.sel :as sel]
             [hitch2.selector-impl-registry :as reg
              :refer-macros [def-registered-selector]]
             [hitch2.protocols.selector :as selector-proto])
@@ -22,7 +23,7 @@
 (defmethod graph-proto/run-effect ::request
   [gm {:keys [selector] :as effect}]
   (let [{:keys [url method serializer deserializer content headers withcreds]}
-        selector
+        (:value selector)
         cb  (fn [response]
               (graph-proto/-transact! gm selector [::value selector response]))
         xhr (XhrIo.)]
@@ -66,7 +67,7 @@
                                                                                :selector selector}))))})
 
 (reg/def-registered-selector http-machine-spec' http-machine-spec http-machine-impl)
-(def http-machine (sel-proto/sel http-machine-spec'))
+(def http-machine (sel/sel http-machine-spec'))
 
 
 (def-selector-spec http-spec
@@ -83,7 +84,7 @@
 (reg/def-registered-selector http-spec' http-spec http-var-impl)
 
 (defn http [url method serializer deserializer content headers withcreds]
-  (sel-proto/map->sel http-spec'
+  (sel/map->sel http-spec'
     {:url          url
      :method       method
      :serializer   serializer

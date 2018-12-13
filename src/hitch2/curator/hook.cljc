@@ -4,6 +4,7 @@
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
             [hitch2.protocols.selector :as sel-proto
              :refer [def-selector-spec]]
+            [hitch2.sel :as sel]
             [hitch2.selector-impl-registry :as reg]))
 
 (def hook-spec
@@ -56,7 +57,7 @@
 (reg/def-registered-selector hook-machine-spec' hook-machine-spec hook-impl)
 
 (def hook-machine
-  (sel-proto/sel hook-machine-spec'))
+  (sel/sel hook-machine-spec'))
 
 
 (def-selector-spec hook-change-machine-spec
@@ -104,7 +105,7 @@
 
 
 (def hook-change-machine
-  (sel-proto/sel hook-change-machine-spec'))
+  (sel/sel hook-change-machine-spec'))
 
 (defmethod graph-proto/run-effect :hook-call [graph-manager
                                               {:as effect

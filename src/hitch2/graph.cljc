@@ -1,6 +1,7 @@
 (ns hitch2.graph
   (:require [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.protocols.selector :as selector-proto]
+            [hitch2.sel :as sel]
             [hitch2.curator.pin :refer [pin-machine]]
             [hitch2.curator.hook :refer [hook-machine hook-change-machine]]
             [hitch2.curator.hitch-callback :as h-cb :refer [hitch-callback-machine]]
@@ -10,9 +11,9 @@
 
 
 
-(def sel selector-proto/sel)
+(def sel sel/sel)
 
-(def map->sel selector-proto/map->sel)
+(def map->sel sel/map->sel)
 
 (defn selector-instance? [spec sel]
   (assert (map? spec) (str "Spec is not a map: " spec))

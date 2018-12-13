@@ -3,6 +3,7 @@
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.protocols.selector :as sel-proto
              :refer [def-selector-spec]]
+            [hitch2.sel :as sel]
             [hitch2.selector-impl-registry :as reg]))
 
 (def initial-node (assoc machine-proto/initial-curator-state :state #{}))
@@ -41,5 +42,5 @@
 (reg/def-registered-selector pin-machine-spec' pin-machine-spec pin-machine-impl)
 
 (def pin-machine
-  (sel-proto/sel pin-machine-spec'))
+  (sel/sel pin-machine-spec'))
 
