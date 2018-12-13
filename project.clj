@@ -1,4 +1,4 @@
-(defproject com.breezeehr/hitch2 "0.2.0-SNAPSHOT"
+(defproject com.breezeehr/hitch2 "0.2.1-SNAPSHOT"
   :description ""
   ;; lein-tools-deps plugin does not work with lein 2.7.1
   :min-lein-version "2.8.0"
