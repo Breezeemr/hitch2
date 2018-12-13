@@ -550,6 +550,11 @@
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
   [graph-manager-value selector command disturbed-machines]
+  (assert (sel/selector? selector)
+    (str "you must address commant to a selector not "
+      (pr-str selector)
+      " command "
+      (pr-str command)))
   (let [sel-impl   (get-impl graph-manager-value selector)
         sel-kind   (selector-proto/-imp-kind sel-impl)
         node-state (get-node-state graph-manager-value selector)]
