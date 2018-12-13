@@ -28,7 +28,7 @@
                                        (keep
                                          (fn [x]
                                            (when-not (identical? (:state node) NOT-FOUND-SENTINEL)
-                                             [(mutable-var (:var-name machine-selector)) x])))
+                                             [(mutable-var (:var-name machine-selector)) (:state node)])))
                                        children-added))))
    ::machine-proto/apply-command
                              (fn [machine-selector graph-value node command]
