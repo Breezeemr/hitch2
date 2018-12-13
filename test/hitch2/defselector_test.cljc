@@ -15,4 +15,16 @@
     (let [{{a :A b :B c :C} :value} (sel/sel TEST-SELECTOR 1 [2] {:k 3})]
       (is (= a 1))
       (is (= b [2]))
-      (is (= c {:k 3})))))
+      (is (= c {:k 3}))))
+  (testing "defselector can destructure maps"
+    (defselector overview-items [g {:keys [a b] :as args}
+                                 C]
+      (+ a b C))
+    (is (= (overview-items-eval-fn :graph {:value {:args {:a 1 :b 1}
+                                                   :C    1}})
+           3))
+    (let [{{{a :a b :b} :args
+            C           :C} :value} (sel/sel overview-items {:a 1 :b 2} 3)]
+      (is (= a 1))
+      (is (= b 2))
+      (is (= C 3)))))

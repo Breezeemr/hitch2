@@ -37,7 +37,7 @@
     "Variadic parameters are not allowed on defselector.")
   (cond
     (symbol? x) [x (keyword x)]
-    (and (map? x) (:as x)) [x (keyword (:as x) )]
+    (and (map? x) (:as x)) [x (keyword (:as x))]
     (and (vector? x)
       (>= (count x) 2)
       (= (-> x pop peek) :as)) [x (keyword (peek x))]
@@ -53,7 +53,8 @@
     :value}])
 
 (defn tylers-def-selector [name constructor-binding-forms body]
-  (let [record-field-names (param-names (rest constructor-binding-forms))
+  (let [input              (rest constructor-binding-forms)
+        record-field-names (param-names input)
         eval-fn-name       (symbol (str name "-eval-fn"))
         slot-eval-fn-name  (symbol (str name "-slot-eval-fn"))
         impl               (symbol (str name "-impl"))
@@ -66,7 +67,7 @@
          :hitch.selector.spec.canonical-form/map
          :hitch.selector.spec/positional-params
          ~(mapv #(keyword (namespace %) (clojure.core/name %)) record-field-names))
-       (defn ~eval-fn-name ~(make-eval-binding-form (first constructor-binding-forms) record-field-names) ~@body)
+       (defn ~eval-fn-name ~(make-eval-binding-form (first constructor-binding-forms) input) ~@body)
        ;; This is Francis' selector. Halting fn signature is different:
        ;; (fn [dt MAP-LIKE-SELECTOR-WITH-NON-POS-ENTRIES pos1 pos2 ...] ...)
        ;; For now we just ignore the second arg
