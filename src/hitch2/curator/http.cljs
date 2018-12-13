@@ -61,6 +61,7 @@
                                  ::value (let [[_ selector response] command]
                                            (assoc-in node [:set-projections selector] response))
                                  ::refresh (let [[_ selector] command]
+                                             (assert selector (str (pr-str ::refresh) " must provide a selector"))
                                              (update node :async-effects conj {:type     ::request
                                                                                :selector selector}))))})
 
