@@ -22,8 +22,8 @@
 
 (def-descriptor-spec react-hook-spec
   :machine
-  :hitch.selector.spec/canonical-form
-  :hitch.selector.spec.canonical-form/positional)
+  :hitch2.descriptor.spec/canonical-form
+  :hitch2.descriptor.spec.canonical-form/positional)
 
 (defn update-reverse-indexes
   [node id new-parents]
@@ -61,7 +61,7 @@
 
 (def react-hook-impl
   {:hitch2.descriptor.impl/kind
-   :hitch.selector.kind/machine
+   :hitch2.descriptor.kind/machine
 
    ::machine-proto/init
    (fn [machine-selector] initial-node)

@@ -10,12 +10,12 @@
   v)
 (def-descriptor-spec constant-spec
   :not-machine
-  :hitch.selector.spec/canonical-form :hitch.selector.spec.canonical-form/positional
-  :hitch.selector.spec/positional-params [:v])
+  :hitch2.descriptor.spec/canonical-form  :hitch2.descriptor.spec.canonical-form/positional
+  :hitch2.descriptor.spec/positional-params [:v])
 (def constant-impl
-  {:hitch2.descriptor.impl/kind :hitch.selector.kind/halting
-   :hitch.selector.impl/halting return-constant
-   :hitch.selector.impl/halting-slot-selector (fn [_dt _sel v] v)}
+  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/halting
+   :hitch2.descriptor.impl/halting return-constant
+   :hitch2.descriptor.impl/halting-slot-selector (fn [_dt _sel v] v)}
 
   #_(reify
                      selector-proto/ImplementationKind

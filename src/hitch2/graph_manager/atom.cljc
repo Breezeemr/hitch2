@@ -34,7 +34,7 @@
 (defn clear-trace! [] (vreset! op-history []))
 
 (defn get-machine [impl sel]
-  (if-some [f (:hitch.selector.impl/get-machine impl)]
+  (if-some [f (:hitch2.descriptor.impl/get-machine impl)]
     (f sel)
     (assert false)))
 
@@ -124,7 +124,7 @@
 
 (defn halting [selector simpl tx-manager]
   (halt/maybe-halt
-    ((:hitch.selector.impl/halting simpl) tx-manager
+    ((:hitch2.descriptor.impl/halting simpl) tx-manager
       selector)
     NOT-FOUND-SENTINEL))
 ;todo partial evaluate the destructuring and return an clojure that takes a graph.
@@ -192,7 +192,7 @@
             sel-kind (:hitch2.descriptor.impl/kind sel-impl)
             node-state (get-node-state graph-manager-value selector)]
         (case sel-kind
-          :hitch.selector.kind/machine
+          :hitch2.descriptor.kind/machine
           (let [graph-value    (get-graph-value graph-manager-value)
                 {:keys [sync-effects async-effects]
                  new-set-projections     :set-projections
@@ -216,9 +216,9 @@
                 (assoc-in
                   [:node-state selector :change-focus] {})
                 (propagate-dependency-changes selector new-change-focus worklist-atom dirty-machines))))
-          ;:hitch.selector.kind/var
+          ;:hitch2.descriptor.kind/var
           ;(assert false "should not happen")
-          :hitch.selector.kind/halting
+          :hitch2.descriptor.kind/halting
           (let [{:keys [waiting] :as node-state}
                 (-> graph-manager-value
                     :node-state
@@ -244,7 +244,7 @@
           sel-kind (:hitch2.descriptor.impl/kind sel-impl)
           node-state (get-node-state graph-manager-value selector)]
       (case sel-kind
-        :hitch.selector.kind/machine
+        :hitch2.descriptor.kind/machine
         (let [{:keys [change-focus set-projections]}
               node-state]
           (s/assert ::machine-proto/curator-state node-state)
@@ -266,7 +266,7 @@
                 assoc
                 :set-projections {})
               (propagate-set-projections set-projections worklist-atom))))
-        :hitch.selector.kind/var
+        :hitch2.descriptor.kind/var
         (let [{:keys [value-changed?]}
               node-state]
           (when *trace* (record! [:node-changes :var (:name sel-impl)
@@ -278,7 +278,7 @@
                 assoc
                 :value-changed? false)
               (propagate-value-changes selector worklist-atom dirty-machines))))
-        :hitch.selector.kind/halting
+        :hitch2.descriptor.kind/halting
         (let [{:keys [value-changed? change-focus]}
               node-state]
           (when *trace*
@@ -348,7 +348,7 @@
             sel-kind   (:hitch2.descriptor.impl/kind sel-impl)
             node-state (get-node-state graph-manager-value parent)]
         (case sel-kind
-          :hitch.selector.kind/machine
+          :hitch2.descriptor.kind/machine
           (let [graph-value        (get-graph-value graph-manager-value)
                 {:keys [sync-effects async-effects]
                  new-change-focus :change-focus
@@ -384,7 +384,7 @@
                         (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by parent]))]
                           new-graph-manager-value
                           new-graph-manager-value)))))
-          :hitch.selector.kind/var
+          :hitch2.descriptor.kind/var
           (let [machine (get-machine sel-impl parent)]
             (assert (descriptor/descriptor? machine) (pr-str parent))
             (when *trace*
@@ -401,7 +401,7 @@
                             (update :graph-value dissoc parent)
                             (propagate-dependency-changes parent {machine false} worklist-atom dirty-machines)))
                       (update :node-state dissoc parent))))
-          :hitch.selector.kind/halting
+          :hitch2.descriptor.kind/halting
           (let [node-state (get-in graph-manager-value [:node-state parent] NOT-FOUND-SENTINEL)]
             (when *trace*
               (record! [:child-change :halting
@@ -563,7 +563,7 @@
         sel-kind   (:hitch2.descriptor.impl/kind sel-impl)
         node-state (get-node-state graph-manager-value selector)]
     (case sel-kind
-      :hitch.selector.kind/machine
+      :hitch2.descriptor.kind/machine
       (let [graph-value        (get-graph-value graph-manager-value)]
         (assoc-in graph-manager-value [:node-state selector]
           (if-some [apply-command (::machine-proto/apply-command sel-impl)]
@@ -571,7 +571,7 @@
               (ensure-inits node-state graph-manager-value selector disturbed-machines)
               command)
             (assert false))))
-      :hitch.selector.kind/var
+      :hitch2.descriptor.kind/var
       (-apply-command graph-manager-value (get-machine sel-impl selector)
                      command disturbed-machines))))
 
@@ -617,9 +617,9 @@
   (let [sel-impl   (get-impl graph-manager-value selector)
         sel-kind   (:hitch2.descriptor.impl/kind sel-impl)]
     (case sel-kind
-      :hitch.selector.kind/machine
+      :hitch2.descriptor.kind/machine
       selector
-      :hitch.selector.kind/var
+      :hitch2.descriptor.kind/var
       (get-machine sel-impl selector))))
 
 

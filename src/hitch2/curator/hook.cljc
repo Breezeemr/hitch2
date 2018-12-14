@@ -20,11 +20,11 @@
 
 (def-descriptor-spec hook-machine-spec
   :machine
-  :hitch.selector.spec/canonical-form
-  :hitch.selector.spec.canonical-form/positional)
+  :hitch2.descriptor.spec/canonical-form
+  :hitch2.descriptor.spec.canonical-form/positional)
 
 (def hook-impl
-  {:hitch2.descriptor.impl/kind :hitch.selector.kind/machine
+  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
    ::machine-proto/init (fn [machine-selector] initial-node)
    ::machine-proto/observed-value-changes
                              (fn [machine-selector graph-value node parent-selectors]
@@ -62,11 +62,11 @@
 
 (def-descriptor-spec hook-change-machine-spec
   :machine
-  :hitch.selector.spec/canonical-form
-  :hitch.selector.spec.canonical-form/positional)
+  :hitch2.descriptor.spec/canonical-form
+  :hitch2.descriptor.spec.canonical-form/positional)
 
 (def hook-change-impl
-  {:hitch2.descriptor.impl/kind :hitch.selector.kind/machine
+  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
    ::machine-proto/init (fn [machine-selector] initial-node)
    ::machine-proto/observed-value-changes
    (fn [machine-selector graph-value node parent-selectors]

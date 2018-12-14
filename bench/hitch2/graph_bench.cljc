@@ -29,8 +29,8 @@
 
 (def-descriptor-spec fib-map-spec
   :not-machine
-  :hitch.selector.spec/canonical-form
-  :hitch.selector.spec.canonical-form/map)
+  :hitch2.descriptor.spec/canonical-form
+  :hitch2.descriptor.spec.canonical-form/map)
 
 (defn fibmap-halting [G {:keys [n] :as sel}]
   (cond (= n 0) 0
@@ -40,9 +40,9 @@
               n-2 (api/select-sel! G (assoc sel :n (dec (dec n))))]
           (+ @n-1 @n-2))))
 
-(def fibimpl {:hitch2.descriptor.impl/kind                  :hitch.selector.kind/halting
-              :hitch.selector.impl/halting               fibmap-halting
-              :hitch.selector.impl/halting-slot-selector fibmap-halting})
+(def fibimpl {:hitch2.descriptor.impl/kind                  :hitch2.descriptor.kind/halting
+              :hitch2.descriptor.impl/halting               fibmap-halting
+              :hitch2.descriptor.impl/halting-slot-selector fibmap-halting})
 
 (reg/def-registered-selector fib-map-spec' fib-map-spec fibimpl)
 (declare fibb-graph)
@@ -78,17 +78,17 @@
 
 (def-descriptor-spec depends-on-map-spec
   :not-machine
-  :hitch.selector.spec/canonical-form
-  :hitch.selector.spec.canonical-form/map)
+  :hitch2.descriptor.spec/canonical-form
+  :hitch2.descriptor.spec.canonical-form/map)
 
 (defn depends-on-map-halting [G {:keys [n] :as sel}]
   (cond (= 0 n) @(api/select-sel! G (mv/mutable-var :bench))
         :else   (+ 1 @(api/select-sel! G (assoc sel :n (dec n))))))
 
 (def depends-on-map-impl
-  {:hitch2.descriptor.impl/kind                  :hitch.selector.kind/halting
-   :hitch.selector.impl/halting               depends-on-map-halting
-   :hitch.selector.impl/halting-slot-selector depends-on-map-halting})
+  {:hitch2.descriptor.impl/kind                  :hitch2.descriptor.kind/halting
+   :hitch2.descriptor.impl/halting               depends-on-map-halting
+   :hitch2.descriptor.impl/halting-slot-selector depends-on-map-halting})
 
 (reg/def-registered-selector depends-on-map-spec' depends-on-map-spec depends-on-map-impl)
 

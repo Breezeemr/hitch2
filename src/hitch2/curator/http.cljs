@@ -44,11 +44,11 @@
 (def initial-node machine-proto/initial-curator-state)
 (def-descriptor-spec http-machine-spec
   :machine
-  :hitch.selector.spec/canonical-form
-  :hitch.selector.spec.canonical-form/positional)
+  :hitch2.descriptor.spec/canonical-form
+  :hitch2.descriptor.spec.canonical-form/positional)
 
 (def http-machine-impl
-  {:hitch2.descriptor.impl/kind :hitch.selector.kind/machine
+  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
    ::machine-proto/init (fn [machine-selector] initial-node)
    ::machine-proto/curation-changes
                              (fn [machine-selector graph-value node children-added children-removed]
@@ -71,12 +71,12 @@
 
 (def-descriptor-spec http-spec
   :not-machine
-  :hitch.selector.spec/canonical-form
-  :hitch.selector.spec.canonical-form/map)
+  :hitch2.descriptor.spec/canonical-form
+  :hitch2.descriptor.spec.canonical-form/map)
 
 (def http-var-impl
-  {:hitch2.descriptor.impl/kind :hitch.selector.kind/var
-   :hitch.selector.impl/get-machine
+  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/var
+   :hitch2.descriptor.impl/get-machine
    (fn [sel]
      http-machine)})
 

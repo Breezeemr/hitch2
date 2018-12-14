@@ -55,9 +55,9 @@
        (hitch2.def.spec/def-descriptor-spec
          ~spec
          :not-machine
-         :hitch.selector.spec/canonical-form
-         :hitch.selector.spec.canonical-form/map
-         :hitch.selector.spec/positional-params
+         :hitch2.descriptor.spec/canonical-form
+         :hitch2.descriptor.spec.canonical-form/map
+         :hitch2.descriptor.spec/positional-params
          ~(mapv #(keyword (namespace %) (clojure.core/name %)) record-field-names))
        (defn ~eval-fn-name ~(make-eval-binding-form (first constructor-binding-forms) input) ~@body)
        ;; This is Francis' selector. Halting fn signature is different:
@@ -68,9 +68,9 @@
             (rest constructor-binding-forms))
          ~@body)
        (def ~impl
-         {:hitch2.descriptor.impl/kind                  :hitch.selector.kind/halting
-          :hitch.selector.impl/halting               ~eval-fn-name
-          :hitch.selector.impl/halting-slot-selector ~slot-eval-fn-name})
+         {:hitch2.descriptor.impl/kind                  :hitch2.descriptor.kind/halting
+          :hitch2.descriptor.impl/halting               ~eval-fn-name
+          :hitch2.descriptor.impl/halting-slot-selector ~slot-eval-fn-name})
        (hitch2.selector-impl-registry/def-registered-selector
          ~name  ~spec ~impl))))
 

@@ -26,7 +26,7 @@
 
 " Returns the kind of selector or curator.
 Should be a keyword for dispatching. Values are from:"
-:hitch.selector.kind/var
-:hitch.selector.kind/curator
-:hitch.selector.kind/sentinel
-:hitch.selector.kind/halting
+:hitch2.descriptor.kind/var
+:hitch2.descriptor.kind/curator
+:hitch2.descriptor.kind/sentinel
+:hitch2.descriptor.kind/halting

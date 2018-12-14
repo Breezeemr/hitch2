@@ -12,13 +12,13 @@
 
 (def-descriptor-spec mutable-var-machine-spec
   :machine
-  :hitch.selector.spec/canonical-form
-  :hitch.selector.spec.canonical-form/map
-  :hitch.selector.spec/positional-params
+  :hitch2.descriptor.spec/canonical-form
+  :hitch2.descriptor.spec.canonical-form/map
+  :hitch2.descriptor.spec/positional-params
   [:var-name])
 
 (def machine-impl
-  {:hitch2.descriptor.impl/kind :hitch.selector.kind/machine
+  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
    ::machine-proto/init      (fn [machine-selector] initial-node)
    ::machine-proto/curation-changes
                              (fn [machine-selector graph-value node children-added children-removed]
@@ -49,14 +49,14 @@
 
 (def-descriptor-spec mutable-var-spec
   :not-machine
-  :hitch.selector.spec/canonical-form
-  :hitch.selector.spec.canonical-form/map
-  :hitch.selector.spec/positional-params
+  :hitch2.descriptor.spec/canonical-form
+  :hitch2.descriptor.spec.canonical-form/map
+  :hitch2.descriptor.spec/positional-params
   [:var-name])
 
 (def mutable-var-impl
-  {:hitch2.descriptor.impl/kind :hitch.selector.kind/var
-   :hitch.selector.impl/get-machine
+  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/var
+   :hitch2.descriptor.impl/get-machine
                              (fn [sel]
                                (mutable-machine (:var-name (:term sel))))})
 
