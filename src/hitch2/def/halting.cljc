@@ -1,5 +1,5 @@
-(ns hitch2.selector
-  #?(:cljs (:require-macros hitch2.selector))
+(ns hitch2.def.halting
+  #?(:cljs (:require-macros hitch2.def.halting))
   (:require [hitch2.halt :as halt]
             [hitch2.def.spec
              :refer [def-descriptor-spec]]
@@ -19,7 +19,7 @@
               (>= (count x) 2)
               (= (-> x pop peek) :as)) (peek x)
             :else
-            (throw (ex-info "Every parameter to defselector must have a name, either directly or with a top-level :as"
+            (throw (ex-info "Every parameter to defhalting must have a name, either directly or with a top-level :as"
                      {:binding-form binding-form
                       :bad-param x}))))
     binding-form))
@@ -34,7 +34,7 @@
       (>= (count x) 2)
       (= (-> x pop peek) :as)) [x (keyword (peek x))]
     :else
-    (throw (ex-info "Every parameter to defselector must have a name, either directly or with a top-level :as"
+    (throw (ex-info "Every parameter to defhalting must have a name, either directly or with a top-level :as"
              {:bad-param x})))
   )
 (defn make-eval-binding-form [graph-symbol record-field-names ]
@@ -44,7 +44,7 @@
       record-field-names)
     :term}])
 
-(defn tylers-def-selector [name constructor-binding-forms body]
+(defn -def-halting [name constructor-binding-forms body]
   (let [input              (rest constructor-binding-forms)
         record-field-names (param-names input)
         eval-fn-name       (symbol (str name "-eval-fn"))
@@ -74,5 +74,5 @@
        (hitch2.selector-impl-registry/def-registered-selector
          ~name  ~spec ~impl))))
 
-(defmacro defselector [name constructor-binding-forms & body]
-  (tylers-def-selector name constructor-binding-forms body))
+(defmacro defhalting [name constructor-binding-forms & body]
+  (-def-halting name constructor-binding-forms body))

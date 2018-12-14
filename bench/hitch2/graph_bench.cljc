@@ -1,5 +1,5 @@
 (ns hitch2.graph-bench
-  (:require [hitch2.selector :as sel]
+  (:require [hitch2.def.halting :refer [defhalting]]
             [hitch2.graph :as api]
             [hitch2.graph-manager.atom :as atom-gm]
             [hitch2.protocols.graph-manager :as gm-proto]
@@ -47,7 +47,7 @@
 (reg/def-registered-selector fib-map-spec' fib-map-spec fibimpl)
 (declare fibb-graph)
 
-(sel/defselector fibb-graph [G n]
+(defhalting fibb-graph [G n]
   (cond (= n 0) 0
         (= n 1) 1
         :else
@@ -93,7 +93,7 @@
 (reg/def-registered-selector depends-on-map-spec' depends-on-map-spec depends-on-map-impl)
 
 (declare depends-on)
-(sel/defselector depends-on [G n]
+(defhalting depends-on [G n]
   (cond (= 0 n) @(api/select-sel! G (mv/mutable-var :bench))
         :else   (+ 1 @(api/select! G depends-on (dec n)))))
 

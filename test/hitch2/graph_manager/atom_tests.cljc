@@ -6,7 +6,7 @@
     [hitch2.protocols.graph-manager :as gm-proto]
     [hitch2.def.curator :as machine-proto]
     [hitch2.descriptor :as descriptor]
-    [hitch2.selector :refer [defselector]]
+    [hitch2.def.halting :refer [defhalting]]
     [hitch2.selector-impl-registry :as reg
      :refer [registry-resolver]]
     [hitch2.test-common :as common]
@@ -42,7 +42,7 @@
 
 (declare fibb-graph)
 
-(defselector fibb-graph [G n]
+(defhalting fibb-graph [G n]
   (cond (= n 0) 0
         (= n 1) 1
         :else
