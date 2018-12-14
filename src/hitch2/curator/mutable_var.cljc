@@ -1,6 +1,6 @@
 (ns hitch2.curator.mutable-var
   (:require [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
-            [hitch2.protocols.curator :as machine-proto]
+            [hitch2.def.curator :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.selector-impl-registry :as reg]
             [hitch2.descriptor :as descriptor]

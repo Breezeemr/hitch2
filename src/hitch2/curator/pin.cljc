@@ -1,5 +1,5 @@
 (ns hitch2.curator.pin
-  (:require [hitch2.protocols.curator :as machine-proto]
+  (:require [hitch2.def.curator :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.def.spec
              :refer [def-descriptor-spec]]

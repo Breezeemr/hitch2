@@ -1,4 +1,4 @@
-(ns hitch2.protocols.curator
+(ns hitch2.def.curator
   (:require [clojure.spec.alpha :as s]))
 
 (def selector? any?)
@@ -14,7 +14,6 @@
      ::async-effects ::sync-effects]))
 
 (defrecord curator-state [state change-focus set-projections
-                       async-effects sync-effects])
+                          async-effects sync-effects])
 
 (def initial-curator-state (->curator-state nil {} {} [] []))
-

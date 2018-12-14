@@ -4,7 +4,7 @@
     [hitch2.curator.mutable-var :as mv]
     [hitch2.graph-manager.atom :as g]
     [hitch2.protocols.graph-manager :as gm-proto]
-    [hitch2.protocols.curator :as machine-proto]
+    [hitch2.def.curator :as machine-proto]
     [hitch2.descriptor :as descriptor]
     [hitch2.selector :refer [defselector]]
     [hitch2.selector-impl-registry :as reg

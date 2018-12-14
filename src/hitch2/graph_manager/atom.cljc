@@ -2,7 +2,7 @@
   (:require  [clojure.spec.alpha :as s]
              [hitch2.protocols.graph-manager :as g]
              [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
-             [hitch2.protocols.curator :as machine-proto]
+             [hitch2.def.curator :as machine-proto]
              [hitch2.descriptor :as descriptor]
              [hitch2.protocols.tx-manager :as tx-manager-proto]
              [hitch2.tx-manager.halting :as halting-tx]
