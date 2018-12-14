@@ -2,15 +2,14 @@
   (:require [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
             [hitch2.protocols.curator :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
-            [hitch2.protocols.selector :as sel-proto
-             :refer-macros [def-selector-spec]]
+            [hitch2.def.spec
+             :refer-macros [def-descriptor-spec]]
             [goog.events :as events]
             [goog.net.EventType :as EventType]
             [clojure.string :as str]
             [hitch2.descriptor :as descriptor]
             [hitch2.selector-impl-registry :as reg
-             :refer-macros [def-registered-selector]]
-            [hitch2.protocols.selector :as selector-proto])
+             :refer-macros [def-registered-selector]])
   (:import (goog.net XhrIo)))
 
 (def ^:private meths
@@ -43,7 +42,7 @@
     #(.dispose xhr)))
 
 (def initial-node machine-proto/initial-curator-state)
-(def-selector-spec http-machine-spec
+(def-descriptor-spec http-machine-spec
   :machine
   :hitch.selector.spec/canonical-form
   :hitch.selector.spec.canonical-form/positional)
@@ -70,7 +69,7 @@
 (def http-machine (descriptor/dtor  http-machine-spec'))
 
 
-(def-selector-spec http-spec
+(def-descriptor-spec http-spec
   :not-machine
   :hitch.selector.spec/canonical-form
   :hitch.selector.spec.canonical-form/map)

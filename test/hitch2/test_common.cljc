@@ -1,14 +1,14 @@
 (ns hitch2.test-common
   #?(:clj (:import (java.io Writer)))
-  (:require [hitch2.protocols.selector
-             :refer [def-selector-spec]]
+  (:require [hitch2.def.spec
+             :refer [def-descriptor-spec]]
             [hitch2.descriptor :as descriptor]
             [hitch2.protocols.graph-manager :as g]
             [hitch2.selector-impl-registry :as reg]))
 
 (defn return-constant [gv-tracker {[v] :term}]
   v)
-(def-selector-spec constant-spec
+(def-descriptor-spec constant-spec
   :not-machine
   :hitch.selector.spec/canonical-form :hitch.selector.spec.canonical-form/positional
   :hitch.selector.spec/positional-params [:v])

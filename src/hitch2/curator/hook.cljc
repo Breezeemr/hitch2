@@ -2,8 +2,8 @@
   (:require [hitch2.protocols.curator :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
-            [hitch2.protocols.selector :as sel-proto
-             :refer [def-selector-spec]]
+            [hitch2.def.spec
+             :refer [def-descriptor-spec]]
             [hitch2.descriptor :as descriptor]
             [hitch2.selector-impl-registry :as reg]))
 
@@ -18,7 +18,7 @@
 (defn remove-called-hooks [state selectors]
   (reduce dissoc state selectors))
 
-(def-selector-spec hook-machine-spec
+(def-descriptor-spec hook-machine-spec
   :machine
   :hitch.selector.spec/canonical-form
   :hitch.selector.spec.canonical-form/positional)
@@ -60,7 +60,7 @@
   (descriptor/dtor  hook-machine-spec'))
 
 
-(def-selector-spec hook-change-machine-spec
+(def-descriptor-spec hook-change-machine-spec
   :machine
   :hitch.selector.spec/canonical-form
   :hitch.selector.spec.canonical-form/positional)

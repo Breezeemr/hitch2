@@ -1,14 +1,14 @@
 (ns hitch2.curator.pin
   (:require [hitch2.protocols.curator :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
-            [hitch2.protocols.selector :as sel-proto
-             :refer [def-selector-spec]]
+            [hitch2.def.spec
+             :refer [def-descriptor-spec]]
             [hitch2.descriptor :as descriptor]
             [hitch2.selector-impl-registry :as reg]))
 
 (def initial-node (assoc machine-proto/initial-curator-state :state #{}))
 
-(def-selector-spec pin-machine-spec
+(def-descriptor-spec pin-machine-spec
   :machine
   :hitch.selector.spec/canonical-form
   :hitch.selector.spec.canonical-form/positional)

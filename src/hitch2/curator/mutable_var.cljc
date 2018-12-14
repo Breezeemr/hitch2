@@ -4,13 +4,13 @@
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.selector-impl-registry :as reg]
             [hitch2.descriptor :as descriptor]
-            [hitch2.protocols.selector :as sel-proto
-             :refer [def-selector-spec]]))
+            [hitch2.def.spec
+             :refer [def-descriptor-spec]]))
 
 (declare mutable-var)
 (def initial-node (assoc machine-proto/initial-curator-state :state NOT-FOUND-SENTINEL))
 
-(def-selector-spec mutable-var-machine-spec
+(def-descriptor-spec mutable-var-machine-spec
   :machine
   :hitch.selector.spec/canonical-form
   :hitch.selector.spec.canonical-form/map
@@ -47,7 +47,7 @@
 (defn mutable-machine [var-name]
   (descriptor/map->dtor  mutable-var-machine-spec' {:var-name var-name}))
 
-(def-selector-spec mutable-var-spec
+(def-descriptor-spec mutable-var-spec
   :not-machine
   :hitch.selector.spec/canonical-form
   :hitch.selector.spec.canonical-form/map

@@ -7,27 +7,6 @@
               (java.util Iterator)
               (java.io Writer))))
 
-#?(:cljs nil
-   :clj
-   (defmacro def-selector-spec
-     [selector-name kind & options]
-     {:pre [(simple-symbol? selector-name)
-            (keyword? kind)]}
-     (let [sel-name (symbol
-                      (some-> (or
-                                (:name (:ns &env))          ;; targeting CLJS
-                                (ns-name *ns*))             ;; targeting CLJ
-                        name)
-                      (name selector-name))
-           qkind    (if (qualified-keyword? kind)
-                      kind
-                      (keyword "hitch.selector.spec.kind" (name kind)))]
-       `(def ~selector-name
-          (array-map
-            ~@options
-            :hitch.selector/name ~(list 'quote sel-name)
-            :hitch.selector.spec/kind ~qkind)))))
-
 ;; selector kind? what generalizes selector and curator? Graphable?
 ;; Hitchable? HitchKind Hitchtype?
 (defprotocol ImplementationKind
@@ -76,8 +55,8 @@ Should be a keyword for dispatching. Values are from:
 
 (s/def :hitch.selector/name qualified-symbol?)
 (s/def :hitch.selector.spec/kind
-  #{:hitch.selector.spec.kind/machine
-    :hitch.selector.spec.kind/not-machine})
+  #{:hitch2.descriptor.spec.kind/machine
+    :hitch2.descriptor.spec.kind/not-machine})
 
 
 (s/def :hitch.selector.spec/canonical-form

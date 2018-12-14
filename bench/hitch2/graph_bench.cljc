@@ -6,8 +6,8 @@
             [hitch2.curator.mutable-var :as mv]
             [hitch2.selector-impl-registry :as reg
              :refer [registry-resolver]]
-            [hitch2.protocols.selector :as sel-proto
-             :refer [def-selector-spec]]
+            [hitch2.def.spec
+             :refer [def-descriptor-spec]]
     #?(:clj
             [criterium.core :refer [bench]]
        :cljs [figwheel.main.async-result :as async-result])))
@@ -27,7 +27,7 @@
         :else (+ (fibb-no-graph (dec n))
                  (fibb-no-graph (dec (dec n))))))
 
-(def-selector-spec fib-map-spec
+(def-descriptor-spec fib-map-spec
   :not-machine
   :hitch.selector.spec/canonical-form
   :hitch.selector.spec.canonical-form/map)
@@ -76,7 +76,7 @@
                #_(prn :unpined
                    (get (gm-proto/-get-graph g) sel))))))
 
-(def-selector-spec depends-on-map-spec
+(def-descriptor-spec depends-on-map-spec
   :not-machine
   :hitch.selector.spec/canonical-form
   :hitch.selector.spec.canonical-form/map)

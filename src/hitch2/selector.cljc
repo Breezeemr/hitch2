@@ -1,8 +1,8 @@
 (ns hitch2.selector
   #?(:cljs (:require-macros hitch2.selector))
   (:require [hitch2.halt :as halt]
-            [hitch2.protocols.selector :as selector-proto
-             :refer [def-selector-spec]]
+            [hitch2.def.spec
+             :refer [def-descriptor-spec]]
             [hitch2.selector-impl-registry :as reg]))
 
 (defn- cljs-target? [env]
@@ -60,7 +60,7 @@
         impl               (symbol (str name "-impl"))
         spec               (symbol (str name "-spec"))]
     `(do
-       (hitch2.protocols.selector/def-selector-spec
+       (hitch2.def.spec/def-descriptor-spec
          ~spec
          :not-machine
          :hitch.selector.spec/canonical-form

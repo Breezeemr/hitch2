@@ -5,8 +5,8 @@
             [hitch2.halt :as halt]
             [hitch2.tx-manager.halting :as halting]
             [hitch2.protocols.tx-manager :as tx-manager]
-            [hitch2.protocols.selector :as sel-proto
-             :refer [def-selector-spec]]
+            [hitch2.def.spec
+             :refer [def-descriptor-spec]]
             [hitch2.descriptor :as descriptor]
             [hitch2.selector-impl-registry :as reg]
             [clojure.set :as set])
@@ -20,7 +20,7 @@
                  :sel->id       {}
                  :dirty-ids     #{}}))
 
-(def-selector-spec react-hook-spec
+(def-descriptor-spec react-hook-spec
   :machine
   :hitch.selector.spec/canonical-form
   :hitch.selector.spec.canonical-form/positional)
