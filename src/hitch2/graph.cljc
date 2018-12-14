@@ -20,7 +20,7 @@
 (defn selector-instance? [spec sel]
   (assert (map? spec) (str "Spec is not a map: " spec))
   (= (:name sel)
-     (:hitch.selector/name spec)))
+     (:hitch2.descriptor/name spec)))
 
 (defn pin
   "Force a selector to remain in the graph even if nothing else depends on it."

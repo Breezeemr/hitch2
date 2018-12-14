@@ -8,7 +8,7 @@
             [hitch2.selector-impl-registry :as reg]))
 
 (def hook-spec
-  {:hitch.selector/name ::hook
+  {:hitch2.descriptor/name ::hook
    :hitch.selector.spec/kind :machine})
 
 (defrecord node-state [state change-focus set-projections

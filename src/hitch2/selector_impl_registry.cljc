@@ -1,8 +1,7 @@
 (ns hitch2.selector-impl-registry
   #?(:cljs
      (:require-macros [hitch2.selector-impl-registry]))
-  (:require [hitch2.protocols.selector :as selector-proto]
-            [cognitect.anomalies :as ca]))
+  (:require [cognitect.anomalies :as ca]))
 
 (defonce ^:private REGISTRY (atom {}))
 
@@ -34,7 +33,7 @@
   "Register a selector implementation."
   [selector-spec selector-impl]
   (swap! REGISTRY assoc
-    (:hitch.selector/name selector-spec)
+    (:hitch2.descriptor/name selector-spec)
     selector-impl))
 
 (defn unregister-selector-impl!

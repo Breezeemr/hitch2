@@ -53,7 +53,7 @@ Should be a keyword for dispatching. Values are from:
     (f sel)
     (assert false)))
 
-(s/def :hitch.selector/name qualified-symbol?)
+(s/def :hitch2.descriptor/name qualified-symbol?)
 (s/def :hitch.selector.spec/kind
   #{:hitch2.descriptor.spec.kind/machine
     :hitch2.descriptor.spec.kind/not-machine})
@@ -68,7 +68,7 @@ Should be a keyword for dispatching. Values are from:
 
 (s/def :hitch/selector-spec
   (s/keys
-    :req [:hitch.selector/name
+    :req [:hitch2.descriptor/name
           :hitch.selector.spec/kind]))
 
 (s/def :hitch.selector.impl/kind keyword?)
@@ -84,20 +84,20 @@ Should be a keyword for dispatching. Values are from:
 (defmethod impliementation-kind :hitch.selector.kind/var
   [_]
   (s/keys
-    :req [:hitch.selector/name]
+    :req [:hitch2.descriptor/name]
     :req-un [:hitch.selector.impl/kind
              :hitch.selector.impl/machine]))
 
 (defmethod impliementation-kind :hitch.selector.kind/halting
   [_]
   (s/keys
-    :req [:hitch.selector/name]
+    :req [:hitch2.descriptor/name]
     :req-un [:hitch.selector.impl/kind
              :hitch.selector.impl/halting]))
 (defmethod impliementation-kind :hitch.selector.kind/sentinel
   [_]
   (s/keys
-    :req [:hitch.selector/name]
+    :req [:hitch2.descriptor/name]
     :req-un [:hitch.selector.impl/kind
              :hitch.selector.impl/sentinel]))
 

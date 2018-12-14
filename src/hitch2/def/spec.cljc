@@ -20,5 +20,13 @@
              `(def ~selector-name
                 (array-map
                   ~@options
-                  :hitch.selector/name ~(list 'quote sel-name)
+                  :hitch2.descriptor/name ~(list 'quote sel-name)
                   :hitch.selector.spec/kind ~qkind)))))
+
+
+" Returns the kind of selector or curator.
+Should be a keyword for dispatching. Values are from:"
+:hitch.selector.kind/var
+:hitch.selector.kind/curator
+:hitch.selector.kind/sentinel
+:hitch.selector.kind/halting
