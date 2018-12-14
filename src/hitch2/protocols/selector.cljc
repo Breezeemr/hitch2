@@ -7,23 +7,6 @@
               (java.util Iterator)
               (java.io Writer))))
 
-(defprotocol HaltingImplementation
-  (-get-halting-fn [imp]))
-
-(extend-protocol HaltingImplementation
-  #?@(:cljs
-      [cljs.core/PersistentHashMap
-       (-get-halting-fn [impl]
-         (:hitch.selector.impl/halting impl))
-       cljs.core/PersistentArrayMap
-       (-get-halting-fn [impl]
-         (:hitch.selector.impl/halting impl))]
-      :clj
-      ;; todo probably missing another map type
-      [clojure.lang.PersistentArrayMap
-       (-get-halting-fn [impl]
-         (:hitch.selector.impl/halting impl))]))
-
 (defn get-machine [impl sel]
   (if-some [f (:hitch.selector.impl/get-machine impl)]
     (f sel)
