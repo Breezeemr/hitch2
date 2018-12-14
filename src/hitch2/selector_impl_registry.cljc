@@ -46,7 +46,7 @@
   "A resolver that looks up selector implementations dynamically from the
   mutable registry or throws if unavailable."
   [selector]
-  (let [sname (selector-proto/-sname selector)]
+  (let [sname (:name selector)]
     (or
       (get-selector-impl sname)
       (throw (ex-info (str "Could not find implementation in selector registry " sname)

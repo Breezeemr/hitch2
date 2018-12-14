@@ -246,7 +246,7 @@
           (s/assert ::machine-proto/curator-state node-state)
           (when (not-empty set-projections)
             (add-to-working-set worklist-atom selector))
-          (when *trace* (record! [:node-changes :machine (selector-proto/-sname sel-impl)
+          (when *trace* (record! [:node-changes :machine (:name sel-impl)
                                   selector
                                   node-state]))
           (cond-> graph-manager-value
@@ -265,7 +265,7 @@
         :hitch.selector.kind/var
         (let [{:keys [value-changed?]}
               node-state]
-          (when *trace* (record! [:node-changes :var (selector-proto/-sname sel-impl)
+          (when *trace* (record! [:node-changes :var (:name sel-impl)
                                   selector]))
           (cond-> graph-manager-value
             value-changed?
@@ -278,7 +278,7 @@
         (let [{:keys [value-changed? change-focus]}
               node-state]
           (when *trace*
-            (record! [:node-changes :halting (selector-proto/-sname sel-impl)
+            (record! [:node-changes :halting (:name sel-impl)
                       selector (-> graph-manager-value :graph-value (get selector))])
                 )
           (cond-> graph-manager-value
@@ -365,7 +365,7 @@
               (add-to-working-set worklist-atom parent))
             (when *trace*
               (record! [:child-change :machine
-                        (selector-proto/-sname sel-impl)]))
+                        (:name sel-impl)]))
             (let [new-graph-manager-value
                   (cond->
                     (assoc-in graph-manager-value
@@ -385,7 +385,7 @@
             (assert (descriptor/descriptor? machine) (pr-str parent))
             (when *trace*
               (record! [:child-change :var
-                        (selector-proto/-sname sel-impl)]))
+                        (:name sel-impl)]))
             (case added|removed
               true (if (get-in graph-manager-value [:observes parent machine])
                      graph-manager-value
@@ -401,7 +401,7 @@
           (let [node-state (get-in graph-manager-value [:node-state parent] NOT-FOUND-SENTINEL)]
             (when *trace*
               (record! [:child-change :halting
-                        (selector-proto/-sname sel-impl)
+                        (:name sel-impl)
                         child
                         parent]))
             (case added|removed
@@ -515,7 +515,7 @@
                                 graph-value
                                 graph-manager-value
                                 selector)]
-          (assert-valid-finalized-node-state new-state (selector-proto/selector-name selector))
+          (assert-valid-finalized-node-state new-state (:name selector))
           (when (not-empty sync-effects)
             (vswap! sync-effects-atom into! sync-effects))
           (when (not-empty async-effects)

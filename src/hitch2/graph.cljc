@@ -19,7 +19,7 @@
 
 (defn selector-instance? [spec sel]
   (assert (map? spec) (str "Spec is not a map: " spec))
-  (= (selector-proto/selector-name sel)
+  (= (:name sel)
      (:hitch.selector/name spec)))
 
 (defn pin

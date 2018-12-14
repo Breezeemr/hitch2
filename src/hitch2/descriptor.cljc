@@ -1,10 +1,7 @@
 (ns hitch2.descriptor
   (:require [hitch2.protocols.selector :as descriptor-proto]))
 
-(defrecord Descriptor [name term]
-  descriptor-proto/SelectorName
-  (-sname [_]
-    name))
+(defrecord Descriptor [name term])
 
 (defn descriptor? [dtor]
   (instance? Descriptor dtor))

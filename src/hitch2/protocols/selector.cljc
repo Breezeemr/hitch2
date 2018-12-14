@@ -69,19 +69,6 @@ Should be a keyword for dispatching. Values are from:
        (-get-halting-fn [impl]
          (:hitch.selector.impl/halting impl))]))
 
-(defprotocol SentinelImplementation
-  (-get-sentinel-fn [imp]))
-
-(defprotocol SelectorName
-  (-sname [imp] "returns the selector name"))
-(defprotocol SelectorValue
-  (-svalue [imp] "returns the selector value"))
-
-(extend-protocol SelectorName
-  #?(:clj Object
-     :cljs default)
-  (-sname [imp] nil))
-
 (defn get-machine [impl sel]
   (if-some [f (:hitch.selector.impl/get-machine impl)]
     (f sel)
@@ -138,11 +125,8 @@ Should be a keyword for dispatching. Values are from:
 (s/def :selector/impl
   (s/multi-spec impliementation-kind :hitch.selector.impl/kind))
 
-(defn selector-name [sel]
-  (-sname sel))
-
 (defn has-name? [selector]
-  (selector-name selector))
+  (:name selector))
 
 (s/def :selector/selector has-name?)
 
