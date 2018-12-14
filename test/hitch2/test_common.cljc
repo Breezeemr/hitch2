@@ -13,7 +13,7 @@
   :hitch.selector.spec/canonical-form :hitch.selector.spec.canonical-form/positional
   :hitch.selector.spec/positional-params [:v])
 (def constant-impl
-  {:hitch.selector.impl/kind :hitch.selector.kind/halting
+  {:hitch2.descriptor.impl/kind :hitch.selector.kind/halting
    :hitch.selector.impl/halting return-constant
    :hitch.selector.impl/halting-slot-selector (fn [_dt _sel v] v)}
 

@@ -48,7 +48,7 @@
   :hitch.selector.spec.canonical-form/positional)
 
 (def http-machine-impl
-  {:hitch.selector.impl/kind :hitch.selector.kind/machine
+  {:hitch2.descriptor.impl/kind :hitch.selector.kind/machine
    ::machine-proto/init (fn [machine-selector] initial-node)
    ::machine-proto/curation-changes
                              (fn [machine-selector graph-value node children-added children-removed]
@@ -75,7 +75,7 @@
   :hitch.selector.spec.canonical-form/map)
 
 (def http-var-impl
-  {:hitch.selector.impl/kind :hitch.selector.kind/var
+  {:hitch2.descriptor.impl/kind :hitch.selector.kind/var
    :hitch.selector.impl/get-machine
    (fn [sel]
      http-machine)})

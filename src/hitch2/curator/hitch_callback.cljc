@@ -60,7 +60,7 @@
         (update :change-focus into @shared-parent-delta))))
 
 (def react-hook-impl
-  {:hitch.selector.impl/kind
+  {:hitch2.descriptor.impl/kind
    :hitch.selector.kind/machine
 
    ::machine-proto/init

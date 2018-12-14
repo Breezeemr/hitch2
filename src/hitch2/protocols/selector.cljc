@@ -22,14 +22,14 @@ Should be a keyword for dispatching. Values are from:
   #?@(:cljs
       [cljs.core/PersistentHashMap
        (-imp-kind [impl]
-         (:hitch.selector.impl/kind impl))
+         (:hitch2.descriptor.impl/kind impl))
        cljs.core/PersistentArrayMap
        (-imp-kind [impl]
-         (:hitch.selector.impl/kind impl))]
+         (:hitch2.descriptor.impl/kind impl))]
       :clj
       [clojure.lang.APersistentMap
        (-imp-kind [impl]
-         (:hitch.selector.impl/kind impl))]))
+         (:hitch2.descriptor.impl/kind impl))]))
 
 (defprotocol HaltingImplementation
   (-get-halting-fn [imp]))
@@ -54,7 +54,7 @@ Should be a keyword for dispatching. Values are from:
     (assert false)))
 
 (s/def :hitch2.descriptor/name qualified-symbol?)
-(s/def :hitch.selector.spec/kind
+(s/def :hitch2.descriptor.spec/kind
   #{:hitch2.descriptor.spec.kind/machine
     :hitch2.descriptor.spec.kind/not-machine})
 
@@ -69,9 +69,9 @@ Should be a keyword for dispatching. Values are from:
 (s/def :hitch/selector-spec
   (s/keys
     :req [:hitch2.descriptor/name
-          :hitch.selector.spec/kind]))
+          :hitch2.descriptor.spec/kind]))
 
-(s/def :hitch.selector.impl/kind keyword?)
+(s/def :hitch2.descriptor.impl/kind keyword?)
 
 (s/def :hitch.selector.impl/machine any?)
 (s/def :hitch.selector.impl/halting fn?)
@@ -85,24 +85,24 @@ Should be a keyword for dispatching. Values are from:
   [_]
   (s/keys
     :req [:hitch2.descriptor/name]
-    :req-un [:hitch.selector.impl/kind
+    :req-un [:hitch2.descriptor.impl/kind
              :hitch.selector.impl/machine]))
 
 (defmethod impliementation-kind :hitch.selector.kind/halting
   [_]
   (s/keys
     :req [:hitch2.descriptor/name]
-    :req-un [:hitch.selector.impl/kind
+    :req-un [:hitch2.descriptor.impl/kind
              :hitch.selector.impl/halting]))
 (defmethod impliementation-kind :hitch.selector.kind/sentinel
   [_]
   (s/keys
     :req [:hitch2.descriptor/name]
-    :req-un [:hitch.selector.impl/kind
+    :req-un [:hitch2.descriptor.impl/kind
              :hitch.selector.impl/sentinel]))
 
 (s/def :selector/impl
-  (s/multi-spec impliementation-kind :hitch.selector.impl/kind))
+  (s/multi-spec impliementation-kind :hitch2.descriptor.impl/kind))
 
 (defn has-name? [selector]
   (:name selector))

@@ -9,7 +9,7 @@
 
 (def hook-spec
   {:hitch2.descriptor/name ::hook
-   :hitch.selector.spec/kind :machine})
+   :hitch2.descriptor.spec/kind :machine})
 
 (defrecord node-state [state change-focus set-projections
                        async-effects sync-effects])
@@ -24,7 +24,7 @@
   :hitch.selector.spec.canonical-form/positional)
 
 (def hook-impl
-  {:hitch.selector.impl/kind :hitch.selector.kind/machine
+  {:hitch2.descriptor.impl/kind :hitch.selector.kind/machine
    ::machine-proto/init (fn [machine-selector] initial-node)
    ::machine-proto/observed-value-changes
                              (fn [machine-selector graph-value node parent-selectors]
@@ -66,7 +66,7 @@
   :hitch.selector.spec.canonical-form/positional)
 
 (def hook-change-impl
-  {:hitch.selector.impl/kind :hitch.selector.kind/machine
+  {:hitch2.descriptor.impl/kind :hitch.selector.kind/machine
    ::machine-proto/init (fn [machine-selector] initial-node)
    ::machine-proto/observed-value-changes
    (fn [machine-selector graph-value node parent-selectors]

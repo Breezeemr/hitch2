@@ -14,7 +14,7 @@
   :hitch.selector.spec.canonical-form/positional)
 
 (def pin-machine-impl
-  {:hitch.selector.impl/kind :hitch.selector.kind/machine
+  {:hitch2.descriptor.impl/kind :hitch.selector.kind/machine
    ::machine-proto/init (fn [machine-selector] initial-node)
    ::machine-proto/observed-value-changes
                              (fn [machine-selector graph-value node parent-selectors]

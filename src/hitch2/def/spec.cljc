@@ -21,7 +21,7 @@
                 (array-map
                   ~@options
                   :hitch2.descriptor/name ~(list 'quote sel-name)
-                  :hitch.selector.spec/kind ~qkind)))))
+                  :hitch2.descriptor.spec/kind ~qkind)))))
 
 
 " Returns the kind of selector or curator.

@@ -40,7 +40,7 @@
               n-2 (api/select-sel! G (assoc sel :n (dec (dec n))))]
           (+ @n-1 @n-2))))
 
-(def fibimpl {:hitch.selector.impl/kind                  :hitch.selector.kind/halting
+(def fibimpl {:hitch2.descriptor.impl/kind                  :hitch.selector.kind/halting
               :hitch.selector.impl/halting               fibmap-halting
               :hitch.selector.impl/halting-slot-selector fibmap-halting})
 
@@ -86,7 +86,7 @@
         :else   (+ 1 @(api/select-sel! G (assoc sel :n (dec n))))))
 
 (def depends-on-map-impl
-  {:hitch.selector.impl/kind                  :hitch.selector.kind/halting
+  {:hitch2.descriptor.impl/kind                  :hitch.selector.kind/halting
    :hitch.selector.impl/halting               depends-on-map-halting
    :hitch.selector.impl/halting-slot-selector depends-on-map-halting})
 
