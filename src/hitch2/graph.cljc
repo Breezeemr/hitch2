@@ -16,7 +16,7 @@
 
 (def descriptor? descriptor/descriptor?)
 
-(defn selector-instance? [spec sel]
+(defn descriptor-instance? [spec sel]
   (assert (map? spec) (str "Spec is not a map: " spec))
   (= (:name sel)
      (:hitch2.descriptor/name spec)))
