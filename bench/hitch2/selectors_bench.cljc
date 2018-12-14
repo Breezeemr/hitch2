@@ -1,6 +1,5 @@
 (ns hitch2.selectors-bench
-  (:require [hitch2.protocols.selector :as s]
-            #?(:clj [criterium.core :refer [bench]])))
+  (:require #?(:clj [criterium.core :refer [bench]])))
 
 (def bench-times 100000)
 

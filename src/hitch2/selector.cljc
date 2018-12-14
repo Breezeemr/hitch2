@@ -8,14 +8,6 @@
 (defn- cljs-target? [env]
   (some? (:ns env)))
 
-(defn- sel-constructor
-  [name impl-symbol param-names]
-  (let [param-count (count param-names)
-        record-selector-symbol
-        (symbol "hitch2.protocols.selector" (str "->Selector" param-count))]
-    `(defn ~name ~param-names
-       (~record-selector-symbol ~impl-symbol ~@param-names))))
-
 (defn- param-names [binding-form]
   (mapv (fn [x]
           (assert (not= x '&)
@@ -78,13 +70,7 @@
        (def ~impl
          {:hitch2.descriptor.impl/kind                  :hitch.selector.kind/halting
           :hitch.selector.impl/halting               ~eval-fn-name
-          :hitch.selector.impl/halting-slot-selector ~slot-eval-fn-name}
-         #_(reify
-           hitch2.protocols.selector/ImplementationKind
-           (~'-imp-kind [~'_] :hitch.selector.kind/halting)
-           hitch2.protocols.selector/HaltingImplementation
-           (~'-get-halting-fn [~'sel]
-             ~eval-fn-name)))
+          :hitch.selector.impl/halting-slot-selector ~slot-eval-fn-name})
        (hitch2.selector-impl-registry/def-registered-selector
          ~name  ~spec ~impl))))
 

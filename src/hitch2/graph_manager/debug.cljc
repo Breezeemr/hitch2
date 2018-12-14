@@ -1,7 +1,6 @@
 (ns hitch2.graph-manager.debug
   (:require [hitch2.protocols.graph-manager :as gm]
-            [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
-            [hitch2.protocols.selector :as sel]))
+            [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]))
 
 (defn not-loaded-selectors
   [gm selector]

@@ -2,7 +2,6 @@
   (:require #?(:cljs [cljs.test :refer [deftest is testing]]
                :clj [clojure.test :refer [deftest is testing]])
             [hitch2.selector :refer [defselector]]
-            [hitch2.protocols.selector :as sel-proto]
             [hitch2.descriptor :as descriptor] ))
 
 (deftest DefSelector

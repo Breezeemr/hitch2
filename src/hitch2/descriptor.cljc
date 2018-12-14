@@ -1,5 +1,4 @@
-(ns hitch2.descriptor
-  (:require [hitch2.protocols.selector :as descriptor-proto]))
+(ns hitch2.descriptor)
 
 (defrecord Descriptor [name term])
 

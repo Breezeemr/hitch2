@@ -1,6 +1,5 @@
 (ns hitch2.graph
   (:require [hitch2.protocols.graph-manager :as graph-proto]
-            [hitch2.protocols.selector :as selector-proto]
             [hitch2.descriptor :as descriptor]
             [hitch2.curator.pin :refer [pin-machine]]
             [hitch2.curator.hook :refer [hook-machine hook-change-machine]]
