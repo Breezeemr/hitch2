@@ -34,6 +34,11 @@
 (defn get-trace [] @op-history)
 (defn clear-trace! [] (vreset! op-history []))
 
+(defn get-machine [impl sel]
+  (if-some [f (:hitch.selector.impl/get-machine impl)]
+    (f sel)
+    (assert false)))
+
 (s/def ::selector any?)
 (s/def ::graph-value (s/map-of ::selector any?))
 (s/def ::derivation-state any?)
@@ -381,7 +386,7 @@
                           new-graph-manager-value
                           new-graph-manager-value)))))
           :hitch.selector.kind/var
-          (let [machine (selector-proto/get-machine sel-impl parent)]
+          (let [machine (get-machine sel-impl parent)]
             (assert (descriptor/descriptor? machine) (pr-str parent))
             (when *trace*
               (record! [:child-change :var
@@ -568,7 +573,7 @@
               command)
             (assert false))))
       :hitch.selector.kind/var
-      (-apply-command graph-manager-value (selector-proto/get-machine sel-impl selector)
+      (-apply-command graph-manager-value (get-machine sel-impl selector)
                      command disturbed-machines))))
 
 (defn apply-command
@@ -616,7 +621,7 @@
       :hitch.selector.kind/machine
       selector
       :hitch.selector.kind/var
-      (selector-proto/get-machine sel-impl selector))))
+      (get-machine sel-impl selector))))
 
 
 (deftype gm [state scheduler]

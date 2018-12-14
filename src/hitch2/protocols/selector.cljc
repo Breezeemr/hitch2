@@ -7,11 +7,6 @@
               (java.util Iterator)
               (java.io Writer))))
 
-(defn get-machine [impl sel]
-  (if-some [f (:hitch.selector.impl/get-machine impl)]
-    (f sel)
-    (assert false)))
-
 (s/def :hitch2.descriptor/name qualified-symbol?)
 (s/def :hitch2.descriptor.spec/kind
   #{:hitch2.descriptor.spec.kind/machine
