@@ -43,6 +43,6 @@
                   (is (= result [:ok "cat\n"]) (str graph-name " value after refresh, next frame"))
                   (done))
                 sel)
-              (graph/apply-commands graph [[sel [::http/refresh]]])
+              (graph/apply-commands graph [[sel [::http/refresh sel]]])
               (is (= result [:ok "cat\n"]) (str graph-name " value after refresh")))
             sel))))))
