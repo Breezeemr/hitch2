@@ -7,7 +7,7 @@
             [hitch2.protocols.tx-manager :as tx-manager]
             [hitch2.protocols.selector :as sel-proto
              :refer [def-selector-spec]]
-            [hitch2.sel :as sel]
+            [hitch2.descriptor :as descriptor]
             [hitch2.selector-impl-registry :as reg]
             [clojure.set :as set])
   #?(:clj
@@ -106,7 +106,7 @@
 
 (reg/def-registered-selector hitch-callback-machine react-hook-spec react-hook-impl)
 
-(def hitch-callbacker (sel/sel hitch-callback-machine))
+(def hitch-callbacker (descriptor/dtor hitch-callback-machine))
 
 (defn first-run
   [gm halt-fn cb]

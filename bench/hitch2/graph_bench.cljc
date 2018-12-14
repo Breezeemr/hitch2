@@ -128,19 +128,19 @@
      :clj (f)))
 
 (defn bench-runner []
-  (depends-bench "depends-record " (sel/sel depends-on 100))
-  (depends-bench "depends-map" (sel/map->sel
+  (depends-bench "depends-record " (descriptor/dtor  depends-on 100))
+  (depends-bench "depends-map" (descriptor/map->dtor
                                  depends-on-map-spec'
                                  {:n   100}))
   (deep-value-change-bench  "deep-value-change-bench-record"
-    (sel/sel depends-on 10))
+    (descriptor/dtor  depends-on 10))
   (deep-value-change-bench  "deep-value-change-bench-map"
-    (sel/map->sel
+    (descriptor/map->dtor
       depends-on-map-spec'
                                                             {:n   10}))
-  (fib-bench "fib-record" (fn [] (sel/sel fibb-graph 40)))
+  (fib-bench "fib-record" (fn [] (descriptor/dtor  fibb-graph 40)))
   (fib-bench "fib-map" (fn []
-                         (sel/map->sel
+                         (descriptor/map->dtor
                            fib-map-spec'
                            {:n   40}))))
 

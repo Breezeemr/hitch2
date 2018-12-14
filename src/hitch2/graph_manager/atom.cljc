@@ -4,7 +4,7 @@
              [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
              [hitch2.protocols.curator :as machine-proto]
              [hitch2.protocols.selector :as selector-proto]
-             [hitch2.sel :as sel]
+             [hitch2.descriptor :as descriptor]
              [hitch2.protocols.tx-manager :as tx-manager-proto]
              [hitch2.tx-manager.halting :as halting-tx]
              [hitch2.halt :as halt])
@@ -382,7 +382,7 @@
                           new-graph-manager-value)))))
           :hitch.selector.kind/var
           (let [machine (selector-proto/get-machine sel-impl parent)]
-            (assert (sel/selector? machine) (pr-str parent))
+            (assert (descriptor/descriptor? machine) (pr-str parent))
             (when *trace*
               (record! [:child-change :var
                         (selector-proto/-sname sel-impl)]))
@@ -550,7 +550,7 @@
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
   [graph-manager-value selector command disturbed-machines]
-  (assert (sel/selector? selector)
+  (assert (descriptor/descriptor? selector)
     (str "you must address commant to a selector not "
       (pr-str selector)
       " command "

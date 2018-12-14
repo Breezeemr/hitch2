@@ -46,7 +46,7 @@
 
 (defn bench-types []
   (test-header "deftype selector")
-  (let [selector (s/->TypeSelector1 :name :value)
+  (let [selector (s/->TypeSelector1 :name :term)
         f        (fn [gv-tracker value] :do-stuff)
         gv       {:fake :gv-tracker}]
     #?(:cljs (simple-benchmark [selector selector]

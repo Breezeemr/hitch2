@@ -2,11 +2,11 @@
   #?(:clj (:import (java.io Writer)))
   (:require [hitch2.protocols.selector
              :refer [def-selector-spec]]
-            [hitch2.sel :as sel]
+            [hitch2.descriptor :as descriptor]
             [hitch2.protocols.graph-manager :as g]
             [hitch2.selector-impl-registry :as reg]))
 
-(defn return-constant [gv-tracker {[v] :value}]
+(defn return-constant [gv-tracker {[v] :term}]
   v)
 (def-selector-spec constant-spec
   :not-machine
@@ -26,7 +26,7 @@
 
 (reg/def-registered-selector constant-spec' constant-spec constant-impl)
 (defn Constant [v]
-  (sel/sel constant-spec' v))
+  (descriptor/dtor  constant-spec' v))
 
 (def sync-scheduler
   #?(:clj (reify g/IScheduler

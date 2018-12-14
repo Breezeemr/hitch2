@@ -50,7 +50,7 @@
    {(into {}
       (map make-eval-arg-binding)
       record-field-names)
-    :value}])
+    :term}])
 
 (defn tylers-def-selector [name constructor-binding-forms body]
   (let [input              (rest constructor-binding-forms)

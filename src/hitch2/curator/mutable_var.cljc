@@ -3,7 +3,7 @@
             [hitch2.protocols.curator :as machine-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.selector-impl-registry :as reg]
-            [hitch2.sel :as sel]
+            [hitch2.descriptor :as descriptor]
             [hitch2.protocols.selector :as sel-proto
              :refer [def-selector-spec]]))
 
@@ -29,7 +29,7 @@
                                        (keep
                                          (fn [x]
                                            (when-not (identical? (:state node) NOT-FOUND-SENTINEL)
-                                             [(mutable-var (:var-name (:value machine-selector))) (:state node)])))
+                                             [(mutable-var (:var-name (:term machine-selector))) (:state node)])))
                                        children-added))))
    ::machine-proto/apply-command
                              (fn [machine-selector graph-value node command]
@@ -37,15 +37,15 @@
                                  :set-value (let [[_ val] command]
                                               (-> node
                                                   (assoc :state val)
-                                                  (update :set-projections assoc (mutable-var (:var-name (:value machine-selector))) val)))
+                                                  (update :set-projections assoc (mutable-var (:var-name (:term machine-selector))) val)))
                                  :clear (-> node
                                             (assoc :state NOT-FOUND-SENTINEL)
-                                            (update :set-projections assoc (mutable-var (:var-name (:value machine-selector))) NOT-FOUND-SENTINEL))))})
+                                            (update :set-projections assoc (mutable-var (:var-name (:term machine-selector))) NOT-FOUND-SENTINEL))))})
 
 (reg/def-registered-selector mutable-var-machine-spec' mutable-var-machine-spec machine-impl)
 
 (defn mutable-machine [var-name]
-  (sel/map->sel mutable-var-machine-spec' {:var-name var-name}))
+  (descriptor/map->dtor  mutable-var-machine-spec' {:var-name var-name}))
 
 (def-selector-spec mutable-var-spec
   :not-machine
@@ -58,12 +58,12 @@
   {:hitch.selector.impl/kind :hitch.selector.kind/var
    :hitch.selector.impl/get-machine
                              (fn [sel]
-                               (mutable-machine (:var-name (:value sel))))})
+                               (mutable-machine (:var-name (:term sel))))})
 
 (reg/def-registered-selector mutable-var-spec' mutable-var-spec mutable-var-impl)
 
 (defn mutable-var [var-name]
-  (sel/map->sel
+  (descriptor/map->dtor
     mutable-var-spec'
     {:var-name var-name}))
 
