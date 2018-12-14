@@ -14,7 +14,7 @@
                     (let [dep-value (get snapshot dep NOT-FOUND-SENTINEL)]
                       (when (identical? dep-value NOT-FOUND-SENTINEL)
                         (let [impl (resolver dep)]
-                          (case (sel/-imp-kind impl)
+                          (case (:hitch2.descriptor.impl/kind impl)
                             :hitch.selector.kind/machine
                             [:machine dep]
                             (:hitch.selector.kind/var :hitch.selector.kind/halting)

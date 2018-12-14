@@ -185,7 +185,7 @@
   (reduce
     (fn [graph-manager-value selector]
       (let [sel-impl (get-impl graph-manager-value selector)
-            sel-kind (selector-proto/-imp-kind sel-impl)
+            sel-kind (:hitch2.descriptor.impl/kind sel-impl)
             node-state (get-node-state graph-manager-value selector)]
         (case sel-kind
           :hitch.selector.kind/machine
@@ -237,7 +237,7 @@
 (defn propagate-node-changes [worklist-atom dirty-machines]
   (fn [graph-manager-value selector]
     (let [sel-impl (get-impl graph-manager-value selector)
-          sel-kind (selector-proto/-imp-kind sel-impl)
+          sel-kind (:hitch2.descriptor.impl/kind sel-impl)
           node-state (get-node-state graph-manager-value selector)]
       (case sel-kind
         :hitch.selector.kind/machine
@@ -341,7 +341,7 @@
   (reduce-kv
     (fn [graph-manager-value parent added|removed]
       (let [sel-impl   (get-impl graph-manager-value parent)
-            sel-kind   (selector-proto/-imp-kind sel-impl)
+            sel-kind   (:hitch2.descriptor.impl/kind sel-impl)
             node-state (get-node-state graph-manager-value parent)]
         (case sel-kind
           :hitch.selector.kind/machine
@@ -459,7 +459,7 @@
   (fn [selector]
     (-> selector
         resolver
-        selector-proto/-imp-kind )))
+        :hitch2.descriptor.impl/kind)))
 
 (defn propagate-dependency-changes [graph-manager-value selector changes worklist-atom dirty-machines]
   (apply-child-change-commands
@@ -556,7 +556,7 @@
       " command "
       (pr-str command)))
   (let [sel-impl   (get-impl graph-manager-value selector)
-        sel-kind   (selector-proto/-imp-kind sel-impl)
+        sel-kind   (:hitch2.descriptor.impl/kind sel-impl)
         node-state (get-node-state graph-manager-value selector)]
     (case sel-kind
       :hitch.selector.kind/machine
@@ -611,7 +611,7 @@
 
 #_(defn to-machine [selector]
   (let [sel-impl   (get-impl graph-manager-value selector)
-        sel-kind   (selector-proto/-imp-kind sel-impl)]
+        sel-kind   (:hitch2.descriptor.impl/kind sel-impl)]
     (case sel-kind
       :hitch.selector.kind/machine
       selector

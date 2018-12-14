@@ -7,30 +7,6 @@
               (java.util Iterator)
               (java.io Writer))))
 
-;; selector kind? what generalizes selector and curator? Graphable?
-;; Hitchable? HitchKind Hitchtype?
-(defprotocol ImplementationKind
-  (-imp-kind [impl]
-    "Returns the kind of selector or curator.
-Should be a keyword for dispatching. Values are from:
-:hitch.selector.kind/var
-:hitch.selector.kind/curator
-:hitch.selector.kind/sentinel
-:hitch.selector.kind/halting"))
-
-(extend-protocol ImplementationKind
-  #?@(:cljs
-      [cljs.core/PersistentHashMap
-       (-imp-kind [impl]
-         (:hitch2.descriptor.impl/kind impl))
-       cljs.core/PersistentArrayMap
-       (-imp-kind [impl]
-         (:hitch2.descriptor.impl/kind impl))]
-      :clj
-      [clojure.lang.APersistentMap
-       (-imp-kind [impl]
-         (:hitch2.descriptor.impl/kind impl))]))
-
 (defprotocol HaltingImplementation
   (-get-halting-fn [imp]))
 
@@ -79,7 +55,7 @@ Should be a keyword for dispatching. Values are from:
 (s/def :hitch.selector.impl/dependent-value fn?)
 
 
-(defmulti impliementation-kind -imp-kind)
+(defmulti impliementation-kind :hitch2.descriptor.impl/kind)
 
 (defmethod impliementation-kind :hitch.selector.kind/var
   [_]
