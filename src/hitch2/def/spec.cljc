@@ -10,7 +10,7 @@
        (if (qualified-keyword? v)
          v
          (case v
-           :positional :hitch2.descriptor.spec.canonical-form/positional
+           :vector :hitch2.descriptor.spec.canonical-form/vector
            :map :hitch2.descriptor.spec.canonical-form/map
            (throw (ex-info
                     "def-descriptor-spec :canonical-form requires fully qualified keys"

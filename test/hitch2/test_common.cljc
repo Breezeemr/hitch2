@@ -10,7 +10,7 @@
   v)
 (def-descriptor-spec constant-spec
   :not-machine
-  :hitch2.descriptor.spec/canonical-form  :hitch2.descriptor.spec.canonical-form/positional
+  :hitch2.descriptor.spec/canonical-form  :hitch2.descriptor.spec.canonical-form/vector
   :hitch2.descriptor.spec/positional-params [:v])
 (def constant-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/halting
