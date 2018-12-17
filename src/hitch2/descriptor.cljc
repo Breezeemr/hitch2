@@ -78,22 +78,7 @@
           e-key                e})))))
 
 
-(defn map->dtor [descriptor-spec data]
-  (case (:hitch2.descriptor.spec/canonical-form  descriptor-spec)
-    :hitch2.descriptor.spec.canonical-form/positional
-    (let [positional-params (:hitch2.descriptor.spec/positional-params descriptor-spec)]
-      (case (count positional-params)
-        0 (->Descriptor (:hitch2.descriptor/name descriptor-spec) nil)
-        1 (let [[a] positional-params]
-            (->Descriptor (:hitch2.descriptor/name descriptor-spec) [(a data)]))
-        2 (let [[a b] positional-params]
-            (->Descriptor (:hitch2.descriptor/name descriptor-spec) [ (a data) (b data)]))
-        3 (let [[a b c] positional-params]
-            (->Descriptor (:hitch2.descriptor/name descriptor-spec) [(a data) (b data) (c data)]))
-        4 (let [[a b c d] positional-params]
-            (->Descriptor (:hitch2.descriptor/name descriptor-spec) [(a data) (b data) (c data) (d data)]))
-        5 (let [[a b c d e] positional-params]
-            (->Descriptor (:hitch2.descriptor/name descriptor-spec) [ (a data) (b data) (c data) (d data)  (e data)]))))
-    :hitch2.descriptor.spec.canonical-form/map
-    (->Descriptor (:hitch2.descriptor/name descriptor-spec)
-      data)))
+(defn ->dtor [descriptor-spec data]
+  ;TODO validate spec
+  (->Descriptor (:hitch2.descriptor/name descriptor-spec)
+    data))

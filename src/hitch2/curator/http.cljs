@@ -83,7 +83,7 @@
 (reg/def-registered-selector http-spec' http-spec http-var-impl)
 
 (defn http [url method serializer deserializer content headers withcreds]
-  (descriptor/map->dtor  http-spec'
+  (descriptor/->dtor  http-spec'
     {:url          url
      :method       method
      :serializer   serializer

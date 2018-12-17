@@ -45,7 +45,7 @@
 (reg/def-registered-selector mutable-var-machine-spec' mutable-var-machine-spec machine-impl)
 
 (defn mutable-machine [var-name]
-  (descriptor/map->dtor  mutable-var-machine-spec' {:var-name var-name}))
+  (descriptor/->dtor  mutable-var-machine-spec' {:var-name var-name}))
 
 (def-descriptor-spec mutable-var-spec
   :not-machine
@@ -63,7 +63,7 @@
 (reg/def-registered-selector mutable-var-spec' mutable-var-spec mutable-var-impl)
 
 (defn mutable-var [var-name]
-  (descriptor/map->dtor
+  (descriptor/->dtor
     mutable-var-spec'
     {:var-name var-name}))
 

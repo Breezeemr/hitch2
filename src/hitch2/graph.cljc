@@ -12,7 +12,7 @@
 
 (def dtor descriptor/dtor)
 
-(def map->dtor descriptor/map->dtor)
+(def map->dtor descriptor/->dtor)
 
 (def descriptor? descriptor/descriptor?)
 
