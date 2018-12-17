@@ -10,7 +10,7 @@
 
 
 
-(def dtor descriptor/dtor)
+(def dtor descriptor/positional-dtor)
 
 (def map->dtor descriptor/->dtor)
 

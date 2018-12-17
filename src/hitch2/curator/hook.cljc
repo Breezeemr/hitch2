@@ -57,7 +57,7 @@
 (reg/def-registered-selector hook-machine-spec' hook-machine-spec hook-impl)
 
 (def hook-machine
-  (descriptor/dtor  hook-machine-spec'))
+  (descriptor/positional-dtor  hook-machine-spec'))
 
 
 (def-descriptor-spec hook-change-machine-spec
@@ -105,7 +105,7 @@
 
 
 (def hook-change-machine
-  (descriptor/dtor  hook-change-machine-spec'))
+  (descriptor/positional-dtor  hook-change-machine-spec'))
 
 (defmethod graph-proto/run-effect :hook-call [graph-manager
                                               {:as effect

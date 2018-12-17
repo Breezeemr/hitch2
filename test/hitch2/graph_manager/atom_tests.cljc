@@ -53,7 +53,7 @@
 (deftest instrument-tests
   (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
         test-atom (atom nil)
-        fibber (fn [n] (descriptor/dtor  fibb-graph n))]
+        fibber (fn [n] (descriptor/positional-dtor  fibb-graph n))]
                                         ;needs to be async
     (hitch/pin graph-manager (fibber 30))
     (is (= #{(fibber 29) (fibber 28)}
@@ -62,7 +62,7 @@
 (deftest redepend-on-selector-bug
   (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
         test-atom (atom nil)
-        fibber (fn [n] (descriptor/dtor  fibb-graph n))
+        fibber (fn [n] (descriptor/positional-dtor  fibb-graph n))
         fib-sel   (fibber 2)]
                                         ;needs to be async
     (hitch/pin graph-manager fib-sel)

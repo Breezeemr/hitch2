@@ -106,7 +106,7 @@
 
 (reg/def-registered-selector hitch-callback-machine react-hook-spec react-hook-impl)
 
-(def hitch-callbacker (descriptor/dtor hitch-callback-machine))
+(def hitch-callbacker (descriptor/positional-dtor hitch-callback-machine))
 
 (defn first-run
   [gm halt-fn cb]

@@ -5,7 +5,7 @@
 (defn descriptor? [dtor]
   (instance? Descriptor dtor))
 
-(defn dtor
+(defn positional-dtor
   ([descriptor-spec]
    (case (:hitch2.descriptor.spec/canonical-form  descriptor-spec)
      :hitch2.descriptor.spec.canonical-form/positional

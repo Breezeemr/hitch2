@@ -26,7 +26,7 @@
 
 (reg/def-registered-selector constant-spec' constant-spec constant-impl)
 (defn Constant [v]
-  (descriptor/dtor  constant-spec' v))
+  (descriptor/positional-dtor  constant-spec' v))
 
 (def sync-scheduler
   #?(:clj (reify g/IScheduler

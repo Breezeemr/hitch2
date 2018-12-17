@@ -66,7 +66,7 @@
                                                                                :selector selector}))))})
 
 (reg/def-registered-selector http-machine-spec' http-machine-spec http-machine-impl)
-(def http-machine (descriptor/dtor  http-machine-spec'))
+(def http-machine (descriptor/positional-dtor  http-machine-spec'))
 
 
 (def-descriptor-spec http-spec

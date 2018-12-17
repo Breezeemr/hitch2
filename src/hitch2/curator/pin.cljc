@@ -42,5 +42,5 @@
 (reg/def-registered-selector pin-machine-spec' pin-machine-spec pin-machine-impl)
 
 (def pin-machine
-  (descriptor/dtor  pin-machine-spec'))
+  (descriptor/positional-dtor  pin-machine-spec'))
 

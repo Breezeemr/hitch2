@@ -11,7 +11,7 @@
   (testing "defhalting eval-fn generation"
     (is (= (TEST-SELECTOR-eval-fn nil {:term {:A 1 :B [2] :C {:k 3} } }) [1 [2] {:k 3}])))
   (testing "defhalting record property names are correct"
-    (let [{{a :A b :B c :C} :term} (descriptor/dtor  TEST-SELECTOR 1 [2] {:k 3})]
+    (let [{{a :A b :B c :C} :term} (descriptor/positional-dtor  TEST-SELECTOR 1 [2] {:k 3})]
       (is (= a 1))
       (is (= b [2]))
       (is (= c {:k 3}))))
@@ -23,7 +23,7 @@
                                                    :C    1}})
            3))
     (let [{{{a :a b :b} :args
-            C           :C} :term} (descriptor/dtor  overview-items {:a 1 :b 2} 3)]
+            C           :C} :term} (descriptor/positional-dtor  overview-items {:a 1 :b 2} 3)]
       (is (= a 1))
       (is (= b 2))
       (is (= C 3)))))
