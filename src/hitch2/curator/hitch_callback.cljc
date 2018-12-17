@@ -21,9 +21,7 @@
                  :dirty-ids     #{}}))
 
 (def-descriptor-spec react-hook-spec
-  :machine
-  :hitch2.descriptor.spec/canonical-form
-  :hitch2.descriptor.spec.canonical-form/positional)
+  :machine)
 
 (defn update-reverse-indexes
   [node id new-parents]
@@ -106,7 +104,7 @@
 
 (reg/def-registered-selector hitch-callback-machine react-hook-spec react-hook-impl)
 
-(def hitch-callbacker (descriptor/positional-dtor hitch-callback-machine))
+(def hitch-callbacker (descriptor/->dtor hitch-callback-machine nil))
 
 (defn first-run
   [gm halt-fn cb]

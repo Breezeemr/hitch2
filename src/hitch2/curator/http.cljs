@@ -43,9 +43,7 @@
 
 (def initial-node machine-proto/initial-curator-state)
 (def-descriptor-spec http-machine-spec
-  :machine
-  :hitch2.descriptor.spec/canonical-form
-  :hitch2.descriptor.spec.canonical-form/positional)
+  :machine)
 
 (def http-machine-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
@@ -66,13 +64,21 @@
                                                                                :selector selector}))))})
 
 (reg/def-registered-selector http-machine-spec' http-machine-spec http-machine-impl)
-(def http-machine (descriptor/positional-dtor  http-machine-spec'))
+(def http-machine (descriptor/->dtor  http-machine-spec' nil))
 
 
 (def-descriptor-spec http-spec
   :not-machine
-  :hitch2.descriptor.spec/canonical-form
-  :hitch2.descriptor.spec.canonical-form/map)
+  :canonical-form
+  :map
+  :positional-params [:url
+                      :method
+                      :content
+                      :headers
+                      :withcreds
+                      :serializer
+                      :deserializer
+                      ])
 
 (def http-var-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/var

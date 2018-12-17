@@ -9,9 +9,7 @@
 (def initial-node (assoc machine-proto/initial-curator-state :state #{}))
 
 (def-descriptor-spec pin-machine-spec
-  :machine
-  :hitch2.descriptor.spec/canonical-form
-  :hitch2.descriptor.spec.canonical-form/positional)
+  :machine)
 
 (def pin-machine-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
@@ -42,5 +40,5 @@
 (reg/def-registered-selector pin-machine-spec' pin-machine-spec pin-machine-impl)
 
 (def pin-machine
-  (descriptor/positional-dtor  pin-machine-spec'))
+  (descriptor/->dtor  pin-machine-spec' nil))
 

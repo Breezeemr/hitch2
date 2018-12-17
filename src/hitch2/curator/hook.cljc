@@ -19,9 +19,7 @@
   (reduce dissoc state selectors))
 
 (def-descriptor-spec hook-machine-spec
-  :machine
-  :hitch2.descriptor.spec/canonical-form
-  :hitch2.descriptor.spec.canonical-form/positional)
+  :machine)
 
 (def hook-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
@@ -57,13 +55,11 @@
 (reg/def-registered-selector hook-machine-spec' hook-machine-spec hook-impl)
 
 (def hook-machine
-  (descriptor/positional-dtor  hook-machine-spec'))
+  (descriptor/->dtor  hook-machine-spec' nil))
 
 
 (def-descriptor-spec hook-change-machine-spec
-  :machine
-  :hitch2.descriptor.spec/canonical-form
-  :hitch2.descriptor.spec.canonical-form/positional)
+  :machine)
 
 (def hook-change-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
@@ -105,7 +101,7 @@
 
 
 (def hook-change-machine
-  (descriptor/positional-dtor  hook-change-machine-spec'))
+  (descriptor/->dtor  hook-change-machine-spec' nil))
 
 (defmethod graph-proto/run-effect :hook-call [graph-manager
                                               {:as effect

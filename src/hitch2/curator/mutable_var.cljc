@@ -12,10 +12,8 @@
 
 (def-descriptor-spec mutable-var-machine-spec
   :machine
-  :hitch2.descriptor.spec/canonical-form
-  :hitch2.descriptor.spec.canonical-form/map
-  :hitch2.descriptor.spec/positional-params
-  [:var-name])
+  :canonical-form :map
+  :positional-params [:var-name])
 
 (def machine-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
@@ -49,10 +47,8 @@
 
 (def-descriptor-spec mutable-var-spec
   :not-machine
-  :hitch2.descriptor.spec/canonical-form
-  :hitch2.descriptor.spec.canonical-form/map
-  :hitch2.descriptor.spec/positional-params
-  [:var-name])
+  :canonical-form :map
+  :positional-params [:var-name])
 
 (def mutable-var-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/var
