@@ -10,9 +10,9 @@
 
 
 
-(def dtor descriptor/positional-dtor)
+(def positional-dtor descriptor/positional-dtor)
 
-(def map->dtor descriptor/->dtor)
+(def ->dtor descriptor/->dtor)
 
 (def descriptor? descriptor/descriptor?)
 
@@ -63,26 +63,26 @@
   selector-spec and remaining arguments in `graph` as soon as it is
   available. `cb` may be called synchronously if the selector's value is already
   known."
-  ([graph-manager cb selector-spec] (hook-sel graph-manager cb (dtor selector-spec)))
-  ([graph-manager cb selector-spec a] (hook-sel graph-manager cb (dtor selector-spec a)))
-  ([graph-manager cb selector-spec a b] (hook-sel graph-manager cb (dtor selector-spec a b)))
-  ([graph-manager cb selector-spec a b c] (hook-sel graph-manager cb (dtor selector-spec a b c)))
-  ([graph-manager cb selector-spec a b c d] (hook-sel graph-manager cb (dtor selector-spec a b c d)))
-  ([graph-manager cb selector-spec a b c d f] (hook-sel graph-manager cb (dtor selector-spec a b c d f)))
-  ([graph-manager cb selector-spec a b c d f g] (hook-sel graph-manager cb (dtor selector-spec a b c d f g)))
-  ([graph-manager cb selector-spec a b c d f g h] (hook-sel graph-manager cb (dtor selector-spec a b c d f g h))))
+  ([graph-manager cb selector-spec] (hook-sel graph-manager cb (positional-dtor selector-spec)))
+  ([graph-manager cb selector-spec a] (hook-sel graph-manager cb (positional-dtor selector-spec a)))
+  ([graph-manager cb selector-spec a b] (hook-sel graph-manager cb (positional-dtor selector-spec a b)))
+  ([graph-manager cb selector-spec a b c] (hook-sel graph-manager cb (positional-dtor selector-spec a b c)))
+  ([graph-manager cb selector-spec a b c d] (hook-sel graph-manager cb (positional-dtor selector-spec a b c d)))
+  ([graph-manager cb selector-spec a b c d f] (hook-sel graph-manager cb (positional-dtor selector-spec a b c d f)))
+  ([graph-manager cb selector-spec a b c d f g] (hook-sel graph-manager cb (positional-dtor selector-spec a b c d f g)))
+  ([graph-manager cb selector-spec a b c d f g h] (hook-sel graph-manager cb (positional-dtor selector-spec a b c d f g h))))
 
 (defn hook-change
   "Like hook-change-sel, but receives a selector-spec plus arguments
   instead of a selector."
-  ([graph-manager cb selector-spec] (hook-change-sel graph-manager cb (dtor selector-spec)))
-  ([graph-manager cb selector-spec a] (hook-change-sel graph-manager cb (dtor selector-spec a)))
-  ([graph-manager cb selector-spec a b] (hook-change-sel graph-manager cb (dtor selector-spec a b)))
-  ([graph-manager cb selector-spec a b c] (hook-change-sel graph-manager cb (dtor selector-spec a b c)))
-  ([graph-manager cb selector-spec a b c d] (hook-change-sel graph-manager cb (dtor selector-spec a b c d)))
-  ([graph-manager cb selector-spec a b c d f] (hook-change-sel graph-manager cb (dtor selector-spec a b c d f)))
-  ([graph-manager cb selector-spec a b c d f g] (hook-change-sel graph-manager cb (dtor selector-spec a b c d f g)))
-  ([graph-manager cb selector-spec a b c d f g h] (hook-change-sel graph-manager cb (dtor selector-spec a b c d f g h))))
+  ([graph-manager cb selector-spec] (hook-change-sel graph-manager cb (positional-dtor selector-spec)))
+  ([graph-manager cb selector-spec a] (hook-change-sel graph-manager cb (positional-dtor selector-spec a)))
+  ([graph-manager cb selector-spec a b] (hook-change-sel graph-manager cb (positional-dtor selector-spec a b)))
+  ([graph-manager cb selector-spec a b c] (hook-change-sel graph-manager cb (positional-dtor selector-spec a b c)))
+  ([graph-manager cb selector-spec a b c d] (hook-change-sel graph-manager cb (positional-dtor selector-spec a b c d)))
+  ([graph-manager cb selector-spec a b c d f] (hook-change-sel graph-manager cb (positional-dtor selector-spec a b c d f)))
+  ([graph-manager cb selector-spec a b c d f g] (hook-change-sel graph-manager cb (positional-dtor selector-spec a b c d f g)))
+  ([graph-manager cb selector-spec a b c d f g h] (hook-change-sel graph-manager cb (positional-dtor selector-spec a b c d f g h))))
 
 (defn hitch-callback
   "Given a graph, execute fn `body` in a graph transaction context, calling
@@ -156,42 +156,42 @@
    (dget-sel! tx-manager
      (if (fn? selector-spec)
        (selector-spec)
-       (dtor selector-spec)) nf))
+       (positional-dtor selector-spec)) nf))
   ([tx-manager nf selector-spec a]
    (dget-sel! tx-manager
      (if (fn? selector-spec)
        (selector-spec a)
-       (dtor selector-spec a)) nf))
+       (positional-dtor selector-spec a)) nf))
   ([tx-manager nf selector-spec a b]
    (dget-sel! tx-manager
      (if (fn? selector-spec)
        (selector-spec a b)
-       (dtor selector-spec a b)) nf))
+       (positional-dtor selector-spec a b)) nf))
   ([tx-manager nf selector-spec a b c]
    (dget-sel! tx-manager
      (if (fn? selector-spec)
        (selector-spec a b c)
-       (dtor selector-spec a b c)) nf))
+       (positional-dtor selector-spec a b c)) nf))
   ([tx-manager nf selector-spec a b c d]
    (dget-sel! tx-manager
      (if (fn? selector-spec)
        (selector-spec a b c d)
-       (dtor selector-spec a b c d)) nf))
+       (positional-dtor selector-spec a b c d)) nf))
   ([tx-manager nf selector-spec a b c d e]
    (dget-sel! tx-manager
      (if (fn? selector-spec)
        (selector-spec a b c d e)
-       (dtor selector-spec a b c d e)) nf))
+       (positional-dtor selector-spec a b c d e)) nf))
   ([tx-manager nf selector-spec a b c d e f]
    (dget-sel! tx-manager
      (if (fn? selector-spec)
        (selector-spec a b c d e f)
-       (dtor selector-spec a b c d e f)) nf))
+       (positional-dtor selector-spec a b c d e f)) nf))
   ([tx-manager nf selector-spec a b c d e f g]
    (dget-sel! tx-manager
      (if (fn? selector-spec)
        (selector-spec a b c d e f g)
-       (dtor selector-spec a b c d e f g)) nf)))
+       (positional-dtor selector-spec a b c d e f g)) nf)))
 
 (defn select-sel!
   "Return a box containing the value for a selector from graph transaction
