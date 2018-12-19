@@ -14,6 +14,7 @@
                               node-state
                               observes
                               observed-by])
+(defrecord curator-state [node])
 (defrecord deriving-state [change-focus waiting value-changed?])
 (defrecord var-state [value-changed?])
 
@@ -86,21 +87,37 @@
 
 (declare propagate-dependency-changes)
 
+(defn get-init-node [graph-manager-value resolver selector disturbed-machines]
+  (if-some [node-state (get-node-state graph-manager-value selector)]
+    node-state
+    (let [sel-impl (resolver selector)
+          sel-kind (:hitch2.descriptor.impl/kind sel-impl)]
+      (case sel-kind
+        :hitch2.descriptor.kind/machine
+        (if-some [init (::machine-proto/init (resolver selector))]
+          (init selector)
+          machine-proto/initial-curator-state)
+        :hitch2.descriptor.kind/var
+        (->var-state false)
+        :hitch2.descriptor.kind/halting
+        (->deriving-state
+          [] #{} false)
+        ))))
+
 (defn propagate-set-projections [graph-manager-value set-projections worklist-atom]
   (reduce-kv (fn [gv sel value]
                (let [old-value (-> gv :graph-value (get sel NOT-FOUND-SENTINEL))]
                  (if (= old-value value)
                    gv
-                   (if (identical? value NOT-FOUND-SENTINEL)
+                   (do
+                     (when-not (identical? value NOT-FOUND-SENTINEL)
+                       (add-to-working-set worklist-atom sel))
                      (-> gv
-                         (assoc-in [:node-state sel] (->var-state true))
-                         (update :graph-value dissoc sel))
-                     (do
-                       (add-to-working-set worklist-atom sel)
-                       (-> gv
-                           (assoc-in [:node-state sel :value-changed?] true)
-                           (assoc-in [:graph-value sel] value))
-                       )))))
+                         (assoc-in [:node-state sel :value-changed?]
+                           true #_(if (identical? value NOT-FOUND-SENTINEL)
+                                                                       false
+                                                                       true))
+                         (assoc-in [:graph-value sel] value))))))
     graph-manager-value
     set-projections))
 
@@ -330,25 +347,6 @@
           (recur graph-manager-value resolver flush-worklist dirty-machines (dec recursion-limit))
           graph-manager-value)))))
 
-(defn get-init-node [graph-manager-value resolver selector disturbed-machines]
-  (if-some [node-state (get-node-state graph-manager-value selector)]
-    (let [sel-impl (resolver selector)
-          sel-kind (:hitch2.descriptor.impl/kind sel-impl)]
-      node-state)
-    (let [sel-impl (resolver selector)
-          sel-kind (:hitch2.descriptor.impl/kind sel-impl)]
-      (case sel-kind
-        :hitch2.descriptor.kind/machine
-        (if-some [init (::machine-proto/init (resolver selector))]
-          (init selector)
-          machine-proto/initial-curator-state)
-        :hitch2.descriptor.kind/var
-        nil
-        :hitch2.descriptor.kind/halting
-        nil
-        )))
-
-  )
 (defn apply-child-change-commands [graph-manager-value resolver child changes worklist-atom dirty-machines]
   (reduce-kv
     (fn [graph-manager-value parent added|removed]
@@ -410,18 +408,17 @@
                             (propagate-dependency-changes resolver parent {machine false} worklist-atom dirty-machines)))
                       (update :node-state dissoc parent))))
           :hitch2.descriptor.kind/halting
-          (let [node-state (get-in graph-manager-value [:node-state parent] NOT-FOUND-SENTINEL)]
+          (let [old-node-state (get-in graph-manager-value [:node-state parent] NOT-FOUND-SENTINEL)]
             (when *trace*
               (record! [:child-change :halting
                         (:name sel-impl)
                         child
                         parent]))
             (case added|removed
-              true (if (= node-state NOT-FOUND-SENTINEL)
+              true (if (= old-node-state NOT-FOUND-SENTINEL)
                      (let [graph-manager-value (run-halting
                                                  graph-manager-value
-                                                 (->deriving-state
-                                                   [] #{} false)
+                                                 node-state
                                                  resolver
                                                  parent
                                                  sel-impl
