@@ -71,15 +71,6 @@
   (-> graph-manager-value :graph-value))
 
 
-(defn init-machine [node-state resolver selector]
-  (let [curator-state (if node-state
-                        node-state
-                        (if-some [init (::machine-proto/init (resolver selector))]
-                          (init selector)
-                          machine-proto/initial-curator-state))]
-    (s/assert ::machine-proto/curator-state curator-state)
-    curator-state))
-
 (defn- add-to-working-set [working-set selector]
   (vswap! working-set conj! selector)
   nil)
@@ -92,11 +83,6 @@
       (if-some [tx-init (::machine-proto/tx-init (resolver selector))]
         (tx-init selector (get-graph-value graph-manager-value) node-state)
         node-state))))
-
-(defn ensure-inits [node-state graph-manager-value resolver selector disturbed-machines]
-  (-> node-state
-      (init-machine resolver selector)
-      (tx-init-machine graph-manager-value resolver selector disturbed-machines)))
 
 (declare propagate-dependency-changes)
 
@@ -188,6 +174,7 @@
       (let [sel-impl (resolver selector)
             sel-kind (:hitch2.descriptor.impl/kind sel-impl)
             node-state (get-node-state graph-manager-value selector)]
+        (assert node-state)
         (case sel-kind
           :hitch2.descriptor.kind/machine
           (let [graph-value    (get-graph-value graph-manager-value)
@@ -197,7 +184,7 @@
                  :as                new-node-state}
                 (if-some [observed-value-changes (::machine-proto/observed-value-changes sel-impl)]
                   (observed-value-changes selector graph-value
-                    (ensure-inits node-state graph-manager-value  resolver  selector dirty-machines)
+                    (tx-init-machine node-state graph-manager-value  resolver  selector dirty-machines)
                     #{parent})
                   (assert false))]
             (s/assert ::machine-proto/curator-state new-node-state)
@@ -242,6 +229,7 @@
     (let [sel-impl (resolver selector)
           sel-kind (:hitch2.descriptor.impl/kind sel-impl)
           node-state (get-node-state graph-manager-value selector)]
+      (assert node-state)
       (case sel-kind
         :hitch2.descriptor.kind/machine
         (let [{:keys [change-focus set-projections]}
@@ -314,6 +302,7 @@
     (fn [graph-manager-value machine]
       (let [old-node-state (get-node-state graph-manager-value machine)
             new-node-sate  (flush-tx old-node-state graph-manager-value resolver machine)]
+        (assert old-node-state)
         (if (= old-node-state new-node-sate)
           graph-manager-value
           (do (add-to-working-set flush-worklist-atom machine)
@@ -341,12 +330,31 @@
           (recur graph-manager-value resolver flush-worklist dirty-machines (dec recursion-limit))
           graph-manager-value)))))
 
+(defn get-init-node [graph-manager-value resolver selector disturbed-machines]
+  (if-some [node-state (get-node-state graph-manager-value selector)]
+    (let [sel-impl (resolver selector)
+          sel-kind (:hitch2.descriptor.impl/kind sel-impl)]
+      node-state)
+    (let [sel-impl (resolver selector)
+          sel-kind (:hitch2.descriptor.impl/kind sel-impl)]
+      (case sel-kind
+        :hitch2.descriptor.kind/machine
+        (if-some [init (::machine-proto/init (resolver selector))]
+          (init selector)
+          machine-proto/initial-curator-state)
+        :hitch2.descriptor.kind/var
+        nil
+        :hitch2.descriptor.kind/halting
+        nil
+        )))
+
+  )
 (defn apply-child-change-commands [graph-manager-value resolver child changes worklist-atom dirty-machines]
   (reduce-kv
     (fn [graph-manager-value parent added|removed]
       (let [sel-impl   (resolver parent)
             sel-kind   (:hitch2.descriptor.impl/kind sel-impl)
-            node-state (get-node-state graph-manager-value parent)]
+            node-state (get-init-node graph-manager-value resolver parent dirty-machines)]
         (case sel-kind
           :hitch2.descriptor.kind/machine
           (let [graph-value        (get-graph-value graph-manager-value)
@@ -356,7 +364,7 @@
                  :as                new-node-state}
                 (if-some [curation-changes (::machine-proto/curation-changes sel-impl)]
                   (curation-changes parent graph-value
-                    (ensure-inits node-state graph-manager-value  resolver parent dirty-machines)
+                    (tx-init-machine node-state graph-manager-value  resolver parent dirty-machines)
                     (when added|removed
                       #{child})
                     (when (not added|removed)
@@ -558,15 +566,15 @@
       " command "
       (pr-str command)))
   (let [sel-impl   (resolver selector)
-        sel-kind   (:hitch2.descriptor.impl/kind sel-impl)
-        node-state (get-node-state graph-manager-value selector)]
+        sel-kind   (:hitch2.descriptor.impl/kind sel-impl)]
     (case sel-kind
       :hitch2.descriptor.kind/machine
-      (let [graph-value        (get-graph-value graph-manager-value)]
+      (let [graph-value        (get-graph-value graph-manager-value)
+            node-state         (get-init-node graph-manager-value resolver selector disturbed-machines)]
         (assoc-in graph-manager-value [:node-state selector]
           (if-some [apply-command (::machine-proto/apply-command sel-impl)]
             (apply-command selector graph-value
-              (ensure-inits node-state graph-manager-value  resolver selector disturbed-machines)
+              (tx-init-machine node-state graph-manager-value  resolver selector disturbed-machines)
               command)
             (assert false))))
       :hitch2.descriptor.kind/var
