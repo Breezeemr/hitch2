@@ -301,7 +301,7 @@
                   assoc
                   :value-changed? false)
                 (propagate-value-changes resolver selector worklist-atom dirty-machines)))))
-        (do (prn selector "on changelist after removed")
+        (do                                                 ; (prn selector "on changelist after removed")
           graph-manager-value)))))
 
 (s/fdef propagate-changes
