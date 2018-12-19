@@ -244,64 +244,65 @@
 (defn propagate-node-changes [resolver worklist-atom dirty-machines]
   (fn [graph-manager-value selector]
     (let [sel-impl (resolver selector)
-          sel-kind (:hitch2.descriptor.impl/kind sel-impl)
-          node-state (get-node-state graph-manager-value selector)]
-      (assert node-state)
-      (case sel-kind
-        :hitch2.descriptor.kind/machine
-        (let [{:keys [change-focus set-projections]}
-              node-state]
-          (s/assert ::machine-proto/curator-state node-state)
-          (when (not-empty set-projections)
-            (add-to-working-set worklist-atom selector))
-          (when *trace* (record! [:node-changes :machine (:name sel-impl)
-                                  selector
-                                  node-state]))
-          (cond-> graph-manager-value
-            (not-empty change-focus)
-            (->
-              (update-in [:node-state selector]
-                assoc
-                :change-focus {})
-              (propagate-dependency-changes resolver selector change-focus worklist-atom dirty-machines))
-            (not-empty set-projections)
-            (->
-              (update-in [:node-state selector]
-                assoc
-                :set-projections {})
-              (propagate-set-projections set-projections worklist-atom))))
-        :hitch2.descriptor.kind/var
-        (let [{:keys [value-changed?]}
-              node-state]
-          (when *trace* (record! [:node-changes :var (:name sel-impl)
-                                  selector]))
-          (cond-> graph-manager-value
-            value-changed?
-            (->
-              (update-in [:node-state selector]
-                assoc
-                :value-changed? false)
-              (propagate-value-changes resolver selector worklist-atom dirty-machines))))
-        :hitch2.descriptor.kind/halting
-        (let [{:keys [value-changed? change-focus]}
-              node-state]
-          (when *trace*
-            (record! [:node-changes :halting (:name sel-impl)
-                      selector (-> graph-manager-value :graph-value (get selector))])
-                )
-          (cond-> graph-manager-value
-            (not-empty change-focus)
-            (->
-              (update-in [:node-state selector]
-                assoc
-                :change-focus {})
-              (propagate-dependency-changes resolver selector change-focus worklist-atom dirty-machines))
-            value-changed?
-            (->
-              (update-in [:node-state selector]
-                assoc
-                :value-changed? false)
-              (propagate-value-changes resolver selector worklist-atom dirty-machines))))))))
+          sel-kind (:hitch2.descriptor.impl/kind sel-impl)]
+      (if-some [node-state (get-node-state graph-manager-value selector)]
+        (case sel-kind
+          :hitch2.descriptor.kind/machine
+          (let [{:keys [change-focus set-projections]}
+                node-state]
+            (s/assert ::machine-proto/curator-state node-state)
+            (when (not-empty set-projections)
+              (add-to-working-set worklist-atom selector))
+            (when *trace* (record! [:node-changes :machine (:name sel-impl)
+                                    selector
+                                    node-state]))
+            (cond-> graph-manager-value
+              (not-empty change-focus)
+              (->
+                (update-in [:node-state selector]
+                  assoc
+                  :change-focus {})
+                (propagate-dependency-changes resolver selector change-focus worklist-atom dirty-machines))
+              (not-empty set-projections)
+              (->
+                (update-in [:node-state selector]
+                  assoc
+                  :set-projections {})
+                (propagate-set-projections set-projections worklist-atom))))
+          :hitch2.descriptor.kind/var
+          (let [{:keys [value-changed?]}
+                node-state]
+            (when *trace* (record! [:node-changes :var (:name sel-impl)
+                                    selector]))
+            (cond-> graph-manager-value
+              value-changed?
+              (->
+                (update-in [:node-state selector]
+                  assoc
+                  :value-changed? false)
+                (propagate-value-changes resolver selector worklist-atom dirty-machines))))
+          :hitch2.descriptor.kind/halting
+          (let [{:keys [value-changed? change-focus]}
+                node-state]
+            (when *trace*
+              (record! [:node-changes :halting (:name sel-impl)
+                        selector (-> graph-manager-value :graph-value (get selector))])
+              )
+            (cond-> graph-manager-value
+              (not-empty change-focus)
+              (->
+                (update-in [:node-state selector]
+                  assoc
+                  :change-focus {})
+                (propagate-dependency-changes resolver selector change-focus worklist-atom dirty-machines))
+              value-changed?
+              (->
+                (update-in [:node-state selector]
+                  assoc
+                  :value-changed? false)
+                (propagate-value-changes resolver selector worklist-atom dirty-machines)))))
+        (do (prn selector "on changelist after removed")
+          graph-manager-value)))))
 
 (s/fdef propagate-changes
   :args (s/cat
