@@ -13,8 +13,7 @@
 (defrecord GraphManagerValue [graph-value
                               node-state
                               observes
-                              observed-by
-                              resolver])
+                              observed-by])
 (defrecord deriving-state [change-focus waiting value-changed?])
 (defrecord var-state [value-changed?])
 
@@ -59,9 +58,6 @@
              ::observes
              ::observed-by]))
 
-(defn get-impl [{:keys [resolver]} selector]
-  (resolver selector))
-
 (defn get-observes [graph-manager-value selector]
   (-> graph-manager-value :observes (get selector)))
 
@@ -88,19 +84,19 @@
   (vswap! working-set conj! selector)
   nil)
 
-(defn tx-init-machine [node-state graph-manager-value selector disturbed-machines]
+(defn tx-init-machine [node-state graph-manager-value resolver selector disturbed-machines]
   (if (contains? @disturbed-machines selector)
     node-state
     (do
       (add-to-working-set disturbed-machines selector)
-      (if-some [tx-init (::machine-proto/tx-init (get-impl graph-manager-value selector))]
+      (if-some [tx-init (::machine-proto/tx-init (resolver selector))]
         (tx-init selector (get-graph-value graph-manager-value) node-state)
         node-state))))
 
-(defn ensure-inits [node-state graph-manager-value selector disturbed-machines]
+(defn ensure-inits [node-state graph-manager-value resolver selector disturbed-machines]
   (-> node-state
-      (init-machine (:resolver graph-manager-value) selector)
-      (tx-init-machine graph-manager-value selector disturbed-machines)))
+      (init-machine resolver selector)
+      (tx-init-machine graph-manager-value resolver selector disturbed-machines)))
 
 (declare propagate-dependency-changes)
 
@@ -131,6 +127,7 @@
 
 (defn run-halting [graph-manager-value
                    node-state
+                   resolver
                    selector
                    simpl
                    worklist-atom
@@ -170,7 +167,7 @@
         [:graph-value selector]
         new-value)
       (not-empty change-focus)
-      (propagate-dependency-changes selector change-focus worklist-atom dirty-machines))))
+      (propagate-dependency-changes resolver selector change-focus worklist-atom dirty-machines))))
 
 
 (defn addval [x k v]
@@ -185,10 +182,10 @@
       (dissoc x k))
     x))
 
-(defn propagate-value-changes [graph-manager-value parent worklist-atom dirty-machines]
+(defn propagate-value-changes [graph-manager-value resolver parent worklist-atom dirty-machines]
   (reduce
     (fn [graph-manager-value selector]
-      (let [sel-impl (get-impl graph-manager-value selector)
+      (let [sel-impl (resolver selector)
             sel-kind (:hitch2.descriptor.impl/kind sel-impl)
             node-state (get-node-state graph-manager-value selector)]
         (case sel-kind
@@ -200,7 +197,7 @@
                  :as                new-node-state}
                 (if-some [observed-value-changes (::machine-proto/observed-value-changes sel-impl)]
                   (observed-value-changes selector graph-value
-                    (ensure-inits node-state graph-manager-value selector dirty-machines)
+                    (ensure-inits node-state graph-manager-value  resolver  selector dirty-machines)
                     #{parent})
                   (assert false))]
             (s/assert ::machine-proto/curator-state new-node-state)
@@ -215,7 +212,7 @@
               (->
                 (assoc-in
                   [:node-state selector :change-focus] {})
-                (propagate-dependency-changes selector new-change-focus worklist-atom dirty-machines))))
+                (propagate-dependency-changes resolver selector new-change-focus worklist-atom dirty-machines))))
           ;:hitch2.descriptor.kind/var
           ;(assert false "should not happen")
           :hitch2.descriptor.kind/halting
@@ -229,6 +226,7 @@
               (let [graph-manager-value (run-halting
                                           graph-manager-value
                                           node-state
+                                          resolver
                                           selector
                                           sel-impl
                                           worklist-atom
@@ -238,9 +236,10 @@
     graph-manager-value
     (-> graph-manager-value :observed-by (get parent))))
 
-(defn propagate-node-changes [worklist-atom dirty-machines]
+
+(defn propagate-node-changes [resolver worklist-atom dirty-machines]
   (fn [graph-manager-value selector]
-    (let [sel-impl (get-impl graph-manager-value selector)
+    (let [sel-impl (resolver selector)
           sel-kind (:hitch2.descriptor.impl/kind sel-impl)
           node-state (get-node-state graph-manager-value selector)]
       (case sel-kind
@@ -259,7 +258,7 @@
               (update-in [:node-state selector]
                 assoc
                 :change-focus {})
-              (propagate-dependency-changes selector change-focus worklist-atom dirty-machines))
+              (propagate-dependency-changes resolver selector change-focus worklist-atom dirty-machines))
             (not-empty set-projections)
             (->
               (update-in [:node-state selector]
@@ -277,7 +276,7 @@
               (update-in [:node-state selector]
                 assoc
                 :value-changed? false)
-              (propagate-value-changes selector worklist-atom dirty-machines))))
+              (propagate-value-changes resolver selector worklist-atom dirty-machines))))
         :hitch2.descriptor.kind/halting
         (let [{:keys [value-changed? change-focus]}
               node-state]
@@ -291,13 +290,13 @@
               (update-in [:node-state selector]
                 assoc
                 :change-focus {})
-              (propagate-dependency-changes selector change-focus worklist-atom dirty-machines))
+              (propagate-dependency-changes resolver selector change-focus worklist-atom dirty-machines))
             value-changed?
             (->
               (update-in [:node-state selector]
                 assoc
                 :value-changed? false)
-              (propagate-value-changes selector worklist-atom dirty-machines))))))))
+              (propagate-value-changes resolver selector worklist-atom dirty-machines))))))))
 
 (s/fdef propagate-changes
   :args (s/cat
@@ -305,16 +304,16 @@
           :dirty-list (s/coll-of ::selectors))
   :ret ::graph-manager-value)
 
-(defn flush-tx [node-state graph-manager-value selector]
-  (if-some [flush-tx (::machine-proto/flush-tx  (get-impl graph-manager-value selector))]
+(defn flush-tx [node-state graph-manager-value resolver  selector]
+  (if-some [flush-tx (::machine-proto/flush-tx  (resolver selector))]
     (flush-tx selector (:graph-value graph-manager-value) node-state)
     node-state))
 
-(defn flush-worklist [graph-manager-value dirty-machines-snapshot flush-worklist-atom]
+(defn flush-worklist [graph-manager-value resolver dirty-machines-snapshot flush-worklist-atom]
   (reduce
     (fn [graph-manager-value machine]
       (let [old-node-state (get-node-state graph-manager-value machine)
-            new-node-sate  (flush-tx old-node-state graph-manager-value machine)]
+            new-node-sate  (flush-tx old-node-state graph-manager-value resolver machine)]
         (if (= old-node-state new-node-sate)
           graph-manager-value
           (do (add-to-working-set flush-worklist-atom machine)
@@ -322,29 +321,30 @@
     graph-manager-value
     dirty-machines-snapshot))
 
-(defn propagate-changes [graph-manager-value work-list dirty-machines ^long recursion-limit]
+(defn propagate-changes [graph-manager-value resolver work-list dirty-machines recursion-limit]
   (let [new-work-list-atom (volatile! (transient #{}))
         graph-manager-value (reduce
                                   (propagate-node-changes
+                                    resolver
                                     new-work-list-atom
                                     dirty-machines)
                                   graph-manager-value
                                   work-list)]
     (assert (not (zero? recursion-limit)))
     (if-some [new-work-list (not-empty (persistent! @new-work-list-atom))]
-      (recur graph-manager-value new-work-list dirty-machines (dec recursion-limit))
+      (recur graph-manager-value resolver new-work-list dirty-machines (dec recursion-limit))
       (let [dirty-machines-snapshot (persistent! @dirty-machines)
             _ (vreset! dirty-machines (transient dirty-machines-snapshot))
             flush-worklist-atom (volatile! (transient #{}))
-            graph-manager-value (flush-worklist graph-manager-value dirty-machines-snapshot flush-worklist-atom)]
+            graph-manager-value (flush-worklist graph-manager-value resolver dirty-machines-snapshot flush-worklist-atom)]
         (if-some [flush-worklist (not-empty (persistent! @flush-worklist-atom))]
-          (recur graph-manager-value flush-worklist dirty-machines (dec recursion-limit))
+          (recur graph-manager-value resolver flush-worklist dirty-machines (dec recursion-limit))
           graph-manager-value)))))
 
-(defn apply-child-change-commands [graph-manager-value child changes worklist-atom dirty-machines]
+(defn apply-child-change-commands [graph-manager-value resolver child changes worklist-atom dirty-machines]
   (reduce-kv
     (fn [graph-manager-value parent added|removed]
-      (let [sel-impl   (get-impl graph-manager-value parent)
+      (let [sel-impl   (resolver parent)
             sel-kind   (:hitch2.descriptor.impl/kind sel-impl)
             node-state (get-node-state graph-manager-value parent)]
         (case sel-kind
@@ -356,7 +356,7 @@
                  :as                new-node-state}
                 (if-some [curation-changes (::machine-proto/curation-changes sel-impl)]
                   (curation-changes parent graph-value
-                    (ensure-inits node-state graph-manager-value parent dirty-machines)
+                    (ensure-inits node-state graph-manager-value  resolver parent dirty-machines)
                     (when added|removed
                       #{child})
                     (when (not added|removed)
@@ -377,7 +377,7 @@
                       (assoc new-node-state
                         :change-focus {}))
                     (not-empty new-change-focus)
-                    (propagate-dependency-changes parent new-change-focus worklist-atom dirty-machines))]
+                    (propagate-dependency-changes resolver parent new-change-focus worklist-atom dirty-machines))]
               (case added|removed
                 true new-graph-manager-value
                 false (-> ;deinit lifecycle
@@ -393,13 +393,13 @@
             (case added|removed
               true (if (get-in graph-manager-value [:observes parent machine])
                      graph-manager-value
-                     (propagate-dependency-changes graph-manager-value parent {machine true} worklist-atom dirty-machines))
+                     (propagate-dependency-changes graph-manager-value resolver parent {machine true} worklist-atom dirty-machines))
               false (->                                     ;deinit
                       (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by parent]))]
                         graph-manager-value
                         (-> graph-manager-value
                             (update :graph-value dissoc parent)
-                            (propagate-dependency-changes parent {machine false} worklist-atom dirty-machines)))
+                            (propagate-dependency-changes resolver parent {machine false} worklist-atom dirty-machines)))
                       (update :node-state dissoc parent))))
           :hitch2.descriptor.kind/halting
           (let [node-state (get-in graph-manager-value [:node-state parent] NOT-FOUND-SENTINEL)]
@@ -414,6 +414,7 @@
                                                  graph-manager-value
                                                  (->deriving-state
                                                    [] #{} false)
+                                                 resolver
                                                  parent
                                                  sel-impl
                                                  worklist-atom
@@ -429,6 +430,7 @@
                           (-> graph-manager-value
                               (update :graph-value dissoc parent)
                               (propagate-dependency-changes
+                                resolver
                                 parent
                                 (into {}
                                   (map (fn [x]
@@ -459,17 +461,13 @@
     observes
     changes)
   )
-(defn sel-type-extractor [{:keys [resolver] :as graph-manager-value}]
-  (fn [selector]
-    (-> selector
-        resolver
-        :hitch2.descriptor.impl/kind)))
 
-(defn propagate-dependency-changes [graph-manager-value selector changes worklist-atom dirty-machines]
+(defn propagate-dependency-changes [graph-manager-value resolver selector changes worklist-atom dirty-machines]
   (apply-child-change-commands
     (-> graph-manager-value
         (update :observed-by update-observed-by selector changes)
         (update :observes update-observes selector changes))
+    resolver
     selector
     changes
     worklist-atom
@@ -492,8 +490,8 @@
     node-state
     machines))
 
-(defn finalize-tx [node-state graph-value graph-manager-value selector]
-  (if-some [finalize (::machine-proto/finalize (get-impl graph-manager-value selector))]
+(defn finalize-tx [node-state graph-value resolver selector]
+  (if-some [finalize (::machine-proto/finalize (resolver selector))]
     (finalize selector graph-value node-state)
     node-state))
 
@@ -508,7 +506,7 @@
     source))
 
 (defn finalize-effects
-  [graph-manager-value disturbed-machines  sync-effects-atom async-effects-atom]
+  [graph-manager-value resolver disturbed-machines  sync-effects-atom async-effects-atom]
   (let [graph-value         (get-graph-value graph-manager-value)]
     (reduce
       (fn [{:keys [node-state] :as graph-manager-value} selector]
@@ -517,7 +515,7 @@
                :as new-state} (finalize-tx
                                 old-state
                                 graph-value
-                                graph-manager-value
+                                resolver
                                 selector)]
           (assert-valid-finalized-node-state new-state (:name selector))
           (when (not-empty sync-effects)
@@ -553,13 +551,13 @@
 (defn -apply-command
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
-  [graph-manager-value selector command disturbed-machines]
+  [graph-manager-value resolver selector command disturbed-machines]
   (assert (descriptor/descriptor? selector)
     (str "you must address commant to a selector not "
       (pr-str selector)
       " command "
       (pr-str command)))
-  (let [sel-impl   (get-impl graph-manager-value selector)
+  (let [sel-impl   (resolver selector)
         sel-kind   (:hitch2.descriptor.impl/kind sel-impl)
         node-state (get-node-state graph-manager-value selector)]
     (case sel-kind
@@ -568,26 +566,28 @@
         (assoc-in graph-manager-value [:node-state selector]
           (if-some [apply-command (::machine-proto/apply-command sel-impl)]
             (apply-command selector graph-value
-              (ensure-inits node-state graph-manager-value selector disturbed-machines)
+              (ensure-inits node-state graph-manager-value  resolver selector disturbed-machines)
               command)
             (assert false))))
       :hitch2.descriptor.kind/var
-      (-apply-command graph-manager-value (get-machine sel-impl selector)
+      (-apply-command graph-manager-value resolver (get-machine sel-impl selector)
                      command disturbed-machines))))
 
 (defn apply-command
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
-  [graph-manager-value selector command sync-effects-atom async-effects-atom]
+  [graph-manager-value resolver selector command sync-effects-atom async-effects-atom]
   (let [disturbed-machines (volatile! (transient #{}))
-        graph-manager-value (-apply-command graph-manager-value selector command disturbed-machines)
+        graph-manager-value (-apply-command graph-manager-value resolver selector command disturbed-machines)
         disturbed-machines-snapshot (persistent! @disturbed-machines)
         _  (vreset! disturbed-machines (transient disturbed-machines-snapshot))
         graph-manager-value (propagate-changes graph-manager-value
+                              resolver
                               disturbed-machines-snapshot
                               disturbed-machines
                               recursion-limit)]
     (finalize-effects graph-manager-value
+      resolver
       (persistent! @disturbed-machines)
       sync-effects-atom async-effects-atom)
     ))
@@ -595,26 +595,28 @@
 (defn apply-commands
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
-  [graph-manager-value cmds sync-effects-atom async-effects-atom]
+  [graph-manager-value resolver cmds sync-effects-atom async-effects-atom]
   (let [disturbed-machines (volatile! (transient #{}))
         graph-manager-value
                            (reduce
                              (fn [gmv [selector command]]
-                               (-apply-command gmv selector command disturbed-machines))
+                               (-apply-command gmv resolver selector command disturbed-machines))
                              graph-manager-value
                              cmds)
         disturbed-machines-snapshot (persistent! @disturbed-machines)
         _ (vreset! disturbed-machines (transient disturbed-machines-snapshot))
         graph-manager-value (propagate-changes graph-manager-value
+                              resolver
                               disturbed-machines-snapshot disturbed-machines
                               recursion-limit)]
     (finalize-effects graph-manager-value
+      resolver
       (persistent! @disturbed-machines)
       sync-effects-atom async-effects-atom)
     ))
 
 #_(defn to-machine [selector]
-  (let [sel-impl   (get-impl graph-manager-value selector)
+  (let [sel-impl   (resolver selector)
         sel-kind   (:hitch2.descriptor.impl/kind sel-impl)]
     (case sel-kind
       :hitch2.descriptor.kind/machine
@@ -623,7 +625,7 @@
       (get-machine sel-impl selector))))
 
 
-(deftype gm [state scheduler]
+(deftype gm [state scheduler resolver]
   g/Snapshot
   (-get-graph [graph-manager]
     (:graph-value @state))
@@ -631,7 +633,7 @@
   (-transact! [graph-manager machine command]
     (let [sync-effects-atom (volatile! (transient []))
           async-effects-atom (volatile! (transient []))]
-      (swap! state apply-command machine command sync-effects-atom async-effects-atom)
+      (swap! state apply-command resolver machine command sync-effects-atom async-effects-atom)
       (apply-effects graph-manager
         (persistent! @sync-effects-atom)
         (persistent! @async-effects-atom))
@@ -639,7 +641,7 @@
   (-transact-commands! [graph-manager cmds]
     (let [sync-effects-atom (volatile! (transient []))
           async-effects-atom (volatile! (transient []))]
-      (swap! state apply-commands cmds sync-effects-atom async-effects-atom)
+      (swap! state apply-commands resolver cmds sync-effects-atom async-effects-atom)
       (apply-effects graph-manager
         (persistent! @sync-effects-atom)
         (persistent! @async-effects-atom))
@@ -653,7 +655,7 @@
   (-observes [gm selector]
     (get-in @state [:observes selector] NOT-IN-GRAPH-SENTINEL))
   g/Resolver
-  (-get-resolver [gm] (:resolver @state))
+  (-get-resolver [gm] resolver)
   )
 
 (def default-scheduler
@@ -676,8 +678,8 @@
                 {}
                 {}
                 {}
-                {}
-                resolver))
-         scheduler)))
+                {}))
+         scheduler
+     resolver)))
 
 
