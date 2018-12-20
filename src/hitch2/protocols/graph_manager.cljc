@@ -2,7 +2,7 @@
 
 (defprotocol GraphManagerSync
   (-transact!
-    [graph-manager machine command]
+    [graph-manager curator command]
 
     "Apply a transaction to a graph manager and mutate the graph.
 

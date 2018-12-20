@@ -14,8 +14,8 @@
                       (when (identical? dep-value NOT-FOUND-SENTINEL)
                         (let [impl (resolver dep)]
                           (case (:hitch2.descriptor.impl/kind impl)
-                            :hitch2.descriptor.kind/machine
-                            [:machine dep]
+                            :hitch2.descriptor.kind/curator
+                            [:curator dep]
                             (:hitch2.descriptor.kind/var :hitch2.descriptor.kind/halting)
                             [dep (not-loaded-selectors gm dep)]))))))
             dependencies))))

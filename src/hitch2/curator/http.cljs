@@ -1,6 +1,6 @@
 (ns hitch2.curator.http
   (:require [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
-            [hitch2.def.curator :as machine-proto]
+            [hitch2.def.curator :as curator-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.def.spec
              :refer-macros [def-descriptor-spec]]
@@ -41,20 +41,20 @@
            (clj->js headers))
     #(.dispose xhr)))
 
-(def initial-node machine-proto/initial-curator-state)
-(def-descriptor-spec http-machine-spec
-  :machine)
+(def initial-node curator-proto/initial-curator-state)
+(def-descriptor-spec http-curator-spec
+  :curator)
 
-(def http-machine-impl
-  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
-   ::machine-proto/init (fn [machine-selector] initial-node)
-   ::machine-proto/curation-changes
-                             (fn [machine-selector graph-value node children-added children-removed]
+(def http-curator-impl
+  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
+   ::curator-proto/init (fn [curator-selector] initial-node)
+   ::curator-proto/curation-changes
+                             (fn [curator-selector graph-value node children-added children-removed]
                                (update node :async-effects into (map (fn [child] {:type     ::request
                                                                                   :selector child})
                                                                   children-added)))
-   ::machine-proto/apply-command
-                             (fn [machine-selector graph-value node command]
+   ::curator-proto/apply-command
+                             (fn [curator-selector graph-value node command]
                                (case (nth command 0)
                                  ::value (let [[_ selector response] command]
                                            (assoc-in node [:set-projections selector] response))
@@ -63,12 +63,12 @@
                                              (update node :async-effects conj {:type     ::request
                                                                                :selector selector}))))})
 
-(reg/def-registered-selector http-machine-spec' http-machine-spec http-machine-impl)
-(def http-machine (descriptor/->dtor  http-machine-spec' nil))
+(reg/def-registered-selector http-curator-spec' http-curator-spec http-curator-impl)
+(def http-curator (descriptor/->dtor  http-curator-spec' nil))
 
 
 (def-descriptor-spec http-spec
-  :not-machine
+  :not-curator
   :canonical-form
   :map
   :positional-params [:url
@@ -82,9 +82,9 @@
 
 (def http-var-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/var
-   :hitch2.descriptor.impl/get-machine
+   :hitch2.descriptor.impl/get-curator
    (fn [sel]
-     http-machine)})
+     http-curator)})
 
 (reg/def-registered-selector http-spec' http-spec http-var-impl)
 

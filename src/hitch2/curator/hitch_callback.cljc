@@ -1,5 +1,5 @@
 (ns hitch2.curator.hitch-callback
-  (:require [hitch2.def.curator :as machine-proto]
+  (:require [hitch2.def.curator :as curator-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
             [hitch2.halt :as halt]
@@ -14,14 +14,14 @@
      (:import [java.util UUID])))
 
 (def initial-node
-  (assoc machine-proto/initial-curator-state
+  (assoc curator-proto/initial-curator-state
          :state {:id->info      {} ;; info [halt-fn args callback]
                  :id->sels      {}
                  :sel->id       {}
                  :dirty-ids     #{}}))
 
 (def-descriptor-spec react-hook-spec
-  :machine)
+  :curator)
 
 (defn update-reverse-indexes
   [node id new-parents]
@@ -59,13 +59,13 @@
 
 (def react-hook-impl
   {:hitch2.descriptor.impl/kind
-   :hitch2.descriptor.kind/machine
+   :hitch2.descriptor.kind/curator
 
-   ::machine-proto/init
-   (fn [machine-selector] initial-node)
+   ::curator-proto/init
+   (fn [curator-selector] initial-node)
 
-   ::machine-proto/apply-command
-   (fn [machine-selector graph-value node command]
+   ::curator-proto/apply-command
+   (fn [curator-selector graph-value node command]
      (case (nth command 0)
        :hitch-callback-reset-parents
        (let [[_ halt-fn cb new-parents] command
@@ -84,8 +84,8 @@
              (update-in [:state :id->info] dissoc id)
              (update-reverse-indexes id #{})))))
    
-   ::machine-proto/observed-value-changes
-   (fn [machine-selector graph-value node parent-selectors]
+   ::curator-proto/observed-value-changes
+   (fn [curator-selector graph-value node parent-selectors]
      (let [sel->id   (-> node :state :sel->id)
            dirty-id  (-> node :state :dirty-ids)
            dirty-id' (transduce
@@ -93,7 +93,7 @@
                        into dirty-id parent-selectors)]
        (assoc-in node [:state :dirty-ids] dirty-id')))
 
-   ::machine-proto/finalize
+   ::curator-proto/finalize
    (fn [_ graph-value node]
      (let [dirty-ids (-> node :state :dirty-ids)]
        (cond-> (assoc-in node [:state :dirty-ids] #{})
@@ -102,9 +102,9 @@
                  {:type  :hitch-callback-rerun-body
                   :infos (select-keys (-> node :state :id->info) dirty-ids)}))))})
 
-(reg/def-registered-selector hitch-callback-machine react-hook-spec react-hook-impl)
+(reg/def-registered-selector hitch-callback-curator react-hook-spec react-hook-impl)
 
-(def hitch-callbacker (descriptor/->dtor hitch-callback-machine nil))
+(def hitch-callbacker (descriptor/->dtor hitch-callback-curator nil))
 
 (defn first-run
   [gm halt-fn cb]

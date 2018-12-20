@@ -4,7 +4,7 @@
     [hitch2.curator.mutable-var :as mv]
     [hitch2.graph-manager.atom :as g]
     [hitch2.protocols.graph-manager :as gm-proto]
-    [hitch2.def.curator :as machine-proto]
+    [hitch2.def.curator :as curator-proto]
     [hitch2.descriptor :as descriptor]
     [hitch2.def.halting :refer [defhalting]]
     [hitch2.selector-impl-registry :as reg
@@ -14,16 +14,16 @@
     #?(:cljs [cljs.test :refer-macros [deftest is testing async]]
        :clj  [clojure.test :refer [deftest is testing]])))
 
-(def initial-node (assoc machine-proto/initial-curator-state :state {}))
+(def initial-node (assoc curator-proto/initial-curator-state :state {}))
 
-(defn no-op-machine [state]
-  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
-   ::machine-proto/init (fn [machine-selector] initial-node)
-   ::machine-proto/observed-value-changes
-                             (fn [machine-selector graph-value node parent-selectors]
+(defn no-op-curator [state]
+  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
+   ::curator-proto/init (fn [curator-selector] initial-node)
+   ::curator-proto/observed-value-changes
+                             (fn [curator-selector graph-value node parent-selectors]
                                (swap! state update :parent-changes (fnil conj #{}) parent-selectors))
-   ::machine-proto/apply-command
-                             (fn [machine-selector graph-value node command]
+   ::curator-proto/apply-command
+                             (fn [curator-selector graph-value node command]
                                node)})
 
 (deftest atom-tests
@@ -34,10 +34,10 @@
                                     (reset! test-atom val))
                     (mv/mutable-var :test-name))
 
-    (gm-proto/-transact! graph-manager (mv/mutable-machine :test-name) [:set-value 5])
+    (gm-proto/-transact! graph-manager (mv/mutable-curator :test-name) [:set-value 5])
     (is (= @test-atom 5))
     ;; what goes here?
-    #_(gm-proto/-transact! graph-manager hook/hook-machine
+    #_(gm-proto/-transact! graph-manager hook/hook-curator
                            [:hook-subscribe ])))
 
 (declare fibb-graph)

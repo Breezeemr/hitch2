@@ -9,7 +9,7 @@
 (defn return-constant [gv-tracker {[v] :term}]
   v)
 (def-descriptor-spec constant-spec
-  :not-machine
+  :not-curator
   :hitch2.descriptor.spec/canonical-form  :hitch2.descriptor.spec.canonical-form/vector
   :hitch2.descriptor.spec/positional-params [:v])
 (def constant-impl
@@ -19,7 +19,7 @@
 
   #_(reify
                      selector-proto/ImplementationKind
-                     (-imp-kind [machine] )
+                     (-imp-kind [curator] )
                      selector-proto/HaltingImplementation
                      (-get-halting-fn [sel]
                        return-constant)))

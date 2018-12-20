@@ -1,9 +1,9 @@
 (ns hitch2.graph
   (:require [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.descriptor :as descriptor]
-            [hitch2.curator.pin :refer [pin-machine]]
-            [hitch2.curator.hook :refer [hook-machine hook-change-machine]]
-            [hitch2.curator.hitch-callback :as h-cb :refer [hitch-callback-machine]]
+            [hitch2.curator.pin :refer [pin-curator]]
+            [hitch2.curator.hook :refer [hook-curator hook-change-curator]]
+            [hitch2.curator.hitch-callback :as h-cb :refer [hitch-callback-curator]]
             [hitch2.protocols.tx-manager :as tx-proto]
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
             [hitch2.halt :as halt]))
@@ -24,12 +24,12 @@
 (defn pin
   "Force a selector to remain in the graph even if nothing else depends on it."
   [graph-manager selector]
-  (graph-proto/-transact! graph-manager pin-machine [:pin selector]))
+  (graph-proto/-transact! graph-manager pin-curator [:pin selector]))
 
 (defn unpin
   "Allow a selector to be removed from the graph if nothing else depends on it."
   [graph-manager selector]
-  (graph-proto/-transact! graph-manager pin-machine [:unpin selector]))
+  (graph-proto/-transact! graph-manager pin-curator [:unpin selector]))
 
 (defn hook-sel
   "Call fn `cb` once with the value of `selector` in `graph` as soon as it is
@@ -39,7 +39,7 @@
   (let [graph-value (graph-proto/-get-graph graph-manager)
         val  (get graph-value selector NOT-IN-GRAPH-SENTINEL)]
     (if (identical? val NOT-IN-GRAPH-SENTINEL)
-      (graph-proto/-transact! graph-manager hook-machine [:hook-subscribe selector cb])
+      (graph-proto/-transact! graph-manager hook-curator [:hook-subscribe selector cb])
       (cb #_graph-manager val)))
   nil)
 
@@ -55,8 +55,8 @@
   There is no guarantee that each `cb` call will receive a value not= to the
   previous call's value."
   [graph-manager cb selector]
-  (graph-proto/-transact! graph-manager hook-change-machine [:hook-change-subscribe selector cb])
-  (fn [] (graph-proto/-transact! graph-manager hook-change-machine [:hook-change-unsubscribe selector cb])))
+  (graph-proto/-transact! graph-manager hook-change-curator [:hook-change-subscribe selector cb])
+  (fn [] (graph-proto/-transact! graph-manager hook-change-curator [:hook-change-unsubscribe selector cb])))
 
 (defn hook
   "Call fn `cb` once with the value of selector returned from

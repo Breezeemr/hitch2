@@ -54,7 +54,7 @@
     `(do
        (hitch2.def.spec/def-descriptor-spec
          ~spec
-         :not-machine
+         :not-curator
          :hitch2.descriptor.spec/canonical-form
          :hitch2.descriptor.spec.canonical-form/map
          :hitch2.descriptor.spec/positional-params
