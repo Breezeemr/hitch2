@@ -33,9 +33,9 @@
 (defn get-trace [] @op-history)
 (defn clear-trace! [] (vreset! op-history []))
 
-(defn get-curator [impl sel]
+(defn get-curator [impl dtor]
   (if-some [f (:hitch2.descriptor.impl/get-curator impl)]
-    (f sel)
+    (f dtor)
     (assert false)))
 
 (s/def ::descriptor any?)
@@ -90,9 +90,9 @@
 (defn get-init-node [graph-manager-value resolver descriptor disturbed-curators]
   (if-some [node-state (get-node-state graph-manager-value descriptor)]
     node-state
-    (let [sel-impl (resolver descriptor)
-          sel-kind (:hitch2.descriptor.impl/kind sel-impl)]
-      (case sel-kind
+    (let [dtor-impl (resolver descriptor)
+          dtor-kind (:hitch2.descriptor.impl/kind dtor-impl)]
+      (case dtor-kind
         :hitch2.descriptor.kind/curator
         (if-some [init (::curator-proto/init (resolver descriptor))]
           (init descriptor)
@@ -105,19 +105,19 @@
         ))))
 
 (defn propagate-set-projections [graph-manager-value set-projections worklist-atom]
-  (reduce-kv (fn [gv sel value]
-               (let [old-value (-> gv :graph-value (get sel NOT-FOUND-SENTINEL))]
+  (reduce-kv (fn [gv dtor value]
+               (let [old-value (-> gv :graph-value (get dtor NOT-FOUND-SENTINEL))]
                  (if (= old-value value)
                    gv
                    (do
                      (when-not (identical? value NOT-FOUND-SENTINEL)
-                       (add-to-working-set worklist-atom sel))
+                       (add-to-working-set worklist-atom dtor))
                      (-> gv
-                         (assoc-in [:node-state sel :value-changed?]
+                         (assoc-in [:node-state dtor :value-changed?]
                            true #_(if (identical? value NOT-FOUND-SENTINEL)
                                                                        false
                                                                        true))
-                         (assoc-in [:graph-value sel] value))))))
+                         (assoc-in [:graph-value dtor] value))))))
     graph-manager-value
     set-projections))
 
@@ -188,18 +188,18 @@
 (defn propagate-value-changes [graph-manager-value resolver parent worklist-atom dirty-curators]
   (reduce
     (fn [graph-manager-value descriptor]
-      (let [sel-impl (resolver descriptor)
-            sel-kind (:hitch2.descriptor.impl/kind sel-impl)
+      (let [dtor-impl (resolver descriptor)
+            dtor-kind (:hitch2.descriptor.impl/kind dtor-impl)
             node-state (get-node-state graph-manager-value descriptor)]
         (assert node-state)
-        (case sel-kind
+        (case dtor-kind
           :hitch2.descriptor.kind/curator
           (let [graph-value    (get-graph-value graph-manager-value)
                 {:keys [sync-effects async-effects]
                  new-set-projections     :set-projections
                  new-change-focus :change-focus
                  :as                new-node-state}
-                (if-some [observed-value-changes (::curator-proto/observed-value-changes sel-impl)]
+                (if-some [observed-value-changes (::curator-proto/observed-value-changes dtor-impl)]
                   (observed-value-changes descriptor graph-value
                     (tx-init-curator node-state graph-manager-value  resolver  descriptor dirty-curators)
                     #{parent})
@@ -232,7 +232,7 @@
                                           node-state
                                           resolver
                                           descriptor
-                                          sel-impl
+                                          dtor-impl
                                           worklist-atom
                                           dirty-curators)]
                 graph-manager-value)
@@ -243,17 +243,17 @@
 
 (defn propagate-node-changes [resolver worklist-atom dirty-curators]
   (fn [graph-manager-value descriptor]
-    (let [sel-impl (resolver descriptor)
-          sel-kind (:hitch2.descriptor.impl/kind sel-impl)]
+    (let [dtor-impl (resolver descriptor)
+          dtor-kind (:hitch2.descriptor.impl/kind dtor-impl)]
       (if-some [node-state (get-node-state graph-manager-value descriptor)]
-        (case sel-kind
+        (case dtor-kind
           :hitch2.descriptor.kind/curator
           (let [{:keys [change-focus set-projections]}
                 node-state]
             (s/assert ::curator-proto/curator-state node-state)
             (when (not-empty set-projections)
               (add-to-working-set worklist-atom descriptor))
-            (when *trace* (record! [:node-changes :curator (:name sel-impl)
+            (when *trace* (record! [:node-changes :curator (:name dtor-impl)
                                     descriptor
                                     node-state]))
             (cond-> graph-manager-value
@@ -272,7 +272,7 @@
           :hitch2.descriptor.kind/var
           (let [{:keys [value-changed?]}
                 node-state]
-            (when *trace* (record! [:node-changes :var (:name sel-impl)
+            (when *trace* (record! [:node-changes :var (:name dtor-impl)
                                     descriptor]))
             (cond-> graph-manager-value
               value-changed?
@@ -285,7 +285,7 @@
           (let [{:keys [value-changed? change-focus]}
                 node-state]
             (when *trace*
-              (record! [:node-changes :halting (:name sel-impl)
+              (record! [:node-changes :halting (:name dtor-impl)
                         descriptor (-> graph-manager-value :graph-value (get descriptor))])
               )
             (cond-> graph-manager-value
@@ -351,17 +351,17 @@
 (defn apply-child-change-commands [graph-manager-value resolver child changes worklist-atom dirty-curators]
   (reduce-kv
     (fn [graph-manager-value parent added|removed]
-      (let [sel-impl   (resolver parent)
-            sel-kind   (:hitch2.descriptor.impl/kind sel-impl)
+      (let [dtor-impl   (resolver parent)
+            dtor-kind   (:hitch2.descriptor.impl/kind dtor-impl)
             node-state (get-init-node graph-manager-value resolver parent dirty-curators)]
-        (case sel-kind
+        (case dtor-kind
           :hitch2.descriptor.kind/curator
           (let [graph-value        (get-graph-value graph-manager-value)
                 {:keys [sync-effects async-effects]
                  new-change-focus :change-focus
                  set-projections         :set-projections
                  :as                new-node-state}
-                (if-some [curation-changes (::curator-proto/curation-changes sel-impl)]
+                (if-some [curation-changes (::curator-proto/curation-changes dtor-impl)]
                   (curation-changes parent graph-value
                     (tx-init-curator node-state graph-manager-value  resolver parent dirty-curators)
                     (when added|removed
@@ -376,7 +376,7 @@
               (add-to-working-set worklist-atom parent))
             (when *trace*
               (record! [:child-change :curator
-                        (:name sel-impl)]))
+                        (:name dtor-impl)]))
             (let [new-graph-manager-value
                   (cond->
                     (assoc-in graph-manager-value
@@ -392,11 +392,11 @@
                           new-graph-manager-value
                           new-graph-manager-value)))))
           :hitch2.descriptor.kind/var
-          (let [curator (get-curator sel-impl parent)]
+          (let [curator (get-curator dtor-impl parent)]
             (assert (descriptor/descriptor? curator) (pr-str parent))
             (when *trace*
               (record! [:child-change :var
-                        (:name sel-impl)]))
+                        (:name dtor-impl)]))
             (case added|removed
               true (if (get-in graph-manager-value [:observes parent curator])
                      graph-manager-value
@@ -412,7 +412,7 @@
           (let [old-node-state (get-in graph-manager-value [:node-state parent] NOT-FOUND-SENTINEL)]
             (when *trace*
               (record! [:child-change :halting
-                        (:name sel-impl)
+                        (:name dtor-impl)
                         child
                         parent]))
             (case added|removed
@@ -422,7 +422,7 @@
                                                  node-state
                                                  resolver
                                                  parent
-                                                 sel-impl
+                                                 dtor-impl
                                                  worklist-atom
                                                  dirty-curators)]
 
@@ -563,20 +563,20 @@
       (pr-str descriptor)
       " command "
       (pr-str command)))
-  (let [sel-impl   (resolver descriptor)
-        sel-kind   (:hitch2.descriptor.impl/kind sel-impl)]
-    (case sel-kind
+  (let [dtor-impl   (resolver descriptor)
+        dtor-kind   (:hitch2.descriptor.impl/kind dtor-impl)]
+    (case dtor-kind
       :hitch2.descriptor.kind/curator
       (let [graph-value        (get-graph-value graph-manager-value)
             node-state         (get-init-node graph-manager-value resolver descriptor disturbed-curators)]
         (assoc-in graph-manager-value [:node-state descriptor]
-          (if-some [apply-command (::curator-proto/apply-command sel-impl)]
+          (if-some [apply-command (::curator-proto/apply-command dtor-impl)]
             (apply-command descriptor graph-value
               (tx-init-curator node-state graph-manager-value  resolver descriptor disturbed-curators)
               command)
             (assert false))))
       :hitch2.descriptor.kind/var
-      (-apply-command graph-manager-value resolver (get-curator sel-impl descriptor)
+      (-apply-command graph-manager-value resolver (get-curator dtor-impl descriptor)
                      command disturbed-curators))))
 
 (defn apply-command
@@ -622,13 +622,13 @@
     ))
 
 #_(defn to-curator [descriptor]
-  (let [sel-impl   (resolver descriptor)
-        sel-kind   (:hitch2.descriptor.impl/kind sel-impl)]
-    (case sel-kind
+  (let [dtor-impl   (resolver descriptor)
+        dtor-kind   (:hitch2.descriptor.impl/kind dtor-impl)]
+    (case dtor-kind
       :hitch2.descriptor.kind/curator
       descriptor
       :hitch2.descriptor.kind/var
-      (get-curator sel-impl descriptor))))
+      (get-curator dtor-impl descriptor))))
 
 
 (deftype gm [state scheduler resolver]

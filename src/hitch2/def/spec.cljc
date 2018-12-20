@@ -31,7 +31,7 @@
            {:pre [(simple-symbol? descriptor-name)
                   (keyword? kind)
                   (even? (count options))]}
-           (let [sel-name (symbol
+           (let [dtor-name (symbol
                             (some-> (or
                                       (:name (:ns &env))          ;; targeting CLJS
                                       (ns-name *ns*))             ;; targeting CLJ
@@ -49,7 +49,7 @@
              `(def ~descriptor-name
                 (array-map
                   ~@eoptions
-                  :hitch2.descriptor/name ~(list 'quote sel-name)
+                  :hitch2.descriptor/name ~(list 'quote dtor-name)
                   :hitch2.descriptor.spec/kind ~qkind)))))
 
 

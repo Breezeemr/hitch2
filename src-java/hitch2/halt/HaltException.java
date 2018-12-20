@@ -1,7 +1,7 @@
 package hitch2.halt;
 
 /**
- * A sentinel exception used to short-circuit execution when a selector lacks a
+ * A sentinel exception used to short-circuit execution when a dtorector lacks a
  * value in a tracking context.
  */
 public final class HaltException extends RuntimeException {

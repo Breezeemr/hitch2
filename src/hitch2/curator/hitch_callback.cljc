@@ -16,8 +16,8 @@
 (def initial-node
   (assoc curator-proto/initial-curator-state
          :state {:id->info      {} ;; info [halt-fn args callback]
-                 :id->sels      {}
-                 :sel->id       {}
+                 :id->dtors      {}
+                 :dtor->id       {}
                  :dirty-ids     #{}}))
 
 (def-descriptor-spec react-hook-spec
@@ -26,33 +26,33 @@
 (defn update-reverse-indexes
   [node id new-parents]
   (let [state               (:state node)
-        id->sel             (:id->sel state)
-        sel->id             (:sel->id state)
-        old-parents         (get id->sel id #{})
+        id->dtor             (:id->dtor state)
+        dtor->id             (:dtor->id state)
+        old-parents         (get id->dtor id #{})
         del-parents         (set/difference old-parents new-parents)
         add-parents         (set/difference new-parents old-parents)
-        id->sel'            (assoc id->sel id new-parents)
+        id->dtor'            (assoc id->dtor id new-parents)
         shared-parent-delta (volatile! {})
-        sel->id'            (as-> sel->id <>
+        dtor->id'            (as-> dtor->id <>
                               (reduce
-                                (fn [sel->id sel]
-                                  (when (nil? (get sel->id sel))
-                                    (vswap! shared-parent-delta assoc sel true))
-                                  (update sel->id sel (fnil conj #{}) id))
+                                (fn [dtor->id dtor]
+                                  (when (nil? (get dtor->id dtor))
+                                    (vswap! shared-parent-delta assoc dtor true))
+                                  (update dtor->id dtor (fnil conj #{}) id))
                                 <> add-parents)
                               (reduce
-                                (fn [sel->id sel]
-                                  (let [ids        (get sel->id sel #{})
+                                (fn [dtor->id dtor]
+                                  (let [ids        (get dtor->id dtor #{})
                                         ids'       (disj ids id)
                                         went-away? (and (pos? (count ids)) (zero? (count ids')))]
                                     (when went-away?
-                                      (vswap! shared-parent-delta assoc sel false))
+                                      (vswap! shared-parent-delta assoc dtor false))
                                     (if went-away?
-                                      (dissoc sel->id sel)
-                                      (assoc sel->id sel ids'))))
+                                      (dissoc dtor->id dtor)
+                                      (assoc dtor->id dtor ids'))))
                                 <> del-parents))
-        state'              (assoc state :id->sel id->sel'
-                                   :sel->id sel->id')]
+        state'              (assoc state :id->dtor id->dtor'
+                                   :dtor->id dtor->id')]
     (-> node
         (assoc :state state')
         (update :change-focus into @shared-parent-delta))))
@@ -86,10 +86,10 @@
    
    ::curator-proto/observed-value-changes
    (fn [curator-descriptor graph-value node parent-descriptors]
-     (let [sel->id   (-> node :state :sel->id)
+     (let [dtor->id   (-> node :state :dtor->id)
            dirty-id  (-> node :state :dirty-ids)
            dirty-id' (transduce
-                       (map sel->id)
+                       (map dtor->id)
                        into dirty-id parent-descriptors)]
        (assoc-in node [:state :dirty-ids] dirty-id')))
 

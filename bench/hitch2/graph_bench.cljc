@@ -55,11 +55,11 @@
               n-2 (api/select! G fibb-graph (dec (dec n)))]
           (+ @n-1 @n-2))))
 
-(defn fib-bench [bench-name sel-fn]
+(defn fib-bench [bench-name dtor-fn]
   (test-header bench-name)
   (let [g (atom-gm/make-gm registry-resolver)]
     #?(:cljs (simple-benchmark []
-               (let [sel (sel-fn)]
+               (let [sel (dtor-fn)]
                  (api/pin g sel)
                    #_(prn :pined
                        (get (gm-proto/-get-graph g) sel))
@@ -68,7 +68,7 @@
                #_(prn :unpined
                  (get (gm-proto/-get-graph g) sel)))
        :clj  (bench
-               (let [sel (sel-fn)]
+               (let [sel (dtor-fn)]
                  (api/pin g sel)
                    #_(prn :pined
                        (get (gm-proto/-get-graph g) sel))

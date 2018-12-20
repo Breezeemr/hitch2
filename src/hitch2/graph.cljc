@@ -16,9 +16,9 @@
 
 (def descriptor? descriptor/descriptor?)
 
-(defn descriptor-instance? [spec sel]
+(defn descriptor-instance? [spec dtor]
   (assert (map? spec) (str "Spec is not a map: " spec))
-  (= (:name sel)
+  (= (:name dtor)
      (:hitch2.descriptor/name spec)))
 
 (defn pin

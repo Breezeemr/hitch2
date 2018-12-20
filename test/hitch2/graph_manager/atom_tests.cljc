@@ -63,10 +63,10 @@
   (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
         test-atom (atom nil)
         fibber (fn [n] (descriptor/positional-dtor  fibb-graph n))
-        fib-sel   (fibber 2)]
+        fib-dtor   (fibber 2)]
                                         ;needs to be async
-    (hitch/pin graph-manager fib-sel)
-    (hitch/unpin graph-manager fib-sel)
+    (hitch/pin graph-manager fib-dtor)
+    (hitch/unpin graph-manager fib-dtor)
     #?(:cljs (async done
                     (let [failure (js/setTimeout (fn [] (is false "test timeout") (done)) 500)]
                       (hitch/hook-sel graph-manager
@@ -79,5 +79,5 @@
               (hitch/hook-sel graph-manager
                               (fn [fib-result]
                                 (deliver result fib-result))
-                fib-sel)
+                fib-dtor)
               (is (= 1 (deref result 500 :failure)))))))

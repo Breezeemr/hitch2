@@ -30,7 +30,7 @@
   (deftest simple-refresh
     (testing "Additional http request is issued after a ::http/refresh command. (Must verify manually in dev console.)"
       (let [graph (gctor)
-            sel   (http/http "/test.txt" :get nil nil nil nil nil)]
+            dtor   (http/http "/test.txt" :get nil nil nil nil nil)]
         (async done
           (graph/hook-sel graph
             (fn [result]
@@ -42,7 +42,7 @@
                 (fn [result]
                   (is (= result [:ok "cat\n"]) (str graph-name " value after refresh, next frame"))
                   (done))
-                sel)
-              (graph/apply-commands graph [[sel [::http/refresh sel]]])
+                dtor)
+              (graph/apply-commands graph [[dtor [::http/refresh dtor]]])
               (is (= result [:ok "cat\n"]) (str graph-name " value after refresh")))
-            sel))))))
+            dtor))))))

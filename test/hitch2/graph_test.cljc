@@ -12,7 +12,7 @@
 (def gctors
   [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver common/sync-scheduler))]])
 
-(def mvsel (mutable-var :mvsel))
+(def mvdtor (mutable-var :mvdtor))
 
 (doseq [[gname gctor] gctors]
   (deftest hook-unshared-immediate-resolution
@@ -24,7 +24,7 @@
       (is (= @results [0])
         (str gname "Unshared hook's cb sees resolved value immediately"))
 
-      (pin g mvsel)
+      (pin g mvdtor)
 
       (is (= @results [0])
         (str gname "Unshared hook's cb not called if descriptor gains another ext-child"))))
@@ -34,22 +34,22 @@
     (let [g       (gctor)
           results (volatile! [])]
 
-      (h/hook-sel g #(vswap! results conj %) mvsel)
+      (h/hook-sel g #(vswap! results conj %) mvdtor)
 
       (is (= @results [])
         (str gname "Unshared hook's cb uncalled before descriptor resolved."))
 
-      (h/apply-commands g [[mvsel [:set-value 0]]])
+      (h/apply-commands g [[mvdtor [:set-value 0]]])
 
       (is (= @results [0])
         (str gname "Unshared hook's cb sees resolved value immediately"))
 
-      (h/apply-commands g [[mvsel [:set-value 1]]])
+      (h/apply-commands g [[mvdtor [:set-value 1]]])
 
       (is (= @results [0])
         (str gname "Hooks do not get called more than once"))
 
-      (pin g mvsel)
+      (pin g mvdtor)
 
       (is (= @results [0])
         (str gname "Unshared hook's cb not called if descriptor gains another ext-child"))))
@@ -65,7 +65,7 @@
       (is (= @results [0])
         (str gname "Shared hook's cb sees resolved value immediately"))
 
-      (pin g mvsel)
+      (pin g mvdtor)
 
       (is (= @results [0])
         (str gname "Shared hook's cb not called if descriptor gains another ext-child"))))
@@ -75,24 +75,24 @@
     (let [g       (gctor)
           results (volatile! [])]
 
-      (pin g mvsel)
+      (pin g mvdtor)
 
-      (h/hook-sel g #(vswap! results conj %) mvsel)
+      (h/hook-sel g #(vswap! results conj %) mvdtor)
 
       (is (= @results [])
         (str gname "Shared hook's cb uncalled before descriptor resolved."))
 
-      (h/apply-commands g [[mvsel [:set-value 0]]])
+      (h/apply-commands g [[mvdtor [:set-value 0]]])
 
       (is (= @results [0])
         (str gname "Shared hook's cb sees resolved value immediately"))
 
-      (h/apply-commands g [[mvsel [:set-value 1]]])
+      (h/apply-commands g [[mvdtor [:set-value 1]]])
 
       (is (= @results [0])
         (str gname "Hooks do not get called more than once"))
 
-      (unpin g mvsel)
+      (unpin g mvdtor)
 
       (is (= @results [0])
         (str gname "Shared hook's cb not called if descriptor loses another ext-child"))))
@@ -101,63 +101,63 @@
   (deftest hook-change-delayed-resolution
     (let [g       (gctor)
           results (volatile! [])
-          unhook  (h/hook-change-sel g #(vswap! results conj %) mvsel)]
+          unhook  (h/hook-change-sel g #(vswap! results conj %) mvdtor)]
 
       (is (= @results [])
         (str gname "Hook-change's cb should not see initial unresolved value"))
 
-      (h/apply-commands g [[mvsel [:set-value 0]]])
+      (h/apply-commands g [[mvdtor [:set-value 0]]])
 
       (is (= @results [0])
         (str gname "Hook-change's cb should see unresolved->resolved value"))
 
-      (h/apply-commands g [[mvsel [:set-value 0]]])
+      (h/apply-commands g [[mvdtor [:set-value 0]]])
 
       (is (= @results [0])
         (str gname "Hook-change's cb should not be called again if the value didn't change"))
 
-      (h/apply-commands g [[mvsel [:clear]]])
+      (h/apply-commands g [[mvdtor [:clear]]])
 
       (is (= @results [0])
         (str gname "Hook-change's cb should not be called again if the value becomes unresolved."))
 
-      (pin g mvsel)
+      (pin g mvdtor)
 
       (is (= @results [0])
         (str gname "Hook-change's cb should not be called again if descriptor gains an ext-child"))
 
-      (h/apply-commands g [[mvsel [:set-value 0]]])
+      (h/apply-commands g [[mvdtor [:set-value 0]]])
 
       (is (= @results [0])
         (str gname "Hook-change's cb should not be called again if the value moves from X to unresolved then back to X."))
 
       (vreset! results [0])
-      (unpin g mvsel)
+      (unpin g mvdtor)
 
       (is (= @results [0])
         (str gname "Hook-change's cb should not be called again if descriptor loses an ext-child"))
 
 
-      (h/apply-commands g [[mvsel [:set-value 1]]])
+      (h/apply-commands g [[mvdtor [:set-value 1]]])
 
       (is (= @results [0 1])
         (str gname "Hook-change's cb should be called when value changes."))
 
-      (h/apply-commands g [[mvsel [:set-value 2]]])
+      (h/apply-commands g [[mvdtor [:set-value 2]]])
 
       (is (= @results [0 1 2])
         (str gname "Hook-change's cb should be called when value changes again."))
 
-      (h/apply-commands g [[mvsel [:set-value 1]]])
+      (h/apply-commands g [[mvdtor [:set-value 1]]])
 
       (is (= @results [0 1 2 1])
         (str gname "Hook-change's cb should be called when value changes again, even if to a previously-seen value."))
 
-      (pin g mvsel)
+      (pin g mvdtor)
 
       (unhook)
 
-      (h/apply-commands g [[mvsel [:set-value 3]]])
+      (h/apply-commands g [[mvdtor [:set-value 3]]])
 
       (is (= @results [0 1 2 1])
         (str gname "Hook-change's cb should not be called after unhook"))))
@@ -165,21 +165,21 @@
   (deftest hook-change-immediate-resolution
     (let [g       (gctor)
           results (volatile! [])
-          _       (pin g mvsel)
-          _       (h/apply-commands g [[mvsel [:set-value 0]]])
-          unhook  (h/hook-change-sel g #(vswap! results conj %) mvsel)]
+          _       (pin g mvdtor)
+          _       (h/apply-commands g [[mvdtor [:set-value 0]]])
+          unhook  (h/hook-change-sel g #(vswap! results conj %) mvdtor)]
 
       (is (= @results [0])
         (str gname "Hook-change's cb should see initial resolved value"))
 
-      (h/apply-commands g [[mvsel [:set-value 1]]])
+      (h/apply-commands g [[mvdtor [:set-value 1]]])
 
       (is (= @results [0 1])
         (str gname "Hook-change's cb should see changed value"))
 
       (unhook)
 
-      (h/apply-commands g [[mvsel [:set-value 2]]])
+      (h/apply-commands g [[mvdtor [:set-value 2]]])
 
       (is (= @results [0 1])
           (str gname "Hook-change's cb should not be called after unhook"))))
@@ -187,16 +187,16 @@
   (deftest hook-callback-test-immediate-resolution
     (let [g       (gctor)
           results (volatile! [])
-          cb-sel  (mutable-var :callback-sel)
-          _       (pin g cb-sel)
+          cb-dtor  (mutable-var :callback-dtor)
+          _       (pin g cb-dtor)
           unhook  (h/hitch-callback g
                                     #(vswap! results conj %)
-                                    (fn [rtx] @(h/select-sel! rtx cb-sel)))]
+                                    (fn [rtx] @(h/select-sel! rtx cb-dtor)))]
 
       (is (= @results [])
           (str gname "Hook-callback's cb should see initial resolved value"))
 
-      (h/apply-commands g [[cb-sel [:set-value 1]]])
+      (h/apply-commands g [[cb-dtor [:set-value 1]]])
 
       (is (= @results [1])
           (str gname "Hook-callback's cb should see changed value")))))
