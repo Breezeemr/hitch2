@@ -7,7 +7,7 @@
     [hitch2.def.curator :as curator-proto]
     [hitch2.descriptor :as descriptor]
     [hitch2.def.halting :refer [defhalting]]
-    [hitch2.selector-impl-registry :as reg
+    [hitch2.descriptor-impl-registry :as reg
      :refer [registry-resolver]]
     [hitch2.test-common :as common]
     [hitch2.graph-manager.debug :as debug]
@@ -18,12 +18,12 @@
 
 (defn no-op-curator [state]
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
-   ::curator-proto/init (fn [curator-selector] initial-node)
+   ::curator-proto/init (fn [curator-descriptor] initial-node)
    ::curator-proto/observed-value-changes
-                             (fn [curator-selector graph-value node parent-selectors]
-                               (swap! state update :parent-changes (fnil conj #{}) parent-selectors))
+                             (fn [curator-descriptor graph-value node parent-descriptors]
+                               (swap! state update :parent-changes (fnil conj #{}) parent-descriptors))
    ::curator-proto/apply-command
-                             (fn [curator-selector graph-value node command]
+                             (fn [curator-descriptor graph-value node command]
                                node)})
 
 (deftest atom-tests
@@ -59,7 +59,7 @@
     (is (= #{(fibber 29) (fibber 28)}
            (gm-proto/-observes graph-manager (fibber 30))))))
 
-(deftest redepend-on-selector-bug
+(deftest redepend-on-descriptor-bug
   (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
         test-atom (atom nil)
         fibber (fn [n] (descriptor/positional-dtor  fibb-graph n))

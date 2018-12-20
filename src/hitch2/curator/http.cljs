@@ -8,8 +8,8 @@
             [goog.net.EventType :as EventType]
             [clojure.string :as str]
             [hitch2.descriptor :as descriptor]
-            [hitch2.selector-impl-registry :as reg
-             :refer-macros [def-registered-selector]])
+            [hitch2.descriptor-impl-registry :as reg
+             :refer-macros [def-registered-descriptor]])
   (:import (goog.net XhrIo)))
 
 (def ^:private meths
@@ -20,11 +20,11 @@
 
 
 (defmethod graph-proto/run-effect ::request
-  [gm {:keys [selector] :as effect}]
+  [gm {:keys [descriptor] :as effect}]
   (let [{:keys [url method serializer deserializer content headers withcreds]}
-        (:term selector)
+        (:term descriptor)
         cb  (fn [response]
-              (graph-proto/-transact! gm selector [::value selector response]))
+              (graph-proto/-transact! gm descriptor [::value descriptor response]))
         xhr (XhrIo.)]
     (when withcreds
       (.setWithCredentials xhr true))
@@ -47,23 +47,23 @@
 
 (def http-curator-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
-   ::curator-proto/init (fn [curator-selector] initial-node)
+   ::curator-proto/init (fn [curator-descriptor] initial-node)
    ::curator-proto/curation-changes
-                             (fn [curator-selector graph-value node children-added children-removed]
+                             (fn [curator-descriptor graph-value node children-added children-removed]
                                (update node :async-effects into (map (fn [child] {:type     ::request
-                                                                                  :selector child})
+                                                                                  :descriptor child})
                                                                   children-added)))
    ::curator-proto/apply-command
-                             (fn [curator-selector graph-value node command]
+                             (fn [curator-descriptor graph-value node command]
                                (case (nth command 0)
-                                 ::value (let [[_ selector response] command]
-                                           (assoc-in node [:set-projections selector] response))
-                                 ::refresh (let [[_ selector] command]
-                                             (assert selector (str (pr-str ::refresh) " must provide a selector"))
+                                 ::value (let [[_ descriptor response] command]
+                                           (assoc-in node [:set-projections descriptor] response))
+                                 ::refresh (let [[_ descriptor] command]
+                                             (assert descriptor (str (pr-str ::refresh) " must provide a descriptor"))
                                              (update node :async-effects conj {:type     ::request
-                                                                               :selector selector}))))})
+                                                                               :descriptor descriptor}))))})
 
-(reg/def-registered-selector http-curator-spec' http-curator-spec http-curator-impl)
+(reg/def-registered-descriptor http-curator-spec' http-curator-spec http-curator-impl)
 (def http-curator (descriptor/->dtor  http-curator-spec' nil))
 
 
@@ -86,7 +86,7 @@
    (fn [sel]
      http-curator)})
 
-(reg/def-registered-selector http-spec' http-spec http-var-impl)
+(reg/def-registered-descriptor http-spec' http-spec http-var-impl)
 
 (defn http [url method serializer deserializer content headers withcreds]
   (descriptor/->dtor  http-spec'

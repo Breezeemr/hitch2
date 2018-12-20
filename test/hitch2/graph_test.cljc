@@ -6,7 +6,7 @@
     [hitch2.graph-manager.atom :as atom-gm]
     [hitch2.test-common :refer [Constant]
      :as common]
-    [hitch2.selector-impl-registry :as reg
+    [hitch2.descriptor-impl-registry :as reg
      :refer [registry-resolver]]))
 
 (def gctors
@@ -27,7 +27,7 @@
       (pin g mvsel)
 
       (is (= @results [0])
-        (str gname "Unshared hook's cb not called if selector gains another ext-child"))))
+        (str gname "Unshared hook's cb not called if descriptor gains another ext-child"))))
 
 
   (deftest hook-unshared-delayed-resolution
@@ -37,7 +37,7 @@
       (h/hook-sel g #(vswap! results conj %) mvsel)
 
       (is (= @results [])
-        (str gname "Unshared hook's cb uncalled before selector resolved."))
+        (str gname "Unshared hook's cb uncalled before descriptor resolved."))
 
       (h/apply-commands g [[mvsel [:set-value 0]]])
 
@@ -52,7 +52,7 @@
       (pin g mvsel)
 
       (is (= @results [0])
-        (str gname "Unshared hook's cb not called if selector gains another ext-child"))))
+        (str gname "Unshared hook's cb not called if descriptor gains another ext-child"))))
 
   (deftest hook-shared-immediate-resolution
     (let [g       (gctor)
@@ -68,7 +68,7 @@
       (pin g mvsel)
 
       (is (= @results [0])
-        (str gname "Shared hook's cb not called if selector gains another ext-child"))))
+        (str gname "Shared hook's cb not called if descriptor gains another ext-child"))))
 
 
   (deftest hook-shared-delayed-resolution
@@ -80,7 +80,7 @@
       (h/hook-sel g #(vswap! results conj %) mvsel)
 
       (is (= @results [])
-        (str gname "Shared hook's cb uncalled before selector resolved."))
+        (str gname "Shared hook's cb uncalled before descriptor resolved."))
 
       (h/apply-commands g [[mvsel [:set-value 0]]])
 
@@ -95,7 +95,7 @@
       (unpin g mvsel)
 
       (is (= @results [0])
-        (str gname "Shared hook's cb not called if selector loses another ext-child"))))
+        (str gname "Shared hook's cb not called if descriptor loses another ext-child"))))
 
 
   (deftest hook-change-delayed-resolution
@@ -124,7 +124,7 @@
       (pin g mvsel)
 
       (is (= @results [0])
-        (str gname "Hook-change's cb should not be called again if selector gains an ext-child"))
+        (str gname "Hook-change's cb should not be called again if descriptor gains an ext-child"))
 
       (h/apply-commands g [[mvsel [:set-value 0]]])
 
@@ -135,7 +135,7 @@
       (unpin g mvsel)
 
       (is (= @results [0])
-        (str gname "Hook-change's cb should not be called again if selector loses an ext-child"))
+        (str gname "Hook-change's cb should not be called again if descriptor loses an ext-child"))
 
 
       (h/apply-commands g [[mvsel [:set-value 1]]])

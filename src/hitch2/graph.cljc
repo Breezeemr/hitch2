@@ -22,67 +22,67 @@
      (:hitch2.descriptor/name spec)))
 
 (defn pin
-  "Force a selector to remain in the graph even if nothing else depends on it."
-  [graph-manager selector]
-  (graph-proto/-transact! graph-manager pin-curator [:pin selector]))
+  "Force a descriptor to remain in the graph even if nothing else depends on it."
+  [graph-manager descriptor]
+  (graph-proto/-transact! graph-manager pin-curator [:pin descriptor]))
 
 (defn unpin
-  "Allow a selector to be removed from the graph if nothing else depends on it."
-  [graph-manager selector]
-  (graph-proto/-transact! graph-manager pin-curator [:unpin selector]))
+  "Allow a descriptor to be removed from the graph if nothing else depends on it."
+  [graph-manager descriptor]
+  (graph-proto/-transact! graph-manager pin-curator [:unpin descriptor]))
 
 (defn hook-sel
-  "Call fn `cb` once with the value of `selector` in `graph` as soon as it is
-  available. `cb` may be called synchronously if the selector's value is already
+  "Call fn `cb` once with the value of `descriptor` in `graph` as soon as it is
+  available. `cb` may be called synchronously if the descriptor's value is already
   known."
-  [graph-manager cb selector]
+  [graph-manager cb descriptor]
   (let [graph-value (graph-proto/-get-graph graph-manager)
-        val  (get graph-value selector NOT-IN-GRAPH-SENTINEL)]
+        val  (get graph-value descriptor NOT-IN-GRAPH-SENTINEL)]
     (if (identical? val NOT-IN-GRAPH-SENTINEL)
-      (graph-proto/-transact! graph-manager hook-curator [:hook-subscribe selector cb])
+      (graph-proto/-transact! graph-manager hook-curator [:hook-subscribe descriptor cb])
       (cb #_graph-manager val)))
   nil)
 
 (defn hook-change-sel
-  "Call fn `cb` with the value of `selector` in `graph` as soon as it is
+  "Call fn `cb` with the value of `descriptor` in `graph` as soon as it is
   available, and every time the value changes. `cb` may be called synchronously
-  if the selector's value is already known and the graph supports
-  eager selector resolution.
+  if the descriptor's value is already known and the graph supports
+  eager descriptor resolution.
 
   Returns a zero-arg unsubscribe function. After it is called, cb will not
   be called again.
 
   There is no guarantee that each `cb` call will receive a value not= to the
   previous call's value."
-  [graph-manager cb selector]
-  (graph-proto/-transact! graph-manager hook-change-curator [:hook-change-subscribe selector cb])
-  (fn [] (graph-proto/-transact! graph-manager hook-change-curator [:hook-change-unsubscribe selector cb])))
+  [graph-manager cb descriptor]
+  (graph-proto/-transact! graph-manager hook-change-curator [:hook-change-subscribe descriptor cb])
+  (fn [] (graph-proto/-transact! graph-manager hook-change-curator [:hook-change-unsubscribe descriptor cb])))
 
 (defn hook
-  "Call fn `cb` once with the value of selector returned from
-  selector-spec and remaining arguments in `graph` as soon as it is
-  available. `cb` may be called synchronously if the selector's value is already
+  "Call fn `cb` once with the value of descriptor returned from
+  descriptor-spec and remaining arguments in `graph` as soon as it is
+  available. `cb` may be called synchronously if the descriptor's value is already
   known."
-  ([graph-manager cb selector-spec] (hook-sel graph-manager cb (positional-dtor selector-spec)))
-  ([graph-manager cb selector-spec a] (hook-sel graph-manager cb (positional-dtor selector-spec a)))
-  ([graph-manager cb selector-spec a b] (hook-sel graph-manager cb (positional-dtor selector-spec a b)))
-  ([graph-manager cb selector-spec a b c] (hook-sel graph-manager cb (positional-dtor selector-spec a b c)))
-  ([graph-manager cb selector-spec a b c d] (hook-sel graph-manager cb (positional-dtor selector-spec a b c d)))
-  ([graph-manager cb selector-spec a b c d f] (hook-sel graph-manager cb (positional-dtor selector-spec a b c d f)))
-  ([graph-manager cb selector-spec a b c d f g] (hook-sel graph-manager cb (positional-dtor selector-spec a b c d f g)))
-  ([graph-manager cb selector-spec a b c d f g h] (hook-sel graph-manager cb (positional-dtor selector-spec a b c d f g h))))
+  ([graph-manager cb descriptor-spec] (hook-sel graph-manager cb (positional-dtor descriptor-spec)))
+  ([graph-manager cb descriptor-spec a] (hook-sel graph-manager cb (positional-dtor descriptor-spec a)))
+  ([graph-manager cb descriptor-spec a b] (hook-sel graph-manager cb (positional-dtor descriptor-spec a b)))
+  ([graph-manager cb descriptor-spec a b c] (hook-sel graph-manager cb (positional-dtor descriptor-spec a b c)))
+  ([graph-manager cb descriptor-spec a b c d] (hook-sel graph-manager cb (positional-dtor descriptor-spec a b c d)))
+  ([graph-manager cb descriptor-spec a b c d f] (hook-sel graph-manager cb (positional-dtor descriptor-spec a b c d f)))
+  ([graph-manager cb descriptor-spec a b c d f g] (hook-sel graph-manager cb (positional-dtor descriptor-spec a b c d f g)))
+  ([graph-manager cb descriptor-spec a b c d f g h] (hook-sel graph-manager cb (positional-dtor descriptor-spec a b c d f g h))))
 
 (defn hook-change
-  "Like hook-change-sel, but receives a selector-spec plus arguments
-  instead of a selector."
-  ([graph-manager cb selector-spec] (hook-change-sel graph-manager cb (positional-dtor selector-spec)))
-  ([graph-manager cb selector-spec a] (hook-change-sel graph-manager cb (positional-dtor selector-spec a)))
-  ([graph-manager cb selector-spec a b] (hook-change-sel graph-manager cb (positional-dtor selector-spec a b)))
-  ([graph-manager cb selector-spec a b c] (hook-change-sel graph-manager cb (positional-dtor selector-spec a b c)))
-  ([graph-manager cb selector-spec a b c d] (hook-change-sel graph-manager cb (positional-dtor selector-spec a b c d)))
-  ([graph-manager cb selector-spec a b c d f] (hook-change-sel graph-manager cb (positional-dtor selector-spec a b c d f)))
-  ([graph-manager cb selector-spec a b c d f g] (hook-change-sel graph-manager cb (positional-dtor selector-spec a b c d f g)))
-  ([graph-manager cb selector-spec a b c d f g h] (hook-change-sel graph-manager cb (positional-dtor selector-spec a b c d f g h))))
+  "Like hook-change-sel, but receives a descriptor-spec plus arguments
+  instead of a descriptor."
+  ([graph-manager cb descriptor-spec] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec)))
+  ([graph-manager cb descriptor-spec a] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a)))
+  ([graph-manager cb descriptor-spec a b] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a b)))
+  ([graph-manager cb descriptor-spec a b c] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a b c)))
+  ([graph-manager cb descriptor-spec a b c d] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a b c d)))
+  ([graph-manager cb descriptor-spec a b c d f] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a b c d f)))
+  ([graph-manager cb descriptor-spec a b c d f g] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a b c d f g)))
+  ([graph-manager cb descriptor-spec a b c d f g h] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a b c d f g h))))
 
 (defn hitch-callback
   "Given a graph, execute fn `body` in a graph transaction context, calling
@@ -135,116 +135,116 @@
    nil))
 
 (defn apply-commands
-  "Issue a list of selector-command pairs to a graph. Selector-command-pairs
-   is like `[[Selector [command & command-args]] ,,,]`. Do not rely on returned
+  "Issue a list of descriptor-command pairs to a graph. descriptor-command-pairs
+   is like `[[descriptor [command & command-args]] ,,,]`. Do not rely on returned
    value."
-  [graph-manager selector-command-pairs]
-  (graph-proto/-transact-commands! graph-manager selector-command-pairs)
+  [graph-manager descriptor-command-pairs]
+  (graph-proto/-transact-commands! graph-manager descriptor-command-pairs)
   )
 
 ;;tx-manager options
 (defn dget-sel!
-  "Return the value (or `nf` if not yet known) for a selector from graph
+  "Return the value (or `nf` if not yet known) for a descriptor from graph
   transaction context `tx`."
-  [tx-manager selector nf]
-  (tx-proto/dget-sel! tx-manager selector nf))
+  [tx-manager descriptor nf]
+  (tx-proto/dget-sel! tx-manager descriptor nf))
 
 (defn dget!
-  "Return the value (or `nf` if not yet known) for a selector-spec and
+  "Return the value (or `nf` if not yet known) for a descriptor-spec and
   its arguments from graph transaction context `tx`."
-  ([tx-manager nf selector-spec]
+  ([tx-manager nf descriptor-spec]
    (dget-sel! tx-manager
-     (if (fn? selector-spec)
-       (selector-spec)
-       (positional-dtor selector-spec)) nf))
-  ([tx-manager nf selector-spec a]
+     (if (fn? descriptor-spec)
+       (descriptor-spec)
+       (positional-dtor descriptor-spec)) nf))
+  ([tx-manager nf descriptor-spec a]
    (dget-sel! tx-manager
-     (if (fn? selector-spec)
-       (selector-spec a)
-       (positional-dtor selector-spec a)) nf))
-  ([tx-manager nf selector-spec a b]
+     (if (fn? descriptor-spec)
+       (descriptor-spec a)
+       (positional-dtor descriptor-spec a)) nf))
+  ([tx-manager nf descriptor-spec a b]
    (dget-sel! tx-manager
-     (if (fn? selector-spec)
-       (selector-spec a b)
-       (positional-dtor selector-spec a b)) nf))
-  ([tx-manager nf selector-spec a b c]
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b)
+       (positional-dtor descriptor-spec a b)) nf))
+  ([tx-manager nf descriptor-spec a b c]
    (dget-sel! tx-manager
-     (if (fn? selector-spec)
-       (selector-spec a b c)
-       (positional-dtor selector-spec a b c)) nf))
-  ([tx-manager nf selector-spec a b c d]
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c)
+       (positional-dtor descriptor-spec a b c)) nf))
+  ([tx-manager nf descriptor-spec a b c d]
    (dget-sel! tx-manager
-     (if (fn? selector-spec)
-       (selector-spec a b c d)
-       (positional-dtor selector-spec a b c d)) nf))
-  ([tx-manager nf selector-spec a b c d e]
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c d)
+       (positional-dtor descriptor-spec a b c d)) nf))
+  ([tx-manager nf descriptor-spec a b c d e]
    (dget-sel! tx-manager
-     (if (fn? selector-spec)
-       (selector-spec a b c d e)
-       (positional-dtor selector-spec a b c d e)) nf))
-  ([tx-manager nf selector-spec a b c d e f]
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c d e)
+       (positional-dtor descriptor-spec a b c d e)) nf))
+  ([tx-manager nf descriptor-spec a b c d e f]
    (dget-sel! tx-manager
-     (if (fn? selector-spec)
-       (selector-spec a b c d e f)
-       (positional-dtor selector-spec a b c d e f)) nf))
-  ([tx-manager nf selector-spec a b c d e f g]
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c d e f)
+       (positional-dtor descriptor-spec a b c d e f)) nf))
+  ([tx-manager nf descriptor-spec a b c d e f g]
    (dget-sel! tx-manager
-     (if (fn? selector-spec)
-       (selector-spec a b c d e f g)
-       (positional-dtor selector-spec a b c d e f g)) nf)))
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c d e f g)
+       (positional-dtor descriptor-spec a b c d e f g)) nf)))
 
 (defn select-sel!
-  "Return a box containing the value for a selector from graph transaction
+  "Return a box containing the value for a descriptor from graph transaction
   context `tx`. The returned box is the same as that returned by `select!`."
-  ([tx-manager selector]
-   (let [v (dget-sel! tx-manager selector NOT-IN-GRAPH-SENTINEL)]
+  ([tx-manager descriptor]
+   (let [v (dget-sel! tx-manager descriptor NOT-IN-GRAPH-SENTINEL)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v)))))
 
 (defn select!
-  "Return a box containing the value for a selector-spec and its
+  "Return a box containing the value for a descriptor-spec and its
   arguments from graph transaction context `tx`. Retrieve the value with deref
   (@). If the value is not yet known, deref will throw an exception which the
   transaction context will catch. You can test if a value is available
   using `(realized? box)`."
-  ([tx-manager selector-spec]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec)]
+  ([tx-manager descriptor-spec]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-spec a]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a)]
+  ([tx-manager descriptor-spec a]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-spec a b]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a b)]
+  ([tx-manager descriptor-spec a b]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a b)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-spec a b c]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a b c)]
+  ([tx-manager descriptor-spec a b c]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a b c)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-spec a b c d]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a b c d)]
+  ([tx-manager descriptor-spec a b c d]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a b c d)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-spec a b c d e]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a b c d e)]
+  ([tx-manager descriptor-spec a b c d e]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a b c d e)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-spec a b c d e f]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a b c d e f)]
+  ([tx-manager descriptor-spec a b c d e f]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a b c d e f)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v))))
-  ([tx-manager selector-spec a b c d e f g]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL selector-spec a b c d e f g)]
+  ([tx-manager descriptor-spec a b c d e f g]
+   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a b c d e f g)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
        halt/halt-box
        (halt/select-box v)))))

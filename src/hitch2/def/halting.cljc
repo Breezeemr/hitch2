@@ -3,7 +3,7 @@
   (:require [hitch2.halt :as halt]
             [hitch2.def.spec
              :refer [def-descriptor-spec]]
-            [hitch2.selector-impl-registry :as reg]))
+            [hitch2.descriptor-impl-registry :as reg]))
 
 (defn- cljs-target? [env]
   (some? (:ns env)))
@@ -11,7 +11,7 @@
 (defn- param-names [binding-form]
   (mapv (fn [x]
           (assert (not= x '&)
-            "Variadic parameters are not allowed on defselector.")
+            "Variadic parameters are not allowed on defdescriptor.")
           (cond
             (symbol? x) x
             (and (map? x) (:as x)) (:as x)
@@ -26,7 +26,7 @@
 
 (defn make-eval-arg-binding [x]
   (assert (not= x '&)
-    "Variadic parameters are not allowed on defselector.")
+    "Variadic parameters are not allowed on defdescriptor.")
   (cond
     (symbol? x) [x (keyword x)]
     (and (map? x) (:as x)) [x (keyword (:as x))]
@@ -60,8 +60,8 @@
          :hitch2.descriptor.spec/positional-params
          ~(mapv #(keyword (namespace %) (clojure.core/name %)) record-field-names))
        (defn ~eval-fn-name ~(make-eval-binding-form (first constructor-binding-forms) input) ~@body)
-       ;; This is Francis' selector. Halting fn signature is different:
-       ;; (fn [dt MAP-LIKE-SELECTOR-WITH-NON-POS-ENTRIES pos1 pos2 ...] ...)
+       ;; This is Francis' descriptor. Halting fn signature is different:
+       ;; (fn [dt MAP-LIKE-descriptor-WITH-NON-POS-ENTRIES pos1 pos2 ...] ...)
        ;; For now we just ignore the second arg
        (defn ~slot-eval-fn-name
          ~(into [(first constructor-binding-forms) '_]
@@ -70,8 +70,8 @@
        (def ~impl
          {:hitch2.descriptor.impl/kind                  :hitch2.descriptor.kind/halting
           :hitch2.descriptor.impl/halting               ~eval-fn-name
-          :hitch2.descriptor.impl/halting-slot-selector ~slot-eval-fn-name})
-       (hitch2.selector-impl-registry/def-registered-selector
+          :hitch2.descriptor.impl/halting-slot-descriptor ~slot-eval-fn-name})
+       (hitch2.descriptor-impl-registry/def-registered-descriptor
          ~name  ~spec ~impl))))
 
 (defmacro defhalting [name constructor-binding-forms & body]

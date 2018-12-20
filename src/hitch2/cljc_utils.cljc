@@ -26,7 +26,7 @@
       (fn [^Object x]
         (let [protocol @protocol-var]
           (if (nil? x)
-            (contains? (:selector-names protocol) nil)
+            (contains? (:descriptor-names protocol) nil)
             (if (instance? (:on-interface protocol) x)
               true
               (let [cls (.getClass x)]

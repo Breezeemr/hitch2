@@ -1,10 +1,10 @@
 (ns hitch2.def.curator
   (:require [clojure.spec.alpha :as s]))
 
-(def selector? any?)
+(def descriptor? any?)
 (s/def ::state any?)
-(s/def ::change-focus (s/map-of selector? boolean?))
-(s/def ::set-projections (s/map-of selector? any?))
+(s/def ::change-focus (s/map-of descriptor? boolean?))
+(s/def ::set-projections (s/map-of descriptor? any?))
 (s/def ::async-effects (s/coll-of any?))
 (s/def ::sync-effects (s/coll-of any?))
 

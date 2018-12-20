@@ -6,9 +6,9 @@
 (deftype HaltingManager [graph-value #?(:cljs    ^:mutable requests
                                         :default ^:unsynchronized-mutable requests)]
   tx-manager/IDependTrack
-  (dget-sel!  [this data-selector nf]
-    (set! requests (conj! requests data-selector))
-    (get graph-value data-selector nf))
+  (dget-sel!  [this data-descriptor nf]
+    (set! requests (conj! requests data-descriptor))
+    (get graph-value data-descriptor nf))
   (finish-tx! [this]
     (let [reqs (persistent! requests)]
       (set! requests (transient #{}))

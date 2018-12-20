@@ -2,9 +2,9 @@
   (:require [hitch2.protocols.graph-manager :as gm]
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]))
 
-(defn not-loaded-selectors
-  [gm selector]
-  (let [dependencies (gm/-observes gm selector)
+(defn not-loaded-descriptors
+  [gm descriptor]
+  (let [dependencies (gm/-observes gm descriptor)
         snapshot     (gm/-get-graph gm)
         resolver     (gm/-get-resolver gm)]
     (when-not (identical? dependencies NOT-IN-GRAPH-SENTINEL)
@@ -17,5 +17,5 @@
                             :hitch2.descriptor.kind/curator
                             [:curator dep]
                             (:hitch2.descriptor.kind/var :hitch2.descriptor.kind/halting)
-                            [dep (not-loaded-selectors gm dep)]))))))
+                            [dep (not-loaded-descriptors gm dep)]))))))
             dependencies))))

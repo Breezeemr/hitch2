@@ -1,17 +1,17 @@
-(ns hitch2.defselector-test
+(ns hitch2.defdescriptor-test
   (:require #?(:cljs [cljs.test :refer [deftest is testing]]
                :clj [clojure.test :refer [deftest is testing]])
             [hitch2.def.halting :refer [defhalting]]
             [hitch2.descriptor :as descriptor] ))
 
-(deftest DefSelector
+(deftest Defdescriptor
   (testing "defhalting definition does not error-out"
-    (defhalting TEST-SELECTOR [G A [B1 B2 :as B] {C1 :k :as C}]
+    (defhalting TEST-descriptor [G A [B1 B2 :as B] {C1 :k :as C}]
       [A B C]))
   (testing "defhalting eval-fn generation"
-    (is (= (TEST-SELECTOR-eval-fn nil {:term {:A 1 :B [2] :C {:k 3} } }) [1 [2] {:k 3}])))
+    (is (= (TEST-descriptor-eval-fn nil {:term {:A 1 :B [2] :C {:k 3} } }) [1 [2] {:k 3}])))
   (testing "defhalting record property names are correct"
-    (let [{{a :A b :B c :C} :term} (descriptor/positional-dtor  TEST-SELECTOR 1 [2] {:k 3})]
+    (let [{{a :A b :B c :C} :term} (descriptor/positional-dtor  TEST-descriptor 1 [2] {:k 3})]
       (is (= a 1))
       (is (= b [2]))
       (is (= c {:k 3}))))

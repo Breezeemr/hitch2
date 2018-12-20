@@ -8,7 +8,7 @@
             [hitch2.def.spec
              :refer [def-descriptor-spec]]
             [hitch2.descriptor :as descriptor]
-            [hitch2.selector-impl-registry :as reg]
+            [hitch2.descriptor-impl-registry :as reg]
             [clojure.set :as set])
   #?(:clj
      (:import [java.util UUID])))
@@ -62,10 +62,10 @@
    :hitch2.descriptor.kind/curator
 
    ::curator-proto/init
-   (fn [curator-selector] initial-node)
+   (fn [curator-descriptor] initial-node)
 
    ::curator-proto/apply-command
-   (fn [curator-selector graph-value node command]
+   (fn [curator-descriptor graph-value node command]
      (case (nth command 0)
        :hitch-callback-reset-parents
        (let [[_ halt-fn cb new-parents] command
@@ -85,12 +85,12 @@
              (update-reverse-indexes id #{})))))
    
    ::curator-proto/observed-value-changes
-   (fn [curator-selector graph-value node parent-selectors]
+   (fn [curator-descriptor graph-value node parent-descriptors]
      (let [sel->id   (-> node :state :sel->id)
            dirty-id  (-> node :state :dirty-ids)
            dirty-id' (transduce
                        (map sel->id)
-                       into dirty-id parent-selectors)]
+                       into dirty-id parent-descriptors)]
        (assoc-in node [:state :dirty-ids] dirty-id')))
 
    ::curator-proto/finalize
@@ -102,7 +102,7 @@
                  {:type  :hitch-callback-rerun-body
                   :infos (select-keys (-> node :state :id->info) dirty-ids)}))))})
 
-(reg/def-registered-selector hitch-callback-curator react-hook-spec react-hook-impl)
+(reg/def-registered-descriptor hitch-callback-curator react-hook-spec react-hook-impl)
 
 (def hitch-callbacker (descriptor/->dtor hitch-callback-curator nil))
 
@@ -111,10 +111,10 @@
   (let [gv              (graph-proto/-get-graph gm)
         rtx             (halting/halting-manager gv)
         result          (halt/maybe-halt (halt-fn rtx) NOT-FOUND-SENTINEL)
-        focus-selectors (tx-manager/finish-tx! rtx)]
+        focus-descriptors (tx-manager/finish-tx! rtx)]
     (if (= result NOT-FOUND-SENTINEL)
       (graph-proto/-transact! gm hitch-callbacker
-                              [:hitch-callback-reset-parents halt-fn cb focus-selectors])
+                              [:hitch-callback-reset-parents halt-fn cb focus-descriptors])
       (cb result))))
 
 (defn name-later
@@ -122,10 +122,10 @@
   (let [gv              (graph-proto/-get-graph gm)
         rtx             (halting/halting-manager gv)
         result          (halt/maybe-halt (halt-fn rtx) NOT-FOUND-SENTINEL)
-        focus-selectors (tx-manager/finish-tx! rtx)]
+        focus-descriptors (tx-manager/finish-tx! rtx)]
     (if (= result NOT-FOUND-SENTINEL)
       (graph-proto/-transact! gm hitch-callbacker
-                              [:hitch-callback-reset-parents-id id focus-selectors])
+                              [:hitch-callback-reset-parents-id id focus-descriptors])
       (do
         (graph-proto/-transact! gm hitch-callbacker
                                 [:hitch-callback-unsubscribe id])

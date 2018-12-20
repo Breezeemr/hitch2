@@ -4,7 +4,7 @@
             [hitch2.graph :as graph]
             [hitch2.curator.mutable-var :refer  [mutable-var]]
             [hitch2.graph-manager.atom :as atom-gm]
-            [hitch2.selector-impl-registry :as reg
+            [hitch2.descriptor-impl-registry :as reg
              :refer [registry-resolver]]))
 
 (def gctors
@@ -36,7 +36,7 @@
             (fn [result]
               (is (= result [:ok "cat\n"]) (str graph-name " value before refresh"))
 
-              ;; Second hook is to ensure the selector has not been destroyed
+              ;; Second hook is to ensure the descriptor has not been destroyed
               ;; so the second http request is not elided somehow.
               (graph/hook-sel graph
                 (fn [result]

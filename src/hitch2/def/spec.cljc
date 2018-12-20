@@ -27,8 +27,8 @@
 #?(:cljs nil
    :clj
          (defmacro def-descriptor-spec
-           [selector-name kind & options]
-           {:pre [(simple-symbol? selector-name)
+           [descriptor-name kind & options]
+           {:pre [(simple-symbol? descriptor-name)
                   (keyword? kind)
                   (even? (count options))]}
            (let [sel-name (symbol
@@ -36,7 +36,7 @@
                                       (:name (:ns &env))          ;; targeting CLJS
                                       (ns-name *ns*))             ;; targeting CLJ
                               name)
-                            (name selector-name))
+                            (name descriptor-name))
                  qkind    (if (qualified-keyword? kind)
                             kind
                             (keyword "hitch2.descriptor.spec.kind" (name kind)))
@@ -46,14 +46,14 @@
                               (mapcat validate-coerce-option))
                             options)
                  ]
-             `(def ~selector-name
+             `(def ~descriptor-name
                 (array-map
                   ~@eoptions
                   :hitch2.descriptor/name ~(list 'quote sel-name)
                   :hitch2.descriptor.spec/kind ~qkind)))))
 
 
-" Returns the kind of selector or curator.
+" Returns the kind of descriptor or curator.
 Should be a keyword for dispatching. Values are from:"
 :hitch2.descriptor.kind/var
 :hitch2.descriptor.kind/curator

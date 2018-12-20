@@ -63,6 +63,6 @@
   (-get-resolver [gm]))
 
 (defprotocol Inspect
-  (-observed-by [gm selector])
-  (-observes [gm selector]))
+  (-observed-by [gm descriptor])
+  (-observes [gm descriptor]))
 

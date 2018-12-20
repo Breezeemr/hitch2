@@ -5,7 +5,7 @@
             [hitch2.def.spec
              :refer [def-descriptor-spec]]
             [hitch2.descriptor :as descriptor]
-            [hitch2.selector-impl-registry :as reg]))
+            [hitch2.descriptor-impl-registry :as reg]))
 
 (def hook-spec
   {:hitch2.descriptor/name ::hook
@@ -15,44 +15,44 @@
                        async-effects sync-effects])
 (def initial-node (assoc curator-proto/initial-curator-state :state {}))
 
-(defn remove-called-hooks [state selectors]
-  (reduce dissoc state selectors))
+(defn remove-called-hooks [state descriptors]
+  (reduce dissoc state descriptors))
 
 (def-descriptor-spec hook-curator-spec
   :curator)
 
 (def hook-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
-   ::curator-proto/init (fn [curator-selector] initial-node)
+   ::curator-proto/init (fn [curator-descriptor] initial-node)
    ::curator-proto/observed-value-changes
-                             (fn [curator-selector graph-value node parent-selectors]
-                               (let [selector->targets (:state node)]
+                             (fn [curator-descriptor graph-value node parent-descriptors]
+                               (let [descriptor->targets (:state node)]
                                  (-> node
                                      (update :async-effects
                                        into
-                                       (mapcat (fn [selector]
-                                                 (for [target (seq (selector->targets selector))]
+                                       (mapcat (fn [descriptor]
+                                                 (for [target (seq (descriptor->targets descriptor))]
                                                    {:type     :hook-call
                                                     :target   target
-                                                    :selector selector})))
-                                       parent-selectors)
-                                     (update :state remove-called-hooks parent-selectors))))
+                                                    :descriptor descriptor})))
+                                       parent-descriptors)
+                                     (update :state remove-called-hooks parent-descriptors))))
    ::curator-proto/apply-command
-                             (fn [curator-selector graph-value node command]
+                             (fn [curator-descriptor graph-value node command]
                                (case (nth command 0)
                                  :hook-subscribe
-                                 (let [[_ selector target] command]
+                                 (let [[_ descriptor target] command]
                                    (-> node
-                                       (update-in [:state selector] (fnil conj #{}) target)
-                                       (update :change-focus assoc selector true)))
+                                       (update-in [:state descriptor] (fnil conj #{}) target)
+                                       (update :change-focus assoc descriptor true)))
                                  :hook-unsubscribe
-                                 (let [[_ selector target] command]
-                                   (let [new-node (update-in node [:state selector] (fnil disj #{}) target)]
-                                     (if (not-empty (get-in new-node [:state selector]))
+                                 (let [[_ descriptor target] command]
+                                   (let [new-node (update-in node [:state descriptor] (fnil disj #{}) target)]
+                                     (if (not-empty (get-in new-node [:state descriptor]))
                                        new-node
-                                       (update new-node :change-focus assoc selector false))))))})
+                                       (update new-node :change-focus assoc descriptor false))))))})
 
-(reg/def-registered-selector hook-curator-spec' hook-curator-spec hook-impl)
+(reg/def-registered-descriptor hook-curator-spec' hook-curator-spec hook-impl)
 
 (def hook-curator
   (descriptor/->dtor  hook-curator-spec' nil))
@@ -63,41 +63,41 @@
 
 (def hook-change-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
-   ::curator-proto/init (fn [curator-selector] initial-node)
+   ::curator-proto/init (fn [curator-descriptor] initial-node)
    ::curator-proto/observed-value-changes
-   (fn [curator-selector graph-value node parent-selectors]
-     (let [selector->targets (:state node)]
+   (fn [curator-descriptor graph-value node parent-descriptors]
+     (let [descriptor->targets (:state node)]
        (-> node
            (update :async-effects
              into
-             (mapcat (fn [selector]
-                       (for [target (seq (selector->targets selector))]
+             (mapcat (fn [descriptor]
+                       (for [target (seq (descriptor->targets descriptor))]
                          {:type     :hook-changes-call
                           :target   target
-                          :selector selector})))
-             parent-selectors))))
+                          :descriptor descriptor})))
+             parent-descriptors))))
    ::curator-proto/apply-command
-   (fn [curator-selector graph-value node command]
+   (fn [curator-descriptor graph-value node command]
      (case (nth command 0)
        :hook-change-subscribe
-       (let [[_ selector target] command
-             current-selector-value (get graph-value selector NOT-FOUND-SENTINEL)]
+       (let [[_ descriptor target] command
+             current-descriptor-value (get graph-value descriptor NOT-FOUND-SENTINEL)]
          (cond->
            (-> node
-               (update-in [:state selector] (fnil conj #{}) target)
-               (update :change-focus assoc selector true))
-           (not (identical? current-selector-value NOT-FOUND-SENTINEL))
+               (update-in [:state descriptor] (fnil conj #{}) target)
+               (update :change-focus assoc descriptor true))
+           (not (identical? current-descriptor-value NOT-FOUND-SENTINEL))
            (update :sync-effects conj {:type     :hook-changes-call
                                        :target   target
-                                       :selector selector})))
+                                       :descriptor descriptor})))
        :hook-change-unsubscribe
-       (let [[_ selector target] command]
-         (let [new-node (update-in node [:state selector] disj target)]
-           (if (not-empty (get-in new-node [:state selector]))
+       (let [[_ descriptor target] command]
+         (let [new-node (update-in node [:state descriptor] disj target)]
+           (if (not-empty (get-in new-node [:state descriptor]))
              new-node
-             (update new-node :change-focus assoc selector false))))))})
+             (update new-node :change-focus assoc descriptor false))))))})
 
-(reg/def-registered-selector hook-change-curator-spec' hook-change-curator-spec hook-change-impl)
+(reg/def-registered-descriptor hook-change-curator-spec' hook-change-curator-spec hook-change-impl)
 
 
 (def hook-change-curator
@@ -106,7 +106,7 @@
 (defmethod graph-proto/run-effect :hook-call [graph-manager
                                               {:as effect
                                                f :target
-                                               sel :selector}]
+                                               sel :descriptor}]
   (let [graph-value (graph-proto/-get-graph graph-manager)
         v (get graph-value sel)]
     (f v)))
@@ -114,7 +114,7 @@
 (defmethod graph-proto/run-effect :hook-changes-call [graph-manager
                                               {:as effect
                                                f :target
-                                               sel :selector}]
+                                               sel :descriptor}]
   (let [graph-value (graph-proto/-get-graph graph-manager)
         v (get graph-value sel)]
     (f v)))
