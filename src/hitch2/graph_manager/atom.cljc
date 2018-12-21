@@ -148,6 +148,7 @@
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (and (not= new-value old-value) (not (identical? new-value NOT-FOUND-SENTINEL)))
         added-deps       (into #{} (remove old-deps) deps)
+        waiting-deps   (into #{} (remove (:graph-value graph-manager-value)) deps)
         change-focus (-> {}
                            (into (map (fn [dep]
                                         [dep true]))
@@ -166,10 +167,10 @@
                 (assoc
                   :value-changed?
                   true)
-                (not-empty added-deps)
+                (not-empty waiting-deps)
                 (assoc
                   :waiting
-                  (into #{} (remove (:graph-value graph-manager-value)) deps))))
+                  waiting-deps)))
       :always
       (update
         :graph-value
