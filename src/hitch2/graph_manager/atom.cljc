@@ -101,7 +101,7 @@
         (->var-state false)
         :hitch2.descriptor.kind/halting
         (->deriving-state
-          [] #{} false)
+          {} #{} false)
         ))))
 
 (defn update-graph-value [gv dtor value]
@@ -119,7 +119,7 @@
                        (add-to-working-set worklist-atom dtor))
                      (-> gv
                          (assoc-in [:node-state dtor :value-changed?]
-                           true #_(if (identical? value NOT-FOUND-SENTINEL)
+                           #_true (if (identical? value NOT-FOUND-SENTINEL)
                                                                        false
                                                                        true))
                          (update :graph-value update-graph-value dtor value))))))
@@ -147,12 +147,18 @@
         new-value (halting descriptor simpl tx-manager)
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (and (not= new-value old-value) (not (identical? new-value NOT-FOUND-SENTINEL)))
-        added-deps       (into #{} (remove old-deps) deps)
-        waiting-deps   (into #{} (remove (:graph-value graph-manager-value)) deps)
+        waiting-deps   (into #{}
+                         (comp
+                           (remove (:graph-value graph-manager-value))
+                           (remove old-deps))
+                         deps)
         change-focus (-> {}
-                           (into (map (fn [dep]
-                                        [dep true]))
-                             added-deps)
+                           (into
+                             (comp
+                               (remove old-deps)
+                               (map (fn [dep]
+                                      [dep true])))
+                             deps)
                            (into (comp (remove deps)
                                    (map (fn [dep]
                                           [dep false])))
