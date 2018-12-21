@@ -104,6 +104,11 @@
           [] #{} false)
         ))))
 
+(defn update-graph-value [gv dtor value]
+  (if (identical? value NOT-FOUND-SENTINEL)
+    (dissoc gv dtor)
+    (assoc gv dtor value)))
+
 (defn propagate-set-projections [graph-manager-value set-projections worklist-atom]
   (reduce-kv (fn [gv dtor value]
                (let [old-value (-> gv :graph-value (get dtor NOT-FOUND-SENTINEL))]
@@ -117,7 +122,7 @@
                            true #_(if (identical? value NOT-FOUND-SENTINEL)
                                                                        false
                                                                        true))
-                         (assoc-in [:graph-value dtor] value))))))
+                         (update :graph-value update-graph-value dtor value))))))
     graph-manager-value
     set-projections))
 
@@ -165,10 +170,10 @@
                 (assoc
                   :waiting
                   (into #{} (remove (:graph-value graph-manager-value)) deps))))
-      value-changed?
-      (assoc-in
-        [:graph-value descriptor]
-        new-value)
+      :always
+      (update
+        :graph-value
+        update-graph-value descriptor new-value)
       (not-empty change-focus)
       (propagate-dependency-changes resolver descriptor change-focus worklist-atom dirty-curators))))
 
@@ -416,7 +421,7 @@
                         child
                         parent]))
             (case added|removed
-              true (if (= old-node-state NOT-FOUND-SENTINEL)
+              true (if (identical? old-node-state NOT-FOUND-SENTINEL)
                      (let [graph-manager-value (run-halting
                                                  graph-manager-value
                                                  node-state
