@@ -75,7 +75,38 @@
           b-key                b
           c-key                c
           d-key                d
-          e-key                e})))))
+          e-key                e}))))
+  ([descriptor-spec a b c d e f]
+   (case (:hitch2.descriptor.spec/canonical-form  descriptor-spec)
+     :hitch2.descriptor.spec.canonical-form/vector
+     (->Descriptor (:hitch2.descriptor/name descriptor-spec) [a b c d e f])
+     :hitch2.descriptor.spec.canonical-form/map
+     (let [params              (:hitch2.descriptor.spec/positional-params descriptor-spec)
+           _                   (assert (= 6 (count params)))
+           [a-key b-key c-key d-key e-key f-key] params]
+       (->Descriptor (:hitch2.descriptor/name descriptor-spec)
+         {a-key                a
+          b-key                b
+          c-key                c
+          d-key                d
+          e-key                e
+          f-key                f}))))
+  ([descriptor-spec a b c d e f g]
+   (case (:hitch2.descriptor.spec/canonical-form  descriptor-spec)
+     :hitch2.descriptor.spec.canonical-form/vector
+     (->Descriptor (:hitch2.descriptor/name descriptor-spec) [a b c d e f g])
+     :hitch2.descriptor.spec.canonical-form/map
+     (let [params              (:hitch2.descriptor.spec/positional-params descriptor-spec)
+           _                   (assert (= 7 (count params)))
+           [a-key b-key c-key d-key e-key f-key g-key] params]
+       (->Descriptor (:hitch2.descriptor/name descriptor-spec)
+         {a-key                a
+          b-key                b
+          c-key                c
+          d-key                d
+          e-key                e
+          f-key                f
+          g-key                g})))))
 
 
 (defn ->dtor [descriptor-spec data]
