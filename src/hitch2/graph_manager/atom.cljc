@@ -233,15 +233,14 @@
                     (update :waiting disj parent))]
             (assert (not= node-state NOT-FOUND-SENTINEL))
             (if (empty? waiting)
-              (let [graph-manager-value (run-halting
-                                          graph-manager-value
-                                          node-state
-                                          resolver
-                                          descriptor
-                                          dtor-impl
-                                          worklist-atom
-                                          dirty-curators)]
-                graph-manager-value)
+              (run-halting
+                graph-manager-value
+                node-state
+                resolver
+                descriptor
+                dtor-impl
+                worklist-atom
+                dirty-curators)
               (assoc-in graph-manager-value [:node-state descriptor] node-state))))))
     graph-manager-value
     (-> graph-manager-value :observed-by (get parent))))
@@ -423,17 +422,14 @@
                         parent]))
             (case added|removed
               true (if (identical? old-node-state NOT-FOUND-SENTINEL)
-                     (let [graph-manager-value (run-halting
-                                                 graph-manager-value
-                                                 node-state
-                                                 resolver
-                                                 parent
-                                                 dtor-impl
-                                                 worklist-atom
-                                                 dirty-curators)]
-
-                       (add-to-working-set worklist-atom parent)
-                       graph-manager-value)
+                     (run-halting
+                       graph-manager-value
+                       node-state
+                       resolver
+                       parent
+                       dtor-impl
+                       worklist-atom
+                       dirty-curators)
                      graph-manager-value)
               false (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by parent]))]
                       graph-manager-value
