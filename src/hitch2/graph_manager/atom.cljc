@@ -596,19 +596,19 @@
                      :node :as   new-state}
               (finalize-tx
                 (get node-state descriptor)
-                                graph-value
-                                resolver
-                                descriptor)]
+                graph-value
+                resolver
+                descriptor)]
           (assert-valid-finalized-node-state new-state (:name descriptor))
           (when (not-empty sync-effects)
             (vswap! sync-effects-atom into! sync-effects))
           (when (not-empty async-effects)
             (vswap! async-effects-atom into! async-effects))
-          (update-in
+          (assoc-in
             graph-manager-value
             [:node-state
              descriptor]
-            remove-effects)))
+            (remove-effects new-state))))
       graph-manager-value
       disturbed-curators)))
 
