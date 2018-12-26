@@ -83,12 +83,12 @@
   (vswap! working-set conj! descriptor)
   nil)
 
-(defn tx-init-curator [node-state graph-manager-value resolver descriptor disturbed-curators]
+(defn tx-init-curator [node-state graph-manager-value descriptor disturbed-curators]
   (if (contains? @disturbed-curators descriptor)
     node-state
     (do
       (add-to-working-set disturbed-curators descriptor)
-      (if-some [tx-init (::curator-proto/tx-init (resolver descriptor))]
+      (if-some [tx-init (::curator-proto/tx-init (:dtor-impl node-state))]
         (tx-init descriptor (get-graph-value graph-manager-value) node-state)
         node-state))))
 
@@ -102,7 +102,7 @@
       (case dtor-kind
         :hitch2.descriptor.kind/curator
         (->curator-state
-          (if-some [init (::curator-proto/init (resolver descriptor))]
+          (if-some [init (::curator-proto/init dtor-impl)]
             (init descriptor)
             curator-proto/initial-curator-state)
           dtor-impl
@@ -183,7 +183,7 @@
                                    (map (fn [dep]
                                           [dep false])))
                                  old-deps))]
-    (when value-changed?
+    (when (or value-changed? (not-empty change-focus))
       (add-to-working-set worklist-atom descriptor))
     (cond-> (assoc-in
               graph-manager-value
@@ -197,13 +197,18 @@
                 (not-empty waiting-deps)
                 (assoc
                   :waiting
-                  waiting-deps)))
+                  waiting-deps)
+                ;(not-empty change-focus)
+                #_(assoc
+                  :change-focus
+                  change-focus)))
       :always
       (update
         :graph-value
         update-graph-value descriptor new-value)
       (not-empty change-focus)
-      (propagate-dependency-changes resolver descriptor change-focus worklist-atom dirty-curators))))
+      (propagate-dependency-changes resolver descriptor change-focus worklist-atom dirty-curators)
+      )))
 
 
 (defn addval [x k v]
@@ -243,7 +248,7 @@
            :as                 new-node-state}
           (if-some [observed-value-changes (::curator-proto/observed-value-changes (:dtor-impl node-state))]
             (observed-value-changes descriptor graph-value
-              (tx-init-curator n graph-manager-value resolver descriptor dirty-curators)
+              (tx-init-curator n graph-manager-value descriptor dirty-curators)
               #{parent})
             (assert false))]
       (s/assert ::curator-proto/curator-state new-node-state)
@@ -376,9 +381,10 @@
           :dirty-list (s/coll-of ::descriptors))
   :ret ::graph-manager-value)
 
-(defn flush-tx [{n :node :as node-state} graph-manager-value resolver  descriptor]
+(defn flush-tx [{n :node dtor-impl :dtor-impl
+                 :as node-state} graph-manager-value resolver  descriptor]
   (assert (instance? curator-state node-state) (pr-str node-state))
-  (if-some [flush-tx (::curator-proto/flush-tx  (resolver descriptor))]
+  (if-some [flush-tx (::curator-proto/flush-tx  dtor-impl)]
     (assoc node-state :node
                       (flush-tx descriptor (:graph-value graph-manager-value) n))
     node-state))
@@ -431,7 +437,7 @@
            :as                new-node-state}
           (if-some [curation-changes (::curator-proto/curation-changes (:dtor-impl node-state))]
             (curation-changes observed graph-value
-              (tx-init-curator n graph-manager-value  resolver observed dirty-curators)
+              (tx-init-curator n graph-manager-value observed dirty-curators)
               (when added|removed
                 #{observer})
               (when (not added|removed)
@@ -458,7 +464,7 @@
                     new-graph-manager-value
                     new-graph-manager-value))))))
   deriving-state
-  (-apply-child-change-command [node-state graph-manager-value  observer observed added|removed  resolver worklist-atom
+  (-apply-child-change-command [node-state graph-manager-value observer observed added|removed  resolver worklist-atom
                            dirty-curators]
     (let [old-node-state (get-in graph-manager-value [:node-state observed] NOT-FOUND-SENTINEL)]
       (case added|removed
@@ -556,19 +562,12 @@
           :observes (s/coll-of ::descriptor))
   :ret ::curator-proto/curator-state)
 
-(defn remove-effects [node-state curators]
-  (reduce
-    (fn [acc curator]
-      (update acc curator assoc :sync-effects [] :async-effects []))
-    node-state
-    curators))
-
-(defn finalize-tx [node-state graph-value resolver descriptor]
-  (if-some [finalize (::curator-proto/finalize (resolver descriptor))]
-    (finalize descriptor graph-value node-state)
+(defn finalize-tx [{node :node :as node-state} graph-value resolver descriptor]
+  (if-some [finalize (::curator-proto/finalize (:dtor-impl node-state))]
+    (assoc node-state :node (finalize descriptor graph-value node))
     node-state))
 
-(defn assert-valid-finalized-node-state [{:keys [change-focus set-projections]} descriptor-name]
+(defn assert-valid-finalized-node-state [{{:keys [change-focus set-projections] } :node} descriptor-name]
   (assert (empty? change-focus) descriptor-name)
   (assert (empty? set-projections) descriptor-name))
 
@@ -578,15 +577,25 @@
     target
     source))
 
+
+(defn remove-effects [{{:keys [sync-effects async-effects]
+                        :as node} :node :as node-state}]
+  (assoc node-state :node
+                    (cond-> node
+                      (not-empty sync-effects)
+                      (assoc :sync-effects [])
+                      (not-empty async-effects)
+                      (assoc :async-effects []))))
+
 (defn finalize-effects
   [graph-manager-value resolver disturbed-curators  sync-effects-atom async-effects-atom]
   (let [graph-value         (get-graph-value graph-manager-value)]
     (reduce
       (fn [{:keys [node-state] :as graph-manager-value} descriptor]
-        (let [{old-state :node} (get node-state descriptor)
-              {:keys [sync-effects async-effects]
-               :as new-state} (finalize-tx
-                                old-state
+        (let [{{:keys [sync-effects async-effects]}
+                     :node :as   new-state}
+              (finalize-tx
+                (get node-state descriptor)
                                 graph-value
                                 resolver
                                 descriptor)]
@@ -595,16 +604,11 @@
             (vswap! sync-effects-atom into! sync-effects))
           (when (not-empty async-effects)
             (vswap! async-effects-atom into! async-effects))
-          (assoc-in
+          (update-in
             graph-manager-value
             [:node-state
-             descriptor
-             :node]
-            (cond-> new-state
-              (not-empty sync-effects)
-              (assoc :sync-effects [])
-              (not-empty async-effects)
-              (assoc :async-effects [])))))
+             descriptor]
+            remove-effects)))
       graph-manager-value
       disturbed-curators)))
 
@@ -643,7 +647,7 @@
           (assoc node-state :node
                             (if-some [apply-command (::curator-proto/apply-command dtor-impl)]
                               (apply-command descriptor graph-value
-                                (tx-init-curator n graph-manager-value resolver descriptor disturbed-curators)
+                                (tx-init-curator n graph-manager-value descriptor disturbed-curators)
                                 command)
                               (assert false)))))
       :hitch2.descriptor.kind/var
