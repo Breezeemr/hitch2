@@ -287,9 +287,11 @@
 (defn propagate-value-changes [graph-manager-value resolver parent worklist-atom dirty-curators]
   (reduce
     (fn [graph-manager-value descriptor]
-      (-propagate-value-change (get-node-state graph-manager-value descriptor)
-        graph-manager-value descriptor parent
-        resolver worklist-atom dirty-curators))
+      (if-some [node-state (get-node-state graph-manager-value descriptor)]
+        (-propagate-value-change node-state
+          graph-manager-value descriptor parent
+          resolver worklist-atom dirty-curators)
+        graph-manager-value))
     graph-manager-value
     (-> graph-manager-value :observed-by (get parent))))
 
