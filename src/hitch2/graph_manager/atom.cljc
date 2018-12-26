@@ -371,9 +371,11 @@
 
 (defn propagate-node-changes [resolver worklist-atom dirty-curators]
   (fn [graph-manager-value descriptor]
-    (-propagate-node-change (get-node-state graph-manager-value descriptor)
-      graph-manager-value descriptor
-      resolver worklist-atom dirty-curators)))
+    (if-some [node-state (get-node-state graph-manager-value descriptor)]
+      (-propagate-node-change node-state
+        graph-manager-value descriptor
+        resolver worklist-atom dirty-curators)
+      graph-manager-value)))
 
 (s/fdef propagate-changes
   :args (s/cat
