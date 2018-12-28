@@ -63,26 +63,90 @@
   descriptor-spec and remaining arguments in `graph` as soon as it is
   available. `cb` may be called synchronously if the descriptor's value is already
   known."
-  ([graph-manager cb descriptor-spec] (hook-sel graph-manager cb (positional-dtor descriptor-spec)))
-  ([graph-manager cb descriptor-spec a] (hook-sel graph-manager cb (positional-dtor descriptor-spec a)))
-  ([graph-manager cb descriptor-spec a b] (hook-sel graph-manager cb (positional-dtor descriptor-spec a b)))
-  ([graph-manager cb descriptor-spec a b c] (hook-sel graph-manager cb (positional-dtor descriptor-spec a b c)))
-  ([graph-manager cb descriptor-spec a b c d] (hook-sel graph-manager cb (positional-dtor descriptor-spec a b c d)))
-  ([graph-manager cb descriptor-spec a b c d f] (hook-sel graph-manager cb (positional-dtor descriptor-spec a b c d f)))
-  ([graph-manager cb descriptor-spec a b c d f g] (hook-sel graph-manager cb (positional-dtor descriptor-spec a b c d f g)))
-  ([graph-manager cb descriptor-spec a b c d f g h] (hook-sel graph-manager cb (positional-dtor descriptor-spec a b c d f g h))))
+  ([graph-manager cb descriptor-spec]
+   (hook-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec)
+       (positional-dtor descriptor-spec))))
+  ([graph-manager cb descriptor-spec a]
+   (hook-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec a)
+       (positional-dtor descriptor-spec a))))
+  ([graph-manager cb descriptor-spec a b]
+   (hook-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b)
+       (positional-dtor descriptor-spec a b))))
+  ([graph-manager cb descriptor-spec a b c]
+   (hook-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c)
+       (positional-dtor descriptor-spec a b c))))
+  ([graph-manager cb descriptor-spec a b c d]
+   (hook-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c d)
+       (positional-dtor descriptor-spec a b c d))))
+  ([graph-manager cb descriptor-spec a b c d f]
+   (hook-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c d f)
+       (positional-dtor descriptor-spec a b c d f))))
+  ([graph-manager cb descriptor-spec a b c d f g]
+   (hook-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c d f g)
+       (positional-dtor descriptor-spec a b c d f g))))
+  ([graph-manager cb descriptor-spec a b c d f g h]
+   (hook-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec  a b c d f g h)
+       (positional-dtor descriptor-spec a b c d f g h)))))
 
 (defn hook-change
   "Like hook-change-sel, but receives a descriptor-spec plus arguments
   instead of a descriptor."
-  ([graph-manager cb descriptor-spec] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec)))
-  ([graph-manager cb descriptor-spec a] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a)))
-  ([graph-manager cb descriptor-spec a b] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a b)))
-  ([graph-manager cb descriptor-spec a b c] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a b c)))
-  ([graph-manager cb descriptor-spec a b c d] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a b c d)))
-  ([graph-manager cb descriptor-spec a b c d f] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a b c d f)))
-  ([graph-manager cb descriptor-spec a b c d f g] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a b c d f g)))
-  ([graph-manager cb descriptor-spec a b c d f g h] (hook-change-sel graph-manager cb (positional-dtor descriptor-spec a b c d f g h))))
+  ([graph-manager cb descriptor-spec]
+   (hook-change-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec)
+       (positional-dtor descriptor-spec))))
+  ([graph-manager cb descriptor-spec a]
+   (hook-change-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec a)
+       (positional-dtor descriptor-spec a))))
+  ([graph-manager cb descriptor-spec a b]
+   (hook-change-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b)
+       (positional-dtor descriptor-spec a b))))
+  ([graph-manager cb descriptor-spec a b c]
+   (hook-change-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c)
+       (positional-dtor descriptor-spec a b c))))
+  ([graph-manager cb descriptor-spec a b c d]
+   (hook-change-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c d)
+       (positional-dtor descriptor-spec a b c d))))
+  ([graph-manager cb descriptor-spec a b c d f]
+   (hook-change-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c d f)
+       (positional-dtor descriptor-spec a b c d f))))
+  ([graph-manager cb descriptor-spec a b c d f g]
+   (hook-change-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c d f g)
+       (positional-dtor descriptor-spec a b c d f g))))
+  ([graph-manager cb descriptor-spec a b c d f g h]
+   (hook-change-sel graph-manager cb
+     (if (fn? descriptor-spec)
+       (descriptor-spec a b c d f g h)
+       (positional-dtor descriptor-spec a b c d f g h)))))
 
 (defn hitch-callback
   "Given a graph, execute fn `body` in a graph transaction context, calling
