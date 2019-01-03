@@ -10,6 +10,19 @@
   #?(:cljs (:import goog.async.run)))
 
 
+(defn into! [target source]
+  (reduce
+    conj!
+    target
+    source))
+
+(defn tinto! [target xform source]
+  (transduce
+    xform
+    conj!
+    target
+    source))
+
 (defrecord GraphManagerValue [graph-value
                               node-state
                               observed-by])
@@ -167,7 +180,7 @@
         new-value (halting descriptor simpl tx-manager)
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (and (not= new-value old-value) (not (identical? new-value NOT-FOUND-SENTINEL)))
-        waiting-deps   (into #{}
+        waiting-deps   (tinto! (transient #{})
                          (comp
                            (remove (:graph-value graph-manager-value))
                            (remove old-deps))
@@ -189,12 +202,13 @@
               graph-manager-value
               [:node-state descriptor]
               (cond->
-                (assoc node-state :observes deps)
+                (assoc node-state
+                  :observes deps)
                 value-changed?
                 (assoc
                   :value-changed?
                   true)
-                (not-empty waiting-deps)
+                (pos? (count waiting-deps))
                 (assoc
                   :waiting
                   waiting-deps)
@@ -269,9 +283,9 @@
                             dirty-curators]
     (assert node-state)
     (let [{:keys [waiting] :as node-state}
-          (-> node-state
-              (update :waiting disj parent))]
-      (if (empty? waiting)
+          node-state]
+      (disj! waiting parent)
+      (if (zero? (count waiting))
         (run-halting
           graph-manager-value
           node-state
@@ -574,12 +588,6 @@
 (defn assert-valid-finalized-node-state [{{:keys [change-focus set-projections] } :node} descriptor-name]
   (assert (empty? change-focus) descriptor-name)
   (assert (empty? set-projections) descriptor-name))
-
-(defn into! [target source]
-  (reduce
-    conj!
-    target
-    source))
 
 
 (defn remove-effects [{{:keys [sync-effects async-effects]
