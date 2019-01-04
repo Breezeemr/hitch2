@@ -22,27 +22,39 @@
     conj!
     target
     source))
+(defn takeout! [target source]
+  (reduce
+    disj!
+    target
+    source))
+
+(defn update! [tcoll k f arg1]
+  (let [old-val (get tcoll k)]
+    (assoc! tcoll k (f old-val arg1))))
+
+(defn conj!-tset [coll nv]
+  (if coll
+    (conj! coll nv)
+    (conj! (transient #{}) nv)))
 
 (defrecord GraphManagerValue [graph-value
                               node-state
                               observed-by])
 
 (defprotocol PropagateValueChange
-  (-propagate-value-change [node-state graph-manager-value descriptor parent resolver worklist-atom
-                            dirty-curators]))
+  (-propagate-value-change [node-state graph-manager-value descriptor parent resolver worklist]))
 
 (defprotocol PropagateNodeChanges
   (-propagate-node-change [node-state graph-manager-value descriptor resolver worklist-atom
                            dirty-curators]))
 
 (defprotocol ApplyChildChangeCommand
-  (-apply-child-change-command [node-state graph-manager-value observer observed added|removed resolver worklist-atom
-                                dirty-curators]))
+  (-apply-child-change-command [node-state graph-manager-value observed  changes resolver worklist]))
 
 
 (defrecord curator-state [node dtor-impl observes])
 (defrecord deriving-state [change-focus waiting value-changed? dtor-impl observes])
-(defrecord var-state [value-changed? dtor-impl observes])
+(defrecord var-state [dtor-impl observes])
 
 (def #?(:cljs    ^:dynamic ^boolean *trace*
         :default ^:dynamic *trace*)
@@ -64,26 +76,66 @@
     (f dtor)
     (assert false)))
 
-(s/def ::descriptor any?)
-(s/def ::graph-value (s/map-of ::descriptor any?))
-(s/def ::derivation-state any?)
-(s/def ::node-state (s/map-of
-                      ::descriptor
-                      (s/or
-                        :curator-state
-                        ::curator-proto/curator-state
-                        :derivation-state
-                        ::derivation-state)))
+;(s/def ::descriptor any?)
+;(s/def ::graph-value (s/map-of ::descriptor any?))
+;(s/def ::derivation-state any?)
+;(s/def ::node-state (s/map-of
+;                      ::descriptor
+;                      (s/or
+;                        :curator-state
+;                        ::curator-proto/curator-state
+;                        :derivation-state
+;                        ::derivation-state)))
+;
+;(s/def ::observes (s/map-of ::descriptor (s/coll-of ::descriptor)))
+;(s/def ::observed-by (s/map-of ::descriptor (s/coll-of ::descriptor)))
+;
+;(s/def ::graph-manager-value
+;  (s/keys
+;    :req-un [::graph-value
+;             ::node-state
+;             ::observes
+;             ::observed-by]))
 
-(s/def ::observes (s/map-of ::descriptor (s/coll-of ::descriptor)))
-(s/def ::observed-by (s/map-of ::descriptor (s/coll-of ::descriptor)))
 
-(s/def ::graph-manager-value
-  (s/keys
-    :req-un [::graph-value
-             ::node-state
-             ::observes
-             ::observed-by]))
+(defn addval [x k v]
+  (if-some [a (get x k)]
+    (assoc! x k (conj a v))
+    (assoc! x k (conj #{} v))))
+
+(defn remove-val [x k v]
+  (if-some [a (get x k)]
+    (if-some [nv (not-empty (disj a v))]
+      (assoc! x k nv)
+      (dissoc! x k))
+    x))
+
+(defn update-observed-by [observed-by descriptor changes]
+  (persistent!
+    (reduce-kv
+      (fn [acc focus add|remove]
+        (if add|remove
+          (addval acc focus descriptor)
+          (remove-val acc focus descriptor)))
+      (transient (or observed-by #{}))
+      changes)))
+
+(defrecord focus-change [add-set rm-set])
+
+(defn update!+- [tcoll k f arg1]
+  (if-some [old-val (get tcoll k)]
+    (assoc! tcoll k (f old-val arg1))
+    (assoc! tcoll k (f (->focus-change (transient #{}) (transient #{})) arg1 ))))
+
+(defn add-dep [{:keys [add-set rm-set] :as fc} curator]
+  (conj! add-set curator)
+  (disj! rm-set curator)
+  fc)
+
+(defn rm-dep [{:keys [add-set rm-set] :as fc} curator]
+  (disj! add-set curator)
+  (conj! rm-set curator)
+  fc)
 
 (defn get-node-state [graph-manager-value descriptor]
   (-> graph-manager-value :node-state (get descriptor)))
@@ -96,16 +148,15 @@
   (vswap! working-set conj! descriptor)
   nil)
 
-(defn tx-init-curator [node-state graph-manager-value descriptor disturbed-curators]
-  (if (contains? @disturbed-curators descriptor)
+(defn tx-init-curator [node-state graph-manager-value descriptor worklist]
+  (if (contains? (:in-tx-curators worklist) descriptor)
     node-state
     (do
-      (add-to-working-set disturbed-curators descriptor)
+      (conj! (:in-tx-curators worklist) descriptor)
       (if-some [tx-init (::curator-proto/tx-init (:dtor-impl node-state))]
         (tx-init descriptor (get-graph-value graph-manager-value) node-state)
         node-state))))
 
-(declare propagate-dependency-changes)
 
 (defn get-init-node [graph-manager-value resolver descriptor disturbed-curators]
   (if-some [node-state (get-node-state graph-manager-value descriptor)]
@@ -122,7 +173,7 @@
           #{})
         :hitch2.descriptor.kind/var
         (let [curator (get-curator dtor-impl descriptor)
-              v (->var-state false dtor-impl #{curator})]
+              v (->var-state dtor-impl #{curator})]
           v)
         :hitch2.descriptor.kind/halting
         (->deriving-state
@@ -135,7 +186,7 @@
     (dissoc gv dtor)
     (assoc gv dtor value)))
 
-(defn propagate-set-projections [graph-manager-value set-projections worklist-atom]
+(defn propagate-set-projections [{:keys [observed-by] :as graph-manager-value} set-projections worklist]
   (reduce-kv (fn [gv dtor value]
                ;(prn  dtor value (-> gv :node-state keys #_(get dtor)))
 
@@ -145,16 +196,13 @@
                      gv
                      (do (assert (instance? var-state node-state))
                          (when-not (identical? value NOT-FOUND-SENTINEL)
-                           (add-to-working-set worklist-atom dtor))
-                         (-> gv
-                             (assoc-in [:node-state dtor]
-                               (assoc node-state
-                                 :value-changed?
-                                 #_true
-                                 (if (identical? value NOT-FOUND-SENTINEL)
-                                   false
-                                   true)))
-                             (update :graph-value update-graph-value dtor value)))))
+                           (let [{:keys [observed-by]} gv
+                                 {:keys [value-changes]} worklist]
+                             (run!
+                               (fn [observer]
+                                 (update! value-changes observer conj!-tset dtor))
+                               (observed-by dtor))))
+                         (update gv :graph-value update-graph-value dtor value))))
                  gv))
     graph-manager-value
     set-projections))
@@ -166,13 +214,12 @@
     NOT-FOUND-SENTINEL))
 ;todo partial evaluate the destructuring and return an clojure that takes a graph.
 
-(defn run-halting [graph-manager-value
+(defn run-halting [{:keys [observed-by] :as graph-manager-value}
                    node-state
                    resolver
                    descriptor
                    simpl
-                   worklist-atom
-                   dirty-curators]
+                   worklist]
   (let [old-value (-> graph-manager-value :graph-value (get descriptor NOT-FOUND-SENTINEL))
         old-deps  (-> node-state :observes)
         tx-manager (halting-tx/halting-manager (:graph-value graph-manager-value))
@@ -196,8 +243,21 @@
                                    (map (fn [dep]
                                           [dep false])))
                                  old-deps))]
-    (when (or value-changed? (not-empty change-focus))
-      (add-to-working-set worklist-atom descriptor))
+    (when value-changed?
+      (let [{:keys [value-changes]} worklist]
+        (run!
+          (fn [observer]
+            (update! value-changes observer conj!-tset descriptor))
+          (observed-by descriptor))))
+    (when (not-empty change-focus)
+      (let [{change-focus-worklist :change-focus} worklist]
+        (reduce-kv
+          (fn [acc observed added?]
+            (if added?
+              (update!+- change-focus-worklist observed add-dep descriptor)
+              (update!+- change-focus-worklist observed rm-dep descriptor)))
+          nil
+          change-focus)))
     (cond-> (assoc-in
               graph-manager-value
               [:node-state descriptor]
@@ -221,21 +281,23 @@
         :graph-value
         update-graph-value descriptor new-value)
       (not-empty change-focus)
-      (propagate-dependency-changes resolver descriptor change-focus worklist-atom dirty-curators)
-      )))
+      (update :observed-by update-observed-by descriptor change-focus))))
 
+(defn do-recalcs [graph-manager-value resolver to-recalc worklist]
+  (reduce
+    (fn [graph-manager-value observed]
+      (let [node-state (get-in graph-manager-value [:node-state observed] NOT-FOUND-SENTINEL)]
+        (assert (not (identical? node-state NOT-FOUND-SENTINEL)))
+        (run-halting
+          graph-manager-value
+          node-state
+          resolver
+          observed
+          (:dtor-impl node-state)
+          worklist)))
+    graph-manager-value
+    to-recalc))
 
-(defn addval [x k v]
-  (if-some [a (get x k)]
-    (assoc! x k (conj a v))
-    (assoc! x k (conj #{} v))))
-
-(defn remove-val [x k v]
-  (if-some [a (get x k)]
-    (if-some [nv (not-empty (disj a v))]
-      (assoc! x k nv)
-      (dissoc! x k))
-    x))
 (defn assert-nc [node-state]
   (assert (instance? curator-state node-state) (pr-str node-state))
   node-state)
@@ -251,8 +313,7 @@
 
 (extend-protocol PropagateValueChange
   curator-state
-  (-propagate-value-change [node-state graph-manager-value descriptor parent resolver worklist-atom
-                            dirty-curators]
+  (-propagate-value-change [node-state graph-manager-value descriptor parents resolver worklist]
     (let [_           (assert (instance? curator-state node-state) (pr-str node-state))
           n           (:node node-state)
           graph-value (get-graph-value graph-manager-value)
@@ -262,11 +323,12 @@
            :as                 new-node-state}
           (if-some [observed-value-changes (::curator-proto/observed-value-changes (:dtor-impl node-state))]
             (observed-value-changes descriptor graph-value
-              (tx-init-curator n graph-manager-value descriptor dirty-curators)
-              #{parent})
+              (tx-init-curator n graph-manager-value descriptor worklist)
+              parents)
             (assert false))]
-      (s/assert ::curator-proto/curator-state new-node-state)
-      (when (or (not-empty new-set-projections)
+      ;(s/assert ::curator-proto/curator-state new-node-state)
+      ;todo
+      #_(when (or (not-empty new-set-projections)
               (not-empty sync-effects)
               (not-empty async-effects))
         (add-to-working-set worklist-atom descriptor))
@@ -277,37 +339,37 @@
         (->
           (assoc-in
             [:node-state descriptor :node :change-focus] {})
-          (propagate-dependency-changes resolver descriptor new-change-focus worklist-atom dirty-curators)))))
+          (update :observed-by  update-observed-by descriptor new-change-focus)))))
   deriving-state
-  (-propagate-value-change [node-state graph-manager-value descriptor parent  resolver worklist-atom
-                            dirty-curators]
+  (-propagate-value-change [{:keys [waiting] :as node-state}
+                            graph-manager-value descriptor parents  resolver worklist]
     (assert node-state)
-    (let [{:keys [waiting] :as node-state}
-          node-state]
-      (disj! waiting parent)
-      (if (zero? (count waiting))
-        (run-halting
+    (takeout! waiting parents)
+    (when (zero? (count waiting))
+      (let [{:keys [recalc]} worklist]
+        (conj! recalc descriptor))
+      #_(run-halting
           graph-manager-value
           node-state
           resolver
           descriptor
           (:dtor-impl node-state)
           worklist-atom
-          dirty-curators)
-        (assoc-in graph-manager-value [:node-state descriptor] node-state))))
+          dirty-curators))
+    graph-manager-value)
   ;var-state
   ;(-propagate-value-change [node-state ])
   )
-(defn propagate-value-changes [graph-manager-value resolver parent worklist-atom dirty-curators]
-  (reduce
-    (fn [graph-manager-value descriptor]
+(defn propagate-value-changes [graph-manager-value resolver changes worklist]
+  (reduce-kv
+    (fn [graph-manager-value descriptor parents]
       (if-some [node-state (get-node-state graph-manager-value descriptor)]
         (-propagate-value-change node-state
-          graph-manager-value descriptor parent
-          resolver worklist-atom dirty-curators)
+          graph-manager-value descriptor parents
+          resolver worklist)
         graph-manager-value))
     graph-manager-value
-    (-> graph-manager-value :observed-by (get parent))))
+    changes))
 
 
 
@@ -330,7 +392,7 @@
 
   )
 
-(extend-protocol PropagateNodeChanges
+#_(extend-protocol PropagateNodeChanges
   curator-state
   (-propagate-node-change [node-state graph-manager-value descriptor resolver worklist-atom
                             dirty-curators]
@@ -385,7 +447,7 @@
             :value-changed? false)
           (propagate-value-changes resolver descriptor worklist-atom dirty-curators))))))
 
-(defn propagate-node-changes [resolver worklist-atom dirty-curators]
+#_(defn propagate-node-changes [resolver worklist-atom dirty-curators]
   (fn [graph-manager-value descriptor]
     (if-some [node-state (get-node-state graph-manager-value descriptor)]
       (-propagate-node-change node-state
@@ -393,7 +455,7 @@
         resolver worklist-atom dirty-curators)
       graph-manager-value)))
 
-(s/fdef propagate-changes
+#_(s/fdef propagate-changes
   :args (s/cat
           :graph-manager-value  ::graph-manager-value
           :dirty-list (s/coll-of ::descriptors))
@@ -420,32 +482,103 @@
     graph-manager-value
     dirty-curators-snapshot))
 
-(defn propagate-changes [graph-manager-value resolver work-list dirty-curators recursion-limit]
-  (let [new-work-list-atom (volatile! (transient #{}))
-        graph-manager-value (reduce
-                                  (propagate-node-changes
-                                    resolver
-                                    new-work-list-atom
-                                    dirty-curators)
-                                  graph-manager-value
-                                  work-list)]
-    (assert (not (zero? recursion-limit)))
-    (if-some [new-work-list (not-empty (persistent! @new-work-list-atom))]
-      (recur graph-manager-value resolver new-work-list dirty-curators (dec recursion-limit))
-      (let [dirty-curators-snapshot (persistent! @dirty-curators)
-            _ (vreset! dirty-curators (transient dirty-curators-snapshot))
-            flush-worklist-atom (volatile! (transient #{}))
-            graph-manager-value (flush-worklist graph-manager-value resolver dirty-curators-snapshot flush-worklist-atom)]
-        (if-some [flush-worklist (not-empty (persistent! @flush-worklist-atom))]
-          (recur graph-manager-value resolver flush-worklist dirty-curators (dec recursion-limit))
-          graph-manager-value)))))
+(defrecord wlist [in-tx-curators project-vars change-focus value-changes recalc])
+
+(defn make-work-list []
+  (->wlist (transient #{})
+    (transient {})
+    (transient {})
+    (transient {})
+    (transient #{})))
+
+
+
+(defn blah [work-list]
+  (fn [graph-manager-value curator-dtor]
+    (let [node-state (get-node-state graph-manager-value curator-dtor)
+          _ (assert (instance? curator-state node-state) (pr-str node-state))
+          {:keys [change-focus set-projections]
+           :as   n}
+          (:node node-state)]
+      ;(s/assert ::curator-proto/curator-state n)
+      (when   (not-empty change-focus)
+        (let [{change-focus-worklist :change-focus} work-list]
+          (reduce-kv
+            (fn [acc observed added?]
+              (if added?
+                (update!+- change-focus-worklist observed add-dep curator-dtor)
+                (update!+- change-focus-worklist observed rm-dep curator-dtor)))
+            nil
+            change-focus)))
+      (when (not-empty set-projections)
+        (let [{:keys [project-vars]} work-list]
+          (into! project-vars set-projections)))
+      (cond-> graph-manager-value
+        (not-empty change-focus)
+        (update-in [:node-state curator-dtor]
+          apply-curator-change-focus)
+        (not-empty set-projections)
+        (update-in [:node-state curator-dtor :node]
+          assoc
+          :set-projections {})))))
+
+(defn init-worklist [graph-manager-value work-list]
+  (let [disturbed-curators-snapshot (persistent! (:in-tx-curators @work-list))]
+    (vswap! work-list
+      assoc
+      :in-tx-curators
+      (transient disturbed-curators-snapshot))
+    (reduce
+      (blah @work-list)
+      graph-manager-value
+      disturbed-curators-snapshot)))
+
+(defn get-reset-worklist-part [worklist k]
+  (let [val (get @worklist k)]
+    (when (pos? (count val))
+      (let [persistent-val (persistent! val)]
+        (vswap! worklist assoc
+          k (case k
+              :project-vars (transient {})
+              :change-focus (transient {})
+              :value-changes (transient #{})
+              :recalc (transient #{})
+              ))
+        persistent-val))))
+(declare apply-focus-changes )
+(defn propagate-changes
+  "Main loop that propagates changes until the graph is settled"
+  [graph-manager-value resolver work-list2 recursion-limit]
+  (assert (not (zero? recursion-limit)))
+  (if-some [set-projections (get-reset-worklist-part work-list2 :project-vars)]
+    (recur (propagate-set-projections graph-manager-value set-projections @work-list2)
+      resolver work-list2 (dec recursion-limit))
+    (if-some [value-changes (get-reset-worklist-part work-list2 :value-changes)]
+      (recur (propagate-value-changes graph-manager-value resolver value-changes @work-list2)
+        resolver work-list2 (dec recursion-limit))
+      (if-some [change-focus (get-reset-worklist-part work-list2 :change-focus)]
+        (recur (apply-focus-changes graph-manager-value resolver change-focus @work-list2)
+          resolver work-list2 (dec recursion-limit))
+        (if-some [recalcs (get-reset-worklist-part work-list2 :recalc)]
+          (recur (do-recalcs graph-manager-value resolver recalcs @work-list2)
+            resolver work-list2 (dec recursion-limit))
+          ))))
+
+  #_(if-some [new-work-list (not-empty (persistent! @new-work-list-atom))]
+    (recur graph-manager-value resolver new-work-list dirty-curators (dec recursion-limit))
+    (let [dirty-curators-snapshot (persistent! @dirty-curators)
+          _                       (vreset! dirty-curators (transient dirty-curators-snapshot))
+          flush-worklist-atom     (volatile! (transient #{}))
+          graph-manager-value     (flush-worklist graph-manager-value resolver dirty-curators-snapshot flush-worklist-atom)]
+      (if-some [flush-worklist (not-empty (persistent! @flush-worklist-atom))]
+        (recur graph-manager-value resolver flush-worklist dirty-curators (dec recursion-limit))
+        graph-manager-value))))
 
 
 
 (extend-protocol ApplyChildChangeCommand
   curator-state
-  (-apply-child-change-command [node-state graph-manager-value  observer observed added|removed resolver worklist-atom
-                           dirty-curators]
+  (-apply-child-change-command [node-state graph-manager-value  observed changes resolver worklist]
     (let [_                  (assert (instance? curator-state node-state) (pr-str node-state))
           n (:node node-state)
           graph-value        (get-graph-value graph-manager-value)
@@ -455,93 +588,94 @@
            :as                new-node-state}
           (if-some [curation-changes (::curator-proto/curation-changes (:dtor-impl node-state))]
             (curation-changes observed graph-value
-              (tx-init-curator n graph-manager-value observed dirty-curators)
-              (when added|removed
-                #{observer})
-              (when (not added|removed)
-                #{observer}))
+              (tx-init-curator n graph-manager-value observed worklist)
+              (-> changes :add-set persistent!)
+              (-> changes :rm-set persistent!))
             (assert false))]
-      (s/assert ::curator-proto/curator-state new-node-state)
-      (when (or (not-empty set-projections)
-              (not-empty sync-effects)
-              (not-empty async-effects))
-        (add-to-working-set worklist-atom observed))
+      ;(s/assert ::curator-proto/curator-state new-node-state)
+      (when (not-empty set-projections)
+        (let [{:keys [project-vars]} worklist]
+          (into! project-vars set-projections)))
+      (when (not-empty new-change-focus)
+        (let [{:keys [change-focus]} worklist]
+          (reduce-kv
+            (fn [acc parent added?]
+              (if added?
+                (update!+- change-focus parent add-dep observed)
+                (update!+- change-focus parent rm-dep observed)))
+            nil
+            new-change-focus)))
       (let [new-graph-manager-value
-            (cond->
-              (assoc-in graph-manager-value
-                [:node-state observed]
-                (-> (assoc node-state
-                      :node new-node-state)
-                    apply-curator-change-focus))
-              (not-empty new-change-focus)
-              (propagate-dependency-changes resolver observed new-change-focus worklist-atom dirty-curators))]
-        (case added|removed
-          true new-graph-manager-value
-          false (-> ;deinit lifecycle
-                  (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by observed]))]
-                    new-graph-manager-value
-                    new-graph-manager-value))))))
+            (assoc-in graph-manager-value
+              [:node-state observed]
+              (-> (assoc node-state
+                    :node new-node-state)
+                  apply-curator-change-focus))]
+        (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by observed]))]
+          new-graph-manager-value
+          new-graph-manager-value)  ;deinit lifecycle
+          )))
   deriving-state
-  (-apply-child-change-command [node-state graph-manager-value observer observed added|removed  resolver worklist-atom
-                           dirty-curators]
-    (let [old-node-state (get-in graph-manager-value [:node-state observed] NOT-FOUND-SENTINEL)]
-      (case added|removed
-        true (if (identical? old-node-state NOT-FOUND-SENTINEL)
-               (run-halting
-                 graph-manager-value
-                 node-state
-                 resolver
-                 observed
-                 (:dtor-impl node-state)
-                 worklist-atom
-                 dirty-curators)
-               graph-manager-value)
-        false (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by observed]))]
-                graph-manager-value
-                (->                                   ;deinit
-                  (if-some [observes (not-empty (get node-state :observes))]
-                    (-> graph-manager-value
-                        (update :graph-value dissoc observed)
-                        (propagate-dependency-changes
-                          resolver
-                          observed
-                          (into {}
-                            (map (fn [x]
-                                   [x false]))
-                            observes)
-                          worklist-atom
-                          dirty-curators))
-                    graph-manager-value)
-                  (update :node-state dissoc observed)))))
+  (-apply-child-change-command [node-state graph-manager-value observed changes  resolver worklist]
+    (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by observed]))]
+      graph-manager-value
+      #_(let [old-node-state (get-in graph-manager-value [:node-state observed] NOT-FOUND-SENTINEL)]
+        (if (identical? old-node-state NOT-FOUND-SENTINEL)
+          (run-halting
+            graph-manager-value
+            node-state
+            resolver
+            observed
+            (:dtor-impl node-state)
+            worklist-atom
+            dirty-curators)
+          graph-manager-value))
+      (->                                   ;deinit
+        (if-some [observes (not-empty (get node-state :observes))]
+          (let [{:keys [change-focus]} worklist]
+            (run!
+              (fn [parent]
+                (update!+- change-focus parent rm-dep observed))
+              observes)
+            (-> graph-manager-value
+
+                ;todo a bit of optimization could happen here
+                (update :observed-by  update-observed-by observed (into {} (map (fn [x] [x false])) observes))
+                ))
+          graph-manager-value)
+        (update :graph-value dissoc observed)
+        (update :node-state dissoc observed)))
+
     )
   var-state
-  (-apply-child-change-command [node-state graph-manager-value observer observed added|removed  resolver worklist-atom
-                           dirty-curators]
-    (let [old-state (-> graph-manager-value :node-state (get observed))]
-      (case added|removed
-        true
-        (if old-state
-          graph-manager-value
-          (-> (assoc-in graph-manager-value [:node-state observed] node-state)
+  (-apply-child-change-command [node-state graph-manager-value observed changes resolver worklist]
+    (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by observed]))]
+      graph-manager-value
+      #_(if-some [old-state (-> graph-manager-value :node-state (get observed))]
+        graph-manager-value
+        (-> (assoc-in graph-manager-value [:node-state observed] node-state)
             (propagate-dependency-changes resolver observed
               (into {}
                 (map (fn [dtor] [dtor true]))
                 (get node-state :observes))
               worklist-atom dirty-curators)))
-        false (->                                     ;deinit
-                (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by observed]))]
-                  graph-manager-value
-                  (-> graph-manager-value
-                      (update :graph-value dissoc observed)
-                      (propagate-dependency-changes resolver observed
-                        (into {}
-                          (map (fn [dtor] [dtor false]))
-                          (get node-state :observes))
-                        worklist-atom dirty-curators)
-                      (update :node-state dissoc observed))))))
+      (->
+        (if-some [observes (not-empty (get node-state :observes))]
+          (let [{:keys [change-focus]} worklist]
+            (run!
+              (fn [parent]
+                (update!+- change-focus parent rm-dep observed))
+              observes)
+            (-> graph-manager-value
+                (update :observed-by update-observed-by observed (into {} (map (fn [x] [x false])) (get node-state :observes)))
+                ))
+          graph-manager-value)
+        (update :graph-value dissoc observed)
+        (update :node-state dissoc observed)
+        ))
     ))
 
-(defn apply-child-change-commands [graph-manager-value resolver child changes worklist-atom dirty-curators]
+#_(defn apply-child-change-commands [graph-manager-value resolver child changes worklist-atom dirty-curators]
   (reduce-kv
     (fn [graph-manager-value parent added|removed]
       (-apply-child-change-command (get-init-node graph-manager-value resolver parent dirty-curators)
@@ -550,17 +684,15 @@
     graph-manager-value
     changes))
 
-(defn update-observed-by [observed-by descriptor changes]
-  (persistent!
-    (reduce-kv
-      (fn [acc focus add|remove]
-        (if add|remove
-          (addval acc focus descriptor)
-          (remove-val acc focus descriptor)))
-      (transient observed-by)
-      changes)))
+(defn apply-focus-changes [graph-manager-value resolver focus-changes worklist]
+  (reduce-kv
+    (fn [graph-manager-value observed changes]
+      (-apply-child-change-command (get-init-node graph-manager-value resolver observed worklist)
+        graph-manager-value observed  changes resolver worklist))
+    graph-manager-value
+    focus-changes))
 
-(defn propagate-dependency-changes [graph-manager-value resolver descriptor changes worklist-atom dirty-curators]
+#_(defn propagate-dependency-changes [graph-manager-value resolver descriptor changes worklist-atom dirty-curators]
   (apply-child-change-commands
     (-> graph-manager-value
         (update :observed-by update-observed-by descriptor changes))
@@ -570,15 +702,15 @@
     worklist-atom
     dirty-curators))
 
-(s/fdef -apply-command
-  :args (s/cat
-          :curator-state  ::curator-proto/curator-state
-          :curator any?
-          :command vector?
-          :graph-value ::graph-value
-          :observed-by (s/coll-of ::descriptor)
-          :observes (s/coll-of ::descriptor))
-  :ret ::curator-proto/curator-state)
+;(s/fdef -apply-command
+;  :args (s/cat
+;          :curator-state  ::curator-proto/curator-state
+;          :curator any?
+;          :command vector?
+;          :graph-value ::graph-value
+;          :observed-by (s/coll-of ::descriptor)
+;          :observes (s/coll-of ::descriptor))
+;  :ret ::curator-proto/curator-state)
 
 (defn finalize-tx [{node :node :as node-state} graph-value resolver descriptor]
   (if-some [finalize (::curator-proto/finalize (:dtor-impl node-state))]
@@ -630,18 +762,18 @@
     (g/-run-sync scheduler graph-manager sync-effects)
     (g/-run-async scheduler graph-manager async-effects)))
 
-(s/fdef apply-command
-  :args (s/cat
-          :graph-manager-value  ::graph-manager-value
-          :curator any?
-          :command vector?)
-  :ret ::graph-manager-value)
+;(s/fdef apply-command
+;  :args (s/cat
+;          :graph-manager-value  ::graph-manager-value
+;          :curator any?
+;          :command vector?)
+;  :ret ::graph-manager-value)
 (def recursion-limit 1000)
 
 (defn -apply-command
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
-  [graph-manager-value resolver descriptor command disturbed-curators]
+  [graph-manager-value resolver descriptor command worklist]
   (assert (descriptor/descriptor? descriptor)
     (str "you must address commant to a descriptor not "
       (pr-str descriptor)
@@ -652,36 +784,35 @@
     (case dtor-kind
       :hitch2.descriptor.kind/curator
       (let [graph-value        (get-graph-value graph-manager-value)
-            node-state   (get-init-node graph-manager-value resolver descriptor disturbed-curators)
+            node-state   (get-init-node graph-manager-value resolver descriptor worklist)
             n (:node node-state)]
         (assert (instance? curator-state node-state) (pr-str node-state))
         (assoc-in graph-manager-value [:node-state descriptor]
           (assoc node-state :node
                             (if-some [apply-command (::curator-proto/apply-command dtor-impl)]
                               (apply-command descriptor graph-value
-                                (tx-init-curator n graph-manager-value descriptor disturbed-curators)
+                                (tx-init-curator n graph-manager-value descriptor worklist)
                                 command)
                               (assert false)))))
       :hitch2.descriptor.kind/var
       (-apply-command graph-manager-value resolver (get-curator dtor-impl descriptor)
-                     command disturbed-curators))))
+                     command worklist))))
 
 (defn apply-command
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
   [graph-manager-value resolver descriptor command sync-effects-atom async-effects-atom]
-  (let [disturbed-curators (volatile! (transient #{}))
-        graph-manager-value (-apply-command graph-manager-value resolver descriptor command disturbed-curators)
-        disturbed-curators-snapshot (persistent! @disturbed-curators)
-        _  (vreset! disturbed-curators (transient disturbed-curators-snapshot))
+  (let [work-list (volatile! (make-work-list))
+        graph-manager-value (-apply-command graph-manager-value resolver descriptor command @work-list)
+
+        graph-manager-value (init-worklist graph-manager-value work-list)
         graph-manager-value (propagate-changes graph-manager-value
                               resolver
-                              disturbed-curators-snapshot
-                              disturbed-curators
+                              work-list
                               recursion-limit)]
     (finalize-effects graph-manager-value
       resolver
-      (persistent! @disturbed-curators)
+      (persistent! (:in-tx-curators @work-list))
       sync-effects-atom async-effects-atom)
     ))
 
@@ -689,22 +820,23 @@
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
   [graph-manager-value resolver cmds sync-effects-atom async-effects-atom]
-  (let [disturbed-curators (volatile! (transient #{}))
+  (let [work-list (volatile! (make-work-list))
+        work-listv @work-list
         graph-manager-value
                            (reduce
                              (fn [gmv [descriptor command]]
-                               (-apply-command gmv resolver descriptor command disturbed-curators))
+                               (-apply-command gmv resolver descriptor command work-listv))
                              graph-manager-value
                              cmds)
-        disturbed-curators-snapshot (persistent! @disturbed-curators)
-        _ (vreset! disturbed-curators (transient disturbed-curators-snapshot))
+
+        graph-manager-value (init-worklist graph-manager-value work-list)
         graph-manager-value (propagate-changes graph-manager-value
                               resolver
-                              disturbed-curators-snapshot disturbed-curators
+                              work-list
                               recursion-limit)]
     (finalize-effects graph-manager-value
       resolver
-      (persistent! @disturbed-curators)
+      (persistent! (:in-tx-curators @work-list))
       sync-effects-atom async-effects-atom)
     ))
 
