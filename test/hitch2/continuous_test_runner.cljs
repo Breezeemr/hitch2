@@ -4,7 +4,8 @@
             [hitch2.graph-manager.atom-tests]
             [hitch2.defdescriptor-test]
             [hitch2.graph-test]
-            [hitch2.curator.http-test])
+            [hitch2.curator.http-test]
+            [hitch2.descriptor-maps.robin-hood-test])
   (:require-macros [cljs.test]))
 
 (defn test-run []
@@ -13,6 +14,8 @@
    'hitch2.defdescriptor-test
    'hitch2.graph-manager.atom-tests
    'hitch2.graph-test
-   'hitch2.curator.http-test))
+   'hitch2.curator.http-test
+    'hitch2.descriptor-maps.robin-hood-test
+    ))
 
 (test-run)

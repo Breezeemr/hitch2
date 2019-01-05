@@ -8,6 +8,7 @@
     [hitch2.graph-manager.atom-tests]
     [hitch2.graph-test]
     [hitch2.curator.http-test]
+    [hitch2.descriptor-maps.robin-hood-test]
     ))
 
 
@@ -23,4 +24,5 @@
     'hitch2.graph-test
     'hitch2.curator.http-test
     'hitch2.graph-manager.atom-tests
+    'hitch2.descriptor-maps.robin-hood-test
     ))
