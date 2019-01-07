@@ -346,14 +346,27 @@
               (tx-init-curator n graph-manager-value descriptor worklist)
               parents)
             (assert false))]
+      (when (not-empty new-set-projections)
+        (let [{:keys [project-vars]} worklist]
+          (into! project-vars new-set-projections)))
+      (when (not-empty new-change-focus)
+        (let [{:keys [change-focus]} worklist]
+          (reduce-kv
+            (fn [acc parent added?]
+              (if added?
+                (update!+- change-focus parent add-dep descriptor)
+                (update!+- change-focus parent rm-dep descriptor)))
+            nil
+            new-change-focus)))
       (cond-> (assoc-in graph-manager-value
                 [:node-state descriptor :node]
-                new-node-state)
+                (cond-> new-node-state
+                  (not-empty new-change-focus)
+                  (assoc :change-focus {})
+                  (not-empty new-set-projections)
+                  (assoc :set-projections {})))
         (not-empty new-change-focus)
-        (->
-          (assoc-in
-            [:node-state descriptor :node :change-focus] {})
-          (update :observed-by  update-observed-by descriptor new-change-focus)))))
+        (update :observed-by update-observed-by descriptor new-change-focus))))
   deriving-state
   (-propagate-value-change [{:keys [waiting] :as node-state}
                             graph-manager-value descriptor parents  resolver worklist]
