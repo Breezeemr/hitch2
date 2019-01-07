@@ -2,6 +2,7 @@
   (:require [cljs.test :refer-macros [deftest is testing async]]
             [hitch2.curator.http :as http]
             [hitch2.graph :as graph]
+            [cljs.pprint :as pprint]
             [hitch2.curator.mutable-var :refer  [mutable-var]]
             [hitch2.graph-manager.atom :as atom-gm]
             [hitch2.descriptor-impl-registry :as reg
