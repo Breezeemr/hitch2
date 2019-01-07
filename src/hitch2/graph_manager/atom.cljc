@@ -196,7 +196,7 @@
           v)
         :hitch2.descriptor.kind/halting
         (->deriving-state
-          {} #{} false dtor-impl #{})
+          {} (transient #{}) false dtor-impl #{})
         ))))
 
 
@@ -472,9 +472,7 @@
                 flushed-state  (flusher new-node-state curator)]
             ;(assert new-node-state)
             ;(assert old-node-state)
-            (if (= old-node-state flushed-state)
-              graph-manager-value
-              (assoc-in graph-manager-value [:node-state curator] new-node-state))))
+            (assoc-in graph-manager-value [:node-state curator] flushed-state)))
         graph-manager-value
         dirty-curators-snapshot)
       (persistent! backrefs))))
