@@ -438,7 +438,7 @@
             nil
             change-focus))
         (assert curator-dtor)
-        (vswap! backrefs conj! [curator-dtor change-focus]))
+        (conj! backrefs [curator-dtor change-focus]))
       (when (not-empty set-projections)
         (let [{:keys [project-vars]} work-list]
           (into! project-vars set-projections)))
@@ -451,23 +451,21 @@
           :set-projections {})))))
 
 (defn blah [work-list]
-  (let [backrefs (volatile! (transient {}))
+  (let [backrefs (transient {})
         flusher (curator-node->worklist! work-list backrefs)]
     (fn [graph-manager-value curator-dtor]
       (let [node-state (get-node-state graph-manager-value curator-dtor)
             _          (assert (instance? curator-state node-state) (pr-str node-state))
             flushed-state (flusher node-state curator-dtor)]
-        (if (= node-state flushed-state)
-          graph-manager-value
-          (-> graph-manager-value
-              (assoc-in
-                [:node-state curator-dtor]
-                flushed-state)
-              (update-observed-by-batch (persistent! @backrefs))))))))
+        (-> graph-manager-value
+            (assoc-in
+              [:node-state curator-dtor]
+              flushed-state)
+            (update-observed-by-batch (persistent! backrefs)))))))
 
 
 (defn flush-worklist [graph-manager-value resolver dirty-curators-snapshot worklist]
-  (let [backrefs (volatile! (transient {}))
+  (let [backrefs (transient {})
         flusher (curator-node->worklist! worklist backrefs)]
     (update-observed-by-batch
       (reduce
@@ -482,7 +480,7 @@
               (assoc-in graph-manager-value [:node-state curator] new-node-state))))
         graph-manager-value
         dirty-curators-snapshot)
-      (persistent! @backrefs))))
+      (persistent! backrefs))))
 
 (defrecord wlist [in-tx-curators project-vars change-focus value-changes recalc])
 
