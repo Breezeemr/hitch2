@@ -1,5 +1,7 @@
 (ns hitch2.graph-manager.atom-tests
   (:require
+    #?(:cljs [cljs.pprint :as pprint]
+       :clj [clojure.pprint :as pprint])
     [hitch2.graph :as hitch]
     [hitch2.curator.mutable-var :as mv]
     [hitch2.graph-manager.atom :as g]
