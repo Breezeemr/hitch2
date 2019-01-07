@@ -628,7 +628,7 @@
         (let [{:keys [change-focus]} worklist]
           (run!
             (fn [parent]
-              (update!+- change-focus parent rm-dep observed))
+              (update!+- change-focus parent add-dep observed))
             (get node-state :observes))
           (-> graph-manager-value
               (assoc-in [:node-state observed] node-state)
