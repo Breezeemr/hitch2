@@ -346,12 +346,6 @@
               (tx-init-curator n graph-manager-value descriptor worklist)
               parents)
             (assert false))]
-      ;(s/assert ::curator-proto/curator-state new-node-state)
-      ;todo
-      #_(when (or (not-empty new-set-projections)
-              (not-empty sync-effects)
-              (not-empty async-effects))
-        (add-to-working-set worklist-atom descriptor))
       (cond-> (assoc-in graph-manager-value
                 [:node-state descriptor :node]
                 new-node-state)
@@ -367,15 +361,7 @@
     (takeout! waiting parents)
     (when (zero? (count waiting))
       (let [{:keys [recalc]} worklist]
-        (conj! recalc descriptor))
-      #_(run-halting
-          graph-manager-value
-          node-state
-          resolver
-          descriptor
-          (:dtor-impl node-state)
-          worklist-atom
-          dirty-curators))
+        (conj! recalc descriptor)))
     graph-manager-value)
   ;var-state
   ;(-propagate-value-change [node-state ])
@@ -480,10 +466,12 @@
         dirty-curators-snapshot)
       (persistent! backrefs))))
 
-(defrecord wlist [in-tx-curators project-vars change-focus value-changes recalc])
+(defrecord wlist [touched-curators in-tx-curators project-vars change-focus value-changes recalc])
 
 (defn make-work-list []
-  (->wlist (transient #{})
+  (->wlist
+    (transient #{})
+    (transient #{})
     (transient {})
     (transient {})
     (transient {})
@@ -509,6 +497,7 @@
       (let [persistent-val (persistent! val)]
         (vswap! worklist assoc
           k (case k
+              :in-tx-curators  (transient #{})
               :project-vars (transient {})
               :change-focus (transient {})
               :value-changes (transient {})
@@ -535,7 +524,11 @@
         (if-some [recalcs (get-reset-worklist-part work-list2 :recalc)]
           (recur (do-recalcs graph-manager-value resolver recalcs @work-list2)
             resolver work-list2 (dec recursion-limit))
-          graph-manager-value)))))
+          (if-some [in-tx-curators (get-reset-worklist-part work-list2 :in-tx-curators)]
+            (do (into! (:touched-curators @work-list2) in-tx-curators)
+              (recur (flush-worklist graph-manager-value resolver in-tx-curators @work-list2)
+                resolver work-list2 (dec recursion-limit)))
+            graph-manager-value))))))
 
 
 
@@ -592,17 +585,6 @@
           (assoc-in graph-manager-value
             [:node-state observed]
             node-state)))
-      #_(let [old-node-state (get-in graph-manager-value [:node-state observed] NOT-FOUND-SENTINEL)]
-        (if (identical? old-node-state NOT-FOUND-SENTINEL)
-          (run-halting
-            graph-manager-value
-            node-state
-            resolver
-            observed
-            (:dtor-impl node-state)
-            worklist-atom
-            dirty-curators)
-          graph-manager-value))
       (->                                   ;deinit
         (if-some [observes (not-empty (get node-state :observes))]
           (let [{:keys [change-focus]} worklist]
@@ -790,7 +772,7 @@
                               recursion-limit)]
     (finalize-effects graph-manager-value
       resolver
-      (persistent! (:in-tx-curators @work-list))
+      (persistent! (:touched-curators @work-list))
       sync-effects-atom async-effects-atom)
     ))
 
@@ -814,7 +796,7 @@
                               recursion-limit)]
     (finalize-effects graph-manager-value
       resolver
-      (persistent! (:in-tx-curators @work-list))
+      (persistent! (:touched-curators @work-list))
       sync-effects-atom async-effects-atom)
     ))
 
