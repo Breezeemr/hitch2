@@ -284,18 +284,14 @@
               (cond->
                 (assoc node-state
                   :observes deps)
-                value-changed?
-                (assoc
-                  :value-changed?
-                  true)
                 (pos? (count waiting-deps))
                 (assoc
                   :waiting
                   waiting-deps)
-                ;(not-empty change-focus)
-                #_(assoc
+                (not-empty change-focus)
+                (assoc
                   :change-focus
-                  change-focus)))
+                  {})))
       :always
       (update
         :graph-value
