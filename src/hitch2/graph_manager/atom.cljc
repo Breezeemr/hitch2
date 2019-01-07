@@ -450,9 +450,8 @@
           assoc
           :set-projections {})))))
 
-(defn blah [work-list]
-  (let [backrefs (transient {})
-        flusher (curator-node->worklist! work-list backrefs)]
+(defn blah [work-list backrefs]
+  (let [flusher (curator-node->worklist! work-list backrefs)]
     (fn [graph-manager-value curator-dtor]
       (let [node-state (get-node-state graph-manager-value curator-dtor)
             _          (assert (instance? curator-state node-state) (pr-str node-state))
@@ -460,8 +459,7 @@
         (-> graph-manager-value
             (assoc-in
               [:node-state curator-dtor]
-              flushed-state)
-            (update-observed-by-batch (persistent! backrefs)))))))
+              flushed-state))))))
 
 
 (defn flush-worklist [graph-manager-value resolver dirty-curators-snapshot worklist]
@@ -492,15 +490,18 @@
     (transient #{})))
 
 (defn init-worklist [graph-manager-value work-list]
-  (let [disturbed-curators-snapshot (persistent! (:in-tx-curators @work-list))]
+  (let [disturbed-curators-snapshot (persistent! (:in-tx-curators @work-list))
+        backrefs (transient {})]
     (vswap! work-list
       assoc
       :in-tx-curators
       (transient disturbed-curators-snapshot))
-    (reduce
-      (blah @work-list)
-      graph-manager-value
-      disturbed-curators-snapshot)))
+    (update-observed-by-batch
+      (reduce
+        (blah @work-list backrefs)
+        graph-manager-value
+        disturbed-curators-snapshot)
+      (persistent! backrefs))))
 
 (defn get-reset-worklist-part [worklist k]
   (let [val (get @worklist k)]
@@ -571,7 +572,9 @@
             (cond-> (assoc-in graph-manager-value
                   [:node-state observed]
                   (-> (assoc node-state
-                        :node new-node-state)
+                        :node (if (not-empty set-projections)
+                                (assoc new-node-state :set-projections {})
+                                new-node-state))
                       apply-curator-change-focus))
               (not-empty new-change-focus)
               (update :observed-by  update-observed-by observed new-change-focus))]
