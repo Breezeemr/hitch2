@@ -95,7 +95,7 @@
   (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
         test-atom (atom nil)
         depends-on (fn [n] (descriptor/positional-dtor  depends-on n))
-        depends-on-dtor   (depends-on 2)]
+        depends-on-dtor   (depends-on 5)]
     ;needs to be async
     (hitch/pin graph-manager depends-on-dtor)
     (gm-proto/-transact! graph-manager (mv/mutable-curator :bench) [:set-value 5])
@@ -104,7 +104,7 @@
                  (hitch/hook-sel graph-manager
                    (fn [fib-result]
                      (js/clearTimeout failure)
-                     (is (= fib-result 7))
+                     (is (= fib-result 10))
                      (done))
                    depends-on-dtor)))
        :clj (let [result (promise )]
@@ -112,4 +112,4 @@
                 (fn [fib-result]
                   (deliver result fib-result))
                 depends-on-dtor)
-              (is (= 1 (deref result 500 :failure)))))))
+              (is (= 10 (deref result 500 :failure)))))))
