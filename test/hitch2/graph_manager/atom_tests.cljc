@@ -52,6 +52,12 @@
               n-2 (hitch/select! G fibb-graph (dec (dec n)))]
           (+ @n-1 @n-2))))
 
+
+(declare depends-on)
+(defhalting depends-on [G n]
+  (cond (= 0 n) @(hitch/select-sel! G (mv/mutable-var :bench))
+        :else   (+ 1 @(hitch/select! G depends-on (dec n)))))
+
 (deftest instrument-tests
   (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
         test-atom (atom nil)
@@ -82,4 +88,28 @@
                               (fn [fib-result]
                                 (deliver result fib-result))
                 fib-dtor)
+              (is (= 1 (deref result 500 :failure)))))))
+
+
+(deftest depend-on-descriptor
+  (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
+        test-atom (atom nil)
+        depends-on (fn [n] (descriptor/positional-dtor  depends-on n))
+        depends-on-dtor   (depends-on 2)]
+    ;needs to be async
+    (hitch/pin graph-manager depends-on-dtor)
+    (gm-proto/-transact! graph-manager (mv/mutable-curator :bench) [:set-value 5])
+    #?(:cljs (async done
+               (let [failure (js/setTimeout (fn [] (is false "test timeout") (done)) 500)]
+                 (hitch/hook-sel graph-manager
+                   (fn [fib-result]
+                     (js/clearTimeout failure)
+                     (is (= fib-result 7))
+                     (done))
+                   depends-on-dtor)))
+       :clj (let [result (promise )]
+              (hitch/hook-sel graph-manager
+                (fn [fib-result]
+                  (deliver result fib-result))
+                depends-on-dtor)
               (is (= 1 (deref result 500 :failure)))))))
