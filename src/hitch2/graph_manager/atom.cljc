@@ -44,16 +44,12 @@
 (defprotocol PropagateValueChange
   (-propagate-value-change [node-state graph-manager-value descriptor parent resolver worklist]))
 
-(defprotocol PropagateNodeChanges
-  (-propagate-node-change [node-state graph-manager-value descriptor resolver worklist-atom
-                           dirty-curators]))
-
 (defprotocol ApplyChildChangeCommand
   (-apply-child-change-command [node-state graph-manager-value observed  changes resolver worklist]))
 
 
 (defrecord curator-state [node dtor-impl observes])
-(defrecord deriving-state [change-focus waiting value-changed? dtor-impl observes])
+(defrecord deriving-state [waiting dtor-impl observes])
 (defrecord var-state [dtor-impl observes])
 
 (def #?(:cljs    ^:dynamic ^boolean *trace*
@@ -143,7 +139,8 @@
 
 (defn update!+- [tcoll k f arg1]
   (if-some [old-val (get tcoll k)]
-    (assoc! tcoll k (f old-val arg1))
+    (do (f old-val arg1)
+      tcoll)
     (assoc! tcoll k (f (->focus-change (transient #{}) (transient #{})) arg1 ))))
 
 (defn add-dep [{:keys [add-set rm-set] :as fc} curator]
@@ -162,10 +159,6 @@
 (defn get-graph-value [graph-manager-value]
   (-> graph-manager-value :graph-value))
 
-
-(defn- add-to-working-set [working-set descriptor]
-  (vswap! working-set conj! descriptor)
-  nil)
 
 (defn tx-init-curator [node-state graph-manager-value descriptor worklist]
   (if (contains? (:in-tx-curators worklist) descriptor)
@@ -196,7 +189,7 @@
           v)
         :hitch2.descriptor.kind/halting
         (->deriving-state
-          {} (transient #{}) false dtor-impl #{})
+          (transient #{}) dtor-impl #{})
         ))))
 
 
@@ -205,7 +198,7 @@
     (dissoc gv dtor)
     (assoc gv dtor value)))
 
-(defn propagate-set-projections [{:keys [observed-by] :as graph-manager-value} set-projections worklist]
+(defn propagate-set-projections [graph-manager-value set-projections worklist]
   (reduce-kv (fn [gv dtor value]
                ;(prn  dtor value (-> gv :node-state keys #_(get dtor)))
 
@@ -246,13 +239,15 @@
         ;;; NOTE: change this line to switch halting implementations
         new-value (halting descriptor simpl tx-manager)
         deps (tx-manager-proto/finish-tx! tx-manager)
-        value-changed? (and (not= new-value old-value) (not (identical? new-value NOT-FOUND-SENTINEL)))
+        value-changed? (not= new-value old-value)
         waiting-deps   (tinto! (transient #{})
                          (comp
                            (remove (:graph-value graph-manager-value))
                            (remove old-deps))
                          deps)
-        change-focus (-> {}
+        change-focus (if (= deps old-deps)
+                       {}
+                       (-> {}
                            (into
                              (comp
                                (remove old-deps)
@@ -262,8 +257,8 @@
                            (into (comp (remove deps)
                                    (map (fn [dep]
                                           [dep false])))
-                                 old-deps))]
-    (when value-changed?
+                             old-deps)))]
+    (when (and value-changed? (not (identical? new-value NOT-FOUND-SENTINEL)))
       (let [{:keys [value-changes]} worklist]
         (run!
           (fn [observer]
@@ -287,12 +282,8 @@
                 (pos? (count waiting-deps))
                 (assoc
                   :waiting
-                  waiting-deps)
-                (not-empty change-focus)
-                (assoc
-                  :change-focus
-                  {})))
-      :always
+                  waiting-deps)))
+      value-changed?
       (update
         :graph-value
         update-graph-value descriptor new-value)
@@ -368,7 +359,7 @@
                             graph-manager-value descriptor parents  resolver worklist]
     (assert node-state)
     (takeout! waiting parents)
-    (when (zero? (count waiting))
+    (when true #_(zero? (count waiting))
       (let [{:keys [recalc]} worklist]
         (conj! recalc descriptor)))
     graph-manager-value)
@@ -477,12 +468,12 @@
 
 (defn make-work-list []
   (->wlist
-    (transient #{})
-    (transient #{})
-    (transient {})
-    (transient {})
-    (transient {})
-    (transient #{})))
+    (transient (hash-set))
+    (transient (hash-set))
+    (transient (hash-map))
+    (transient (hash-map))
+    (transient (hash-map))
+    (transient (hash-set))))
 
 (defn init-worklist [graph-manager-value work-list]
   (let [disturbed-curators-snapshot (persistent! (:in-tx-curators @work-list))
@@ -504,11 +495,11 @@
       (let [persistent-val (persistent! val)]
         (vswap! worklist assoc
           k (case k
-              :in-tx-curators  (transient #{})
-              :project-vars (transient {})
-              :change-focus (transient {})
-              :value-changes (transient {})
-              :recalc (transient #{})
+              :in-tx-curators  (transient (hash-set))
+              :project-vars (transient (hash-map))
+              :change-focus (transient (hash-map))
+              :value-changes (transient (hash-map))
+              :recalc (transient (hash-set))
               ))
         persistent-val))))
 (declare apply-focus-changes )
@@ -520,19 +511,24 @@
   [graph-manager-value resolver work-list2 recursion-limit]
   (assert (not (zero? recursion-limit)))
   (if-some [set-projections (get-reset-worklist-part work-list2 :project-vars)]
-    (recur (propagate-set-projections graph-manager-value set-projections @work-list2)
-      resolver work-list2 (dec recursion-limit))
+    (do                                                     ;(prn (count set-projections) :set-projections)
+        (recur (propagate-set-projections graph-manager-value set-projections @work-list2)
+          resolver work-list2 (dec recursion-limit)))
     (if-some [value-changes (get-reset-worklist-part work-list2 :value-changes)]
-      (recur (propagate-value-changes graph-manager-value resolver value-changes @work-list2)
-        resolver work-list2 (dec recursion-limit))
+      (do                                                   ;(prn (count value-changes) :value-changes)
+          (recur (propagate-value-changes graph-manager-value resolver value-changes @work-list2)
+            resolver work-list2 (dec recursion-limit)))
       (if-some [change-focus (get-reset-worklist-part work-list2 :change-focus)]
-        (recur (apply-focus-changes graph-manager-value resolver change-focus @work-list2)
-          resolver work-list2 (dec recursion-limit))
+        (do                                                 ;(prn (count change-focus) :change-focus)
+            (recur (apply-focus-changes graph-manager-value resolver change-focus @work-list2)
+              resolver work-list2 (dec recursion-limit)))
         (if-some [recalcs (get-reset-worklist-part work-list2 :recalc)]
-          (recur (do-recalcs graph-manager-value resolver recalcs @work-list2)
-            resolver work-list2 (dec recursion-limit))
+          (do                                               ;(prn (count recalcs) :recalcs)
+              (recur (do-recalcs graph-manager-value resolver recalcs @work-list2)
+                resolver work-list2 (dec recursion-limit)))
           (if-some [in-tx-curators (get-reset-worklist-part work-list2 :in-tx-curators)]
-            (do (into! (:touched-curators @work-list2) in-tx-curators)
+            (do                                             ;(prn (count in-tx-curators) :txends)
+                 (into! (:touched-curators @work-list2) in-tx-curators)
               (recur (flush-worklist graph-manager-value resolver in-tx-curators @work-list2)
                 resolver work-list2 (dec recursion-limit)))
             graph-manager-value))))))
@@ -735,7 +731,7 @@
 ;          :curator any?
 ;          :command vector?)
 ;  :ret ::graph-manager-value)
-(def recursion-limit 1000)
+(def recursion-limit 1000000)
 
 (defn -apply-command
   "Apply command to curator and then allow the graph to settle. Returns
@@ -845,7 +841,10 @@
   (-observed-by [gm descriptor]
     (get-in @state [:observed-by descriptor] NOT-IN-GRAPH-SENTINEL))
   (-observes [gm descriptor]
-    (get-in @state [:node-state descriptor :observes] NOT-IN-GRAPH-SENTINEL))
+    (let [node-state (get-in @state [:node-state descriptor] NOT-IN-GRAPH-SENTINEL)]
+      (if (identical? node-state NOT-IN-GRAPH-SENTINEL)
+        NOT-IN-GRAPH-SENTINEL
+        (:observes node-state))))
   g/Resolver
   (-get-resolver [gm] resolver)
   )
