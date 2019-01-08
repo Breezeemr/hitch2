@@ -359,7 +359,7 @@
                             graph-manager-value descriptor parents  resolver worklist]
     (assert node-state)
     (takeout! waiting parents)
-    (when true #_(zero? (count waiting))
+    (when (zero? (count waiting))
       (let [{:keys [recalc]} worklist]
         (conj! recalc descriptor)))
     graph-manager-value)
