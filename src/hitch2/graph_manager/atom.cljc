@@ -241,9 +241,7 @@
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (not= new-value old-value)
         waiting-deps   (tinto! (transient #{})
-                         (comp
-                           (remove (:graph-value graph-manager-value))
-                           (remove old-deps))
+                         (remove (:graph-value graph-manager-value))
                          deps)
         change-focus (if (= deps old-deps)
                        {}
@@ -294,14 +292,15 @@
   (reduce
     (fn [graph-manager-value observed]
       (let [node-state (get-in graph-manager-value [:node-state observed] NOT-FOUND-SENTINEL)]
-        (assert (not (identical? node-state NOT-FOUND-SENTINEL)))
-        (run-halting
-          graph-manager-value
-          node-state
-          resolver
-          observed
-          (:dtor-impl node-state)
-          worklist)))
+        (if (not (identical? node-state NOT-FOUND-SENTINEL))
+          (run-halting
+            graph-manager-value
+            node-state
+            resolver
+            observed
+            (:dtor-impl node-state)
+            worklist)
+          graph-manager-value)))
     graph-manager-value
     to-recalc))
 
