@@ -93,15 +93,18 @@
 ;             ::observes
 ;             ::observed-by]))
 
+(defn tnot-empty [x]
+  (when (pos? (count x))
+    x))
 
 (defn addval [x k v]
   (if-some [a (get x k)]
-    (assoc! x k (conj a v))
-    (assoc! x k (conj #{} v))))
+    (assoc! x k (conj! a v))
+    (assoc! x k (conj! (transient (hash-set)) v))))
 
 (defn remove-val [x k v]
   (if-some [a (get x k)]
-    (if-some [nv (not-empty (disj a v))]
+    (if-some [nv (tnot-empty (disj! a v))]
       (assoc! x k nv)
       (dissoc! x k))
     x))
@@ -118,38 +121,35 @@
 
 (defn update-observed-by [observed-by descriptor changes]
   (assert descriptor)
-  (persistent!
-    (update!-observed-by
-      (transient (or observed-by #{}))
-      descriptor
-      changes)))
+  (assert observed-by)
+  (update!-observed-by
+    observed-by
+    descriptor
+    changes))
 
 (defn add-to-observed-by [observed-by descriptor observed]
-  (persistent!
-    (reduce
-      (fn [acc focus]
-        (addval acc focus descriptor))
-      (transient observed-by)
-      observed)))
+  (reduce
+    (fn [acc focus]
+      (addval acc focus descriptor))
+    observed-by
+    observed))
 
 (defn remove-from-observed-by [observed-by descriptor observed]
-  (persistent!
-    (reduce
-      (fn [acc focus]
-        (remove-val acc focus descriptor))
-      (transient observed-by)
-      observed)))
+  (reduce
+    (fn [acc focus]
+      (remove-val acc focus descriptor))
+    observed-by
+    observed))
 
 (defn update-observed-by-batch
   [{:keys [observed-by] :as gmv} batch]
   (assoc gmv
     :observed-by
-    (persistent!
-      (reduce
-        (fn [acc [descriptor changes]]
-          (update!-observed-by acc descriptor changes))
-        (transient observed-by)
-        batch))))
+    (reduce
+      (fn [acc [descriptor changes]]
+        (update!-observed-by acc descriptor changes))
+      observed-by
+      batch)))
 
 (defrecord focus-change [add-set rm-set])
 
@@ -225,11 +225,14 @@
                      (do (assert (instance? var-state node-state))
                          (when-not (identical? value NOT-FOUND-SENTINEL)
                            (let [{:keys [observed-by]} gv
-                                 {:keys [value-changes]} worklist]
+                                 {:keys [value-changes]} worklist
+                                 obs (get observed-by dtor)
+                                 pobs (persistent! obs)]
+                             (assoc! observed-by dtor (transient pobs))
                              (run!
                                (fn [observer]
                                  (update! value-changes observer conj!-tset dtor))
-                               (observed-by dtor))))
+                               pobs)))
                          (update gv :graph-value update-graph-value dtor value))))
                  (do                                        ;observed-by(prn :node-gone dtor (-> gv :node-state keys))
                    gv)))
@@ -287,11 +290,14 @@
                          deps)
         change-focus (make-change-focus deps old-deps worklist descriptor)]
     (when (and value-changed? (not (identical? new-value NOT-FOUND-SENTINEL)))
-      (let [{:keys [value-changes]} worklist]
+      (let [{:keys [value-changes]} worklist
+            obs (get observed-by descriptor)
+            pobs (persistent! obs)]
+        (assoc! observed-by descriptor (transient pobs))
         (run!
           (fn [observer]
             (update! value-changes observer conj!-tset descriptor))
-          (observed-by descriptor))))
+          pobs)))
     (cond-> (assoc-in
               graph-manager-value
               [:node-state descriptor]
@@ -594,13 +600,13 @@
                       apply-curator-change-focus))
               (not-empty new-change-focus)
               (update :observed-by  update-observed-by observed new-change-focus))]
-        (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by observed]))]
+        (if-some [observed-by (tnot-empty (get-in graph-manager-value [:observed-by observed]))]
           new-graph-manager-value
           new-graph-manager-value)  ;deinit lifecycle
           )))
   deriving-state
   (-apply-child-change-command [node-state graph-manager-value observed changes  resolver worklist]
-    (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by observed]))]
+    (if-some [observed-by (tnot-empty (get-in graph-manager-value [:observed-by observed]))]
       (if-some [old-state (-> graph-manager-value :node-state (get observed))]
         graph-manager-value
         (let [{:keys [recalc]} worklist]
@@ -626,7 +632,7 @@
 
   var-state
   (-apply-child-change-command [node-state graph-manager-value observed changes resolver worklist]
-    (if-some [observed-by (not-empty (get-in graph-manager-value [:observed-by observed]))]
+    (if-some [observed-by (tnot-empty (get-in graph-manager-value [:observed-by observed]))]
       (if-some [old-state (-> graph-manager-value :node-state (get observed))]
         graph-manager-value
         (let [{:keys [change-focus]} worklist]
@@ -884,7 +890,7 @@
    (->gm (atom (->GraphManagerValue
                 {}
                 {}
-                {}))
+                (transient (hash-map))))
          scheduler
      resolver)))
 
