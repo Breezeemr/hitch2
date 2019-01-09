@@ -256,8 +256,9 @@
         new-value (halting descriptor simpl tx-manager)
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (not= new-value old-value)
-        waiting-deps   (tinto! (transient #{})
-                         (remove (:graph-value graph-manager-value))
+        gv (:graph-value graph-manager-value)
+        waiting-deps   (tinto! (transient (hash-set))
+                         (remove #(contains? gv %))
                          deps)
         change-focus (if (= deps old-deps)
                        {}
