@@ -124,6 +124,22 @@
       descriptor
       changes)))
 
+(defn add-to-observed-by [observed-by descriptor observed]
+  (persistent!
+    (reduce
+      (fn [acc focus]
+        (addval acc focus descriptor))
+      (transient observed-by)
+      observed)))
+
+(defn remove-from-observed-by [observed-by descriptor observed]
+  (persistent!
+    (reduce
+      (fn [acc focus]
+        (remove-val acc focus descriptor))
+      (transient observed-by)
+      observed)))
+
 (defn update-observed-by-batch
   [{:keys [observed-by] :as gmv} batch]
   (assoc gmv
@@ -595,9 +611,7 @@
                 (update!+- change-focus parent rm-dep observed))
               observes)
             (-> graph-manager-value
-
-                ;todo a bit of optimization could happen here
-                (update :observed-by  update-observed-by observed (into {} (map (fn [x] [x false])) observes))
+                (update :observed-by  remove-from-observed-by observed observes)
                 ))
           graph-manager-value)
         (update :graph-value dissoc observed)
@@ -617,10 +631,8 @@
             (get node-state :observes))
           (-> graph-manager-value
               (assoc-in [:node-state observed] node-state)
-              (update :observed-by update-observed-by observed
-                (into {}
-                  (map (fn [dtor] [dtor true]))
-                  (get node-state :observes))))))
+              (update :observed-by add-to-observed-by observed
+                (get node-state :observes)))))
       (->
         (if-some [observes (not-empty (get node-state :observes))]
           (let [{:keys [change-focus]} worklist]
@@ -629,7 +641,7 @@
                 (update!+- change-focus parent rm-dep observed))
               observes)
             (-> graph-manager-value
-                (update :observed-by update-observed-by observed (into {} (map (fn [x] [x false])) (get node-state :observes)))
+                (update :observed-by remove-from-observed-by observed (get node-state :observes))
                 ))
           graph-manager-value)
         (update :graph-value dissoc observed)
