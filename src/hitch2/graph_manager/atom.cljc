@@ -243,7 +243,7 @@
     NOT-FOUND-SENTINEL))
 ;todo partial evaluate the destructuring and return an clojure that takes a graph.
 
-(defn make-change-focus [deps old-deps]
+(defn make-change-focus [deps old-deps worklist]
   (let [change-focus (if (= deps old-deps)
                        {}
                        (-> {}
@@ -285,7 +285,7 @@
         waiting-deps   (tinto! (transient (hash-set))
                          (remove #(contains? gv %))
                          deps)
-        change-focus (make-change-focus deps old-deps)]
+        change-focus (make-change-focus deps old-deps worklist)]
     (when (and value-changed? (not (identical? new-value NOT-FOUND-SENTINEL)))
       (let [{:keys [value-changes]} worklist]
         (run!
