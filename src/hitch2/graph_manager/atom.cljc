@@ -35,7 +35,7 @@
 (defn conj!-tset [coll nv]
   (if coll
     (conj! coll nv)
-    (conj! (transient #{}) nv)))
+    (conj! (transient (hash-set)) nv)))
 
 (defrecord GraphManagerValue [graph-value
                               node-state
@@ -157,7 +157,7 @@
   (if-some [old-val (get tcoll k)]
     (do (f old-val arg1)
       tcoll)
-    (assoc! tcoll k (f (->focus-change (transient #{}) (transient #{})) arg1 ))))
+    (assoc! tcoll k (f (->focus-change (transient (hash-set)) (transient (hash-set))) arg1 ))))
 
 (defn add-dep [{:keys [add-set rm-set] :as fc} curator]
   (conj! add-set curator)
@@ -205,7 +205,7 @@
           v)
         :hitch2.descriptor.kind/halting
         (->deriving-state
-          (transient #{}) dtor-impl #{})
+          (transient (hash-set)) dtor-impl #{})
         ))))
 
 
