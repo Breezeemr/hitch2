@@ -243,6 +243,31 @@
     NOT-FOUND-SENTINEL))
 ;todo partial evaluate the destructuring and return an clojure that takes a graph.
 
+(defn make-change-focus [deps old-deps]
+  (let [change-focus (if (= deps old-deps)
+                       {}
+                       (-> {}
+                           (into
+                             (comp
+                               (remove old-deps)
+                               (map (fn [dep]
+                                      [dep true])))
+                             deps)
+                           (into (comp (remove deps)
+                                   (map (fn [dep]
+                                          [dep false])))
+                             old-deps)))]
+    (when (not-empty change-focus)
+      (let [{change-focus-worklist :change-focus} worklist]
+        (reduce-kv
+          (fn [acc observed added?]
+            (if added?
+              (update!+- change-focus-worklist observed add-dep descriptor)
+              (update!+- change-focus-worklist observed rm-dep descriptor)))
+          nil
+          change-focus)))
+    change-focus))
+
 (defn run-halting [{:keys [observed-by] :as graph-manager-value}
                    node-state
                    resolver
@@ -260,34 +285,13 @@
         waiting-deps   (tinto! (transient (hash-set))
                          (remove #(contains? gv %))
                          deps)
-        change-focus (if (= deps old-deps)
-                       {}
-                       (-> {}
-                           (into
-                             (comp
-                               (remove old-deps)
-                               (map (fn [dep]
-                                      [dep true])))
-                             deps)
-                           (into (comp (remove deps)
-                                   (map (fn [dep]
-                                          [dep false])))
-                             old-deps)))]
+        change-focus (make-change-focus deps old-deps)]
     (when (and value-changed? (not (identical? new-value NOT-FOUND-SENTINEL)))
       (let [{:keys [value-changes]} worklist]
         (run!
           (fn [observer]
             (update! value-changes observer conj!-tset descriptor))
           (observed-by descriptor))))
-    (when (not-empty change-focus)
-      (let [{change-focus-worklist :change-focus} worklist]
-        (reduce-kv
-          (fn [acc observed added?]
-            (if added?
-              (update!+- change-focus-worklist observed add-dep descriptor)
-              (update!+- change-focus-worklist observed rm-dep descriptor)))
-          nil
-          change-focus)))
     (cond-> (assoc-in
               graph-manager-value
               [:node-state descriptor]
