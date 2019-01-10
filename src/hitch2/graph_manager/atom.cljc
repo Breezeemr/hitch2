@@ -214,6 +214,19 @@
     (dissoc gv dtor)
     (assoc gv dtor value)))
 
+(defn schedule-value-changes [worklist observed-by descriptor]
+  (let [{:keys [value-changes]} worklist
+        obs (get observed-by descriptor)]
+    (when obs
+      (let [pobs (persistent! obs)]
+        (assoc! observed-by descriptor (transient pobs))
+        (run!
+          (fn [observer]
+            (update! value-changes observer conj!-tset descriptor))
+          pobs))))
+
+  )
+
 (defn propagate-set-projections [graph-manager-value set-projections worklist]
   (reduce-kv (fn [gv dtor value]
                ;(prn  dtor value (-> gv :node-state keys #_(get dtor)))
@@ -224,16 +237,8 @@
                      gv
                      (do                                    ;(assert (instance? var-state node-state))
                          (when-not (identical? value NOT-FOUND-SENTINEL)
-                           (let [{:keys [observed-by]} gv
-                                 {:keys [value-changes]} worklist
-                                 obs (get observed-by dtor)]
-                             (when obs
-                               (let [pobs (persistent! obs)]
-                                 (assoc! observed-by dtor (transient pobs))
-                                 (run!
-                                   (fn [observer]
-                                     (update! value-changes observer conj!-tset dtor))
-                                   pobs)))))
+                           (let [{:keys [observed-by]} gv]
+                             (schedule-value-changes worklist observed-by dtor)))
                          (update gv :graph-value update-graph-value dtor value))))
                  (do                                        ;observed-by(prn :node-gone dtor (-> gv :node-state keys))
                    gv)))
@@ -291,15 +296,7 @@
                          deps)
         change-focus (make-change-focus deps old-deps worklist descriptor)]
     (when (and value-changed? (not (identical? new-value NOT-FOUND-SENTINEL)))
-      (let [{:keys [value-changes]} worklist
-            obs (get observed-by descriptor)]
-        (when obs
-          (let [pobs (persistent! obs)]
-            (assoc! observed-by descriptor (transient pobs))
-            (run!
-              (fn [observer]
-                (update! value-changes observer conj!-tset descriptor))
-              pobs)))))
+      (schedule-value-changes worklist observed-by descriptor))
     (cond-> (assoc-in
               graph-manager-value
               [:node-state descriptor]
@@ -361,9 +358,6 @@
               (tx-init-curator n graph-manager-value descriptor worklist)
               parents)
             (assert false))]
-      (when (not-empty new-set-projections)
-        (let [{:keys [project-vars]} worklist]
-          (into! project-vars new-set-projections)))
       (when (not-empty new-change-focus)
         (let [{:keys [change-focus]} worklist]
           (reduce-kv
@@ -381,7 +375,9 @@
                   (not-empty new-set-projections)
                   (assoc :set-projections {})))
         (not-empty new-change-focus)
-        (update :observed-by update-observed-by descriptor new-change-focus))))
+        (update :observed-by update-observed-by descriptor new-change-focus)
+        (not-empty new-set-projections)
+        (propagate-set-projections new-set-projections worklist))))
   deriving-state
   (-propagate-value-change [{:keys [waiting] :as node-state}
                             graph-manager-value descriptor parents  resolver worklist]
