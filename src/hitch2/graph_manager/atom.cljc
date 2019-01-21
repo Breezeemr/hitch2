@@ -1,13 +1,13 @@
 (ns hitch2.graph-manager.atom
   (:require  [clojure.spec.alpha :as s]
              [hitch2.protocols.graph-manager :as g]
+             [hitch2.scheduler.normal :refer [default-scheduler]]
              [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
              [hitch2.def.curator :as curator-proto]
              [hitch2.descriptor :as descriptor]
              [hitch2.protocols.tx-manager :as tx-manager-proto]
              [hitch2.tx-manager.halting :as halting-tx]
-             [hitch2.halt :as halt])
-  #?(:cljs (:import goog.async.run)))
+             [hitch2.halt :as halt]))
 
 
 (defn into! [target source]
@@ -868,19 +868,6 @@
   g/Resolver
   (-get-resolver [gm] resolver)
   )
-
-(def default-scheduler
-  #?(:clj (reify g/IScheduler
-            (-run-sync [_ gm effects]
-              (run! (fn [effect] (g/run-effect gm effect)) effects))
-            (-run-async [_ gm effects]
-              (run! (fn [effect] (g/run-effect gm effect)) effects)))
-     :cljs (reify g/IScheduler
-             (-run-sync [_ gm effects]
-               (run! (fn [effect] (g/run-effect gm effect)) effects))
-             (-run-async [_ gm effects]
-               (goog.async.run (fn []
-                                 (run! (fn [effect] (g/run-effect gm effect)) effects)))))))
 
 (defn make-gm
   ([resolver] (make-gm resolver default-scheduler))
