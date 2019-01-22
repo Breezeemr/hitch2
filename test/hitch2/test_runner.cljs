@@ -6,6 +6,7 @@
     [figwheel.main.testing :refer-macros [run-tests-async]]
     [figwheel.main.async-result :as async-result]
     [hitch2.graph-manager.atom-tests]
+    [hitch2.graph-manager.mock-tests]
     [hitch2.graph-test]
     [hitch2.curator.http-test]
     ))
@@ -23,4 +24,5 @@
     'hitch2.graph-test
     'hitch2.curator.http-test
     'hitch2.graph-manager.atom-tests
+    'hitch2.graph-manager.mock-tests
     ))

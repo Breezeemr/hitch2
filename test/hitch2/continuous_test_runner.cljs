@@ -2,6 +2,7 @@
   (:require [cljs.test]
             [cljs-test-display.core]
             [hitch2.graph-manager.atom-tests]
+            [hitch2.graph-manager.mock-tests]
             [hitch2.defdescriptor-test]
             [hitch2.graph-test]
             [hitch2.curator.http-test])
@@ -13,6 +14,7 @@
    'hitch2.defdescriptor-test
    'hitch2.graph-manager.atom-tests
    'hitch2.graph-test
-   'hitch2.curator.http-test))
+   'hitch2.curator.http-test
+    'hitch2.graph-manager.mock-tests))
 
 (test-run)

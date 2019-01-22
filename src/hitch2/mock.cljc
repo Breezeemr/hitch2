@@ -1,9 +1,11 @@
 (ns hitch2.mock
   (:require [hitch2.descriptor-impl-registry :as reg
-             :refer [get-descriptor-impl def-descriptor-spec]]
+             :refer [get-descriptor-impl]]
             [hitch2.def.spec
              :refer [def-descriptor-spec]]
             [cognitect.anomalies :as ca]
+            [hitch2.def.curator :as curator-proto]
+            [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
             [hitch2.descriptor :as descriptor]))
 
 (def-descriptor-spec mock-curator-spec
@@ -21,10 +23,12 @@
     col
     changes))
 
+(def initial-node (assoc curator-proto/initial-curator-state :state {}))
+
 (def mock-curator-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
    ::curator-proto/init         (fn [curator-descriptor]
-                                  (assoc initial-node :state {}))
+                                  initial-node)
    ::curator-proto/curation-changes
                                 (fn [curator-descriptor graph-value node children-added children-removed]
                                   (assoc node
@@ -43,18 +47,19 @@
                                     :set-value (let [[_ dtor val] command]
                                                  (-> node
                                                      (update :state add-or-dissoc dtor val)
-                                                     (update :set-projections assoc dtorsel val)))
+                                                     (update :set-projections assoc dtor val)))
                                     :set-values
                                     (let [[_ changes] command]
                                       (-> node
                                           (update :state add-or-dissoc-all changes)
-                                          (update :set-projections assoc dtorsel val)))
+                                          (update :set-projections into changes)))
                                     :clear
                                     (-> node
                                         (assoc :state {})
                                         (update :set-projections
                                           into (map (fn [[k v]] [k NOT-FOUND-SENTINEL]))
-                                          (-> node :state)))))})
+                                          (-> node :state)))
+                                    (prn command)))})
 
 (reg/def-registered-descriptor mock-curator mock-curator-spec mock-curator-impl)
 
