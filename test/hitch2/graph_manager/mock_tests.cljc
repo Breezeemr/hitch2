@@ -40,8 +40,10 @@
 
 (deftest mock-redepend-on-descriptor-bug
   (let [graph-manager (g/make-gm
-                        (mock-registry-resolver #{'hitch2.curator.pin/pin-curator-spec
-                                                  'hitch2.curator.hook/hook-curator-spec})
+                        (mock-registry-resolver
+                          #{'hitch2.curator.pin/pin-curator-spec
+                            'hitch2.curator.hook/hook-curator-spec}
+                          #{})
                         common/sync-scheduler)
         fibber (fn [n] (descriptor/positional-dtor  fibb-graph n))
         fib-dtor   (fibber 2)]

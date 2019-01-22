@@ -78,7 +78,7 @@
 (defn mock-registry-resolver
   "A resolver that takes a whitelist that looks up descriptor implementations dynamically from the
   mutable registry or throws if unavailable. If not on the whitelist it uses a mocked implementation"
-  [whitelist]
+  [var-curator-whitelist halting-override]
   (fn
     [descriptor]
     (let [sname (:name descriptor)
@@ -88,11 +88,13 @@
                                  {::ca/category    ::ca/not-found
                                   :descriptor-name sname
                                   :descriptor      descriptor})))
-      (if (whitelist sname)
+      (if (var-curator-whitelist sname)
         impl
         (case kind
           :hitch2.descriptor.kind/halting
-          impl
+          (if (halting-override sname)
+            mock-var-impl
+            impl)
           :hitch2.descriptor.kind/curator
           mock-curator-impl
           :hitch2.descriptor.kind/var
