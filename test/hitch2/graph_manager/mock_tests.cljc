@@ -30,7 +30,9 @@
 
 (deftest mock-instrument-tests
   (let [graph-manager (g/make-gm
-                        (mock-registry-resolver #{'hitch2.curator.pin/pin-curator-spec})
+                        (mock-registry-resolver
+                          #{'hitch2.curator.pin/pin-curator-spec}
+                          #{})
                         common/sync-scheduler)
         fibber (fn [n] (descriptor/positional-dtor  fibb-graph n))]
                                         ;needs to be async
