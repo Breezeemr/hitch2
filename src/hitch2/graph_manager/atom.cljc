@@ -151,13 +151,11 @@
       observed-by
       batch)))
 
-(defrecord focus-change [add-set rm-set])
-
 (defn update!+- [tcoll k f arg1]
   (if-some [old-val (get tcoll k)]
     (do (f old-val arg1)
       tcoll)
-    (assoc! tcoll k (f (transient (hash-map))))))
+    (assoc! tcoll k (f (transient (hash-map)) arg1))))
 
 (defn add-dep [fc curator]
   (if-some [x (get fc curator)]
@@ -561,7 +559,12 @@
                 resolver work-list2 (dec recursion-limit)))
             graph-manager-value))))))
 
-
+(def keep-adds (keep (fn [x]
+                       (when (val x)
+                         (key x)))))
+(def keep-dels (keep (fn [x]
+                       (when-not (val x)
+                         (key x)))))
 
 (extend-protocol ApplyChildChangeCommand
   curator-state
@@ -577,8 +580,8 @@
             (let [pchanges (persistent! changes)]
               (curation-changes observed graph-value
                 (tx-init-curator n graph-manager-value observed worklist)
-                (into #{} (filter val) pchanges)
-                (into #{} (remove val) pchanges)))
+                (into #{} keep-adds pchanges)
+                (into #{} keep-dels pchanges)))
             (assert false))]
       ;(s/assert ::curator-proto/curator-state new-node-state)
       (when (not-empty set-projections)
