@@ -157,16 +157,20 @@
   (if-some [old-val (get tcoll k)]
     (do (f old-val arg1)
       tcoll)
-    (assoc! tcoll k (f (->focus-change (transient (hash-set)) (transient (hash-set))) arg1 ))))
+    (assoc! tcoll k (f (transient (hash-map))))))
 
-(defn add-dep [{:keys [add-set rm-set] :as fc} curator]
-  (conj! add-set curator)
-  (disj! rm-set curator)
+(defn add-dep [fc curator]
+  (if-some [x (get fc curator)]
+    (when (false? x)
+      (dissoc! fc curator))
+    (assoc! fc curator true))
   fc)
 
-(defn rm-dep [{:keys [add-set rm-set] :as fc} curator]
-  (disj! add-set curator)
-  (conj! rm-set curator)
+(defn rm-dep [fc curator]
+  (if-some [x (get fc curator)]
+    (when (true? x)
+      (dissoc! fc curator))
+    (assoc! fc curator false))
   fc)
 
 (defn get-node-state [graph-manager-value descriptor]
@@ -570,10 +574,11 @@
            set-projections         :set-projections
            :as                new-node-state}
           (if-some [curation-changes (::curator-proto/curation-changes (:dtor-impl node-state))]
-            (curation-changes observed graph-value
-              (tx-init-curator n graph-manager-value observed worklist)
-              (-> changes :add-set persistent!)
-              (-> changes :rm-set persistent!))
+            (let [pchanges (persistent! changes)]
+              (curation-changes observed graph-value
+                (tx-init-curator n graph-manager-value observed worklist)
+                (into #{} (filter val) pchanges)
+                (into #{} (remove val) pchanges)))
             (assert false))]
       ;(s/assert ::curator-proto/curator-state new-node-state)
       (when (not-empty set-projections)
