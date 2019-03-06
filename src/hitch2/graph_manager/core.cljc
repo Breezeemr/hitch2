@@ -670,29 +670,33 @@
                       (assoc :async-effects []))))
 
 (defn finalize-effects
-  [graph-manager-value resolver disturbed-curators  sync-effects-atom async-effects-atom]
-  (let [graph-value         (get-graph-value graph-manager-value)]
-    (reduce
-      (fn [{:keys [node-state] :as graph-manager-value} descriptor]
-        (let [{{:keys [sync-effects async-effects]}
-               :node :as   new-state}
-              (finalize-tx
-                (get node-state descriptor)
-                graph-value
-                resolver
-                descriptor)]
-          ;(assert-valid-finalized-node-state new-state (:name descriptor))
-          (when (not-empty sync-effects)
-            (vswap! sync-effects-atom into! sync-effects))
-          (when (not-empty async-effects)
-            (vswap! async-effects-atom into! async-effects))
-          (assoc-in
-            graph-manager-value
-            [:node-state
-             descriptor]
-            (remove-effects new-state))))
-      graph-manager-value
-      disturbed-curators)))
+  [graph-manager-value resolver disturbed-curators queue-effects-fn]
+  (let [sync-effects-t  (transient [])
+        async-effects-t (transient [])
+        graph-value        (get-graph-value graph-manager-value)
+        new-gmv            (reduce
+                             (fn [{:keys [node-state] :as graph-manager-value} descriptor]
+                               (let [{{:keys [sync-effects async-effects]}
+                                      :node :as new-state}
+                                     (finalize-tx
+                                       (get node-state descriptor)
+                                       graph-value
+                                       resolver
+                                       descriptor)]
+                                 ;(assert-valid-finalized-node-state new-state (:name descriptor))
+                                 (when (not-empty sync-effects)
+                                   (into! sync-effects-t sync-effects))
+                                 (when (not-empty async-effects)
+                                   (into! async-effects-t async-effects))
+                                 (assoc-in
+                                   graph-manager-value
+                                   [:node-state
+                                    descriptor]
+                                   (remove-effects new-state))))
+                             graph-manager-value
+                             disturbed-curators)]
+    (queue-effects-fn (persistent! sync-effects-t) (persistent! async-effects-t))
+    new-gmv))
 
 (def recursion-limit 1000000)
 
@@ -755,7 +759,7 @@
 (defn apply-command
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
-  [graph-manager-value resolver descriptor command sync-effects-atom async-effects-atom]
+  [graph-manager-value resolver descriptor command queue-effects-fn]
   (let [work-list (volatile! (make-work-list))
         graph-manager-value (-apply-command graph-manager-value resolver descriptor command @work-list)
 
@@ -767,13 +771,13 @@
     (finalize-effects graph-manager-value
       resolver
       (persistent! (:touched-curators @work-list))
-      sync-effects-atom async-effects-atom)
+      queue-effects-fn)
     ))
 
 (defn apply-commands
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
-  [graph-manager-value resolver cmds sync-effects-atom async-effects-atom]
+  [graph-manager-value resolver cmds queue-effects-fn]
   (let [work-list (volatile! (make-work-list))
         work-listv @work-list
         graph-manager-value
@@ -791,6 +795,6 @@
     (finalize-effects graph-manager-value
       resolver
       (persistent! (:touched-curators @work-list))
-      sync-effects-atom async-effects-atom)
+      queue-effects-fn)
     ))
 
