@@ -3,7 +3,22 @@
              [hitch2.protocols.graph-manager :as g]
              [hitch2.scheduler.normal :refer [default-scheduler]]
              [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
-             [hitch2.graph-manager.core :refer [transact transact-cmds ->GraphManagerValue]]))
+             [hitch2.graph-manager.core :refer [apply-command apply-commands ->GraphManagerValue]]))
+
+
+(defn transact [state graph-manager  resolver scheduler curator command]
+  (let [sync-effects-atom (volatile! (transient []))
+        async-effects-atom (volatile! (transient []))]
+    (swap! state apply-command resolver curator command sync-effects-atom async-effects-atom)
+    (g/-run-sync scheduler graph-manager (persistent! @sync-effects-atom))
+    (g/-run-async scheduler graph-manager (persistent! @async-effects-atom))))
+
+(defn transact-cmds [state graph-manager resolver scheduler cmds]
+  (let [sync-effects-atom (volatile! (transient []))
+        async-effects-atom (volatile! (transient []))]
+    (swap! state apply-commands resolver cmds sync-effects-atom async-effects-atom)
+    (g/-run-sync scheduler graph-manager (persistent! @sync-effects-atom))
+    (g/-run-async scheduler graph-manager (persistent! @async-effects-atom))))
 
 (deftype gm [state scheduler resolver]
   g/Snapshot

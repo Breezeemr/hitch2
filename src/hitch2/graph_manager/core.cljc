@@ -794,18 +794,3 @@
       sync-effects-atom async-effects-atom)
     ))
 
-
-(defn transact [state graph-manager  resolver scheduler curator command]
-  (let [sync-effects-atom (volatile! (transient []))
-        async-effects-atom (volatile! (transient []))]
-    (swap! state apply-command resolver curator command sync-effects-atom async-effects-atom)
-    (g/-run-sync scheduler graph-manager (persistent! @sync-effects-atom))
-    (g/-run-async scheduler graph-manager (persistent! @async-effects-atom))))
-
-(defn transact-cmds [state graph-manager resolver scheduler cmds]
-  (let [sync-effects-atom (volatile! (transient []))
-        async-effects-atom (volatile! (transient []))]
-    (swap! state apply-commands resolver cmds sync-effects-atom async-effects-atom)
-    (g/-run-sync scheduler graph-manager (persistent! @sync-effects-atom))
-    (g/-run-async scheduler graph-manager (persistent! @async-effects-atom))))
-
