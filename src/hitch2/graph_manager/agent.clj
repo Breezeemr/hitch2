@@ -7,7 +7,7 @@
 
 (defn queue-effect-fn [graph-manager]
   (fn [sync-effects async-effects]
-    (set! (.-queued-effects graph-manager)
+    (reset! (.-queued-effects graph-manager)
       {:sync-effects sync-effects
        :async-effects async-effects})))
 
@@ -42,12 +42,12 @@
          graph-manager (->gm gmv
                          scheduler
                          resolver
-                         (atom PersistentQueue/EMPTY))]
+                         (atom nil))]
      (add-watch gmv ::watch
        (fn [_key agent-ref old-value new-value]
          (when-some [{:keys [sync-effects
-                           async-effects]} (.-queued-effects graph-manager)]
-           (set! (.-queued-effects graph-manager) nil)
+                           async-effects]} @(.-queued-effects graph-manager)]
+           (reset! (.-queued-effects graph-manager) nil)
            (g/-run-sync scheduler graph-manager sync-effects)
            (g/-run-async scheduler graph-manager async-effects)
            )))
