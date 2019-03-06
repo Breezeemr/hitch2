@@ -1,4 +1,4 @@
-(ns hitch2.graph-manager.atom
+(ns hitch2.graph-manager.agent
   (:require  [clojure.spec.alpha :as s]
              [hitch2.protocols.graph-manager :as g]
              [hitch2.scheduler.normal :refer [default-scheduler]]
@@ -9,16 +9,11 @@
   g/Snapshot
   (-get-graph [graph-manager]
     (:graph-value @state))
-  g/GraphManagerSync
-  (-transact! [graph-manager curator command]
-    (transact state graph-manager  resolver scheduler curator command)
-    (:graph-value @state))
-  (-transact-commands! [graph-manager cmds]
-    (transact-cmds state graph-manager  resolver scheduler cmds)
-    (:graph-value @state))
   g/GraphManagerAsync
-  (-transact-async! [graph-manager v command])
-  (-transact-commands-async! [graph-manager cmds])
+  (-transact-async! [graph-manager curator command]
+    (send state transact graph-manager resolver scheduler curator command))
+  (-transact-commands-async! [graph-manager cmds]
+    (send state transact-cmds  graph-manager resolver scheduler cmds))
   g/Inspect
   (-observed-by [gm descriptor]
     (get-in @state [:observed-by descriptor] NOT-IN-GRAPH-SENTINEL))
