@@ -46,8 +46,8 @@
      (add-watch gmv ::watch
        (fn [_key agent-ref old-value new-value]
          (when-some [{:keys [sync-effects
-                           async-effects]} (.-queued-effects agent-ref)]
-           (set! (.-queued-effects agent-ref) nil)
+                           async-effects]} (.-queued-effects graph-manager)]
+           (set! (.-queued-effects graph-manager) nil)
            (g/-run-sync scheduler graph-manager sync-effects)
            (g/-run-async scheduler graph-manager async-effects)
            )))
