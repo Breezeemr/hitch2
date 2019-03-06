@@ -11,7 +11,7 @@
       {:sync-effects sync-effects
        :async-effects async-effects})))
 
-(deftype gm [state scheduler resolver ^:mutable queued-effects]
+(deftype gm [state scheduler resolver queued-effects]
   g/Snapshot
   (-get-graph [graph-manager]
     (:graph-value @state))
