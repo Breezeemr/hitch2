@@ -49,8 +49,11 @@
              derefing the promise returns a graph value or throws an exception"))
 
 (defprotocol Snapshot
-  (-get-graph [x] "gets a snapshot from a graph-manger"))
+  (-get-graph [x] "gets a snapshot from a graph-manger
+  deprecated"))
 
+(defprotocol GraphValue
+  (-graph-value [x] "gets a graph-value from a graph-manager-value"))
 
 
 (defmulti run-effect (fn [graph-manager effect] (:type effect)))
@@ -63,6 +66,6 @@
   (-get-resolver [gm]))
 
 (defprotocol Inspect
-  (-observed-by [gm descriptor])
-  (-observes [gm descriptor]))
+  (-observed-by [gmv descriptor])
+  (-observes [gmv descriptor]))
 
