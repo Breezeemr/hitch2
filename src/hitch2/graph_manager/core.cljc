@@ -44,7 +44,12 @@
   (-graph-value [_] graph-value)
   g/Inspect
   (-observed-by [_ descriptor]
-    (get observed-by descriptor NOT-IN-GRAPH-SENTINEL))
+    (let [x (get observed-by descriptor NOT-IN-GRAPH-SENTINEL)]
+      (if (identical? x NOT-IN-GRAPH-SENTINEL)
+        NOT-IN-GRAPH-SENTINEL
+        (let [px (persistent! x)]
+          (assoc! observed-by descriptor (transient px))
+          px))))
   (-observes [_ descriptor]
     (let [node-state (get node-state descriptor NOT-IN-GRAPH-SENTINEL)]
       (if (identical? node-state NOT-IN-GRAPH-SENTINEL)
