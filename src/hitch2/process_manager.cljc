@@ -1,44 +1,30 @@
 (ns hitch2.process-manager)
 
+(defprotocol ProcessManager
+  (-get-or-create-process! [pm process-dtor]
+    "given a process dtor return an existing running process or create a new running process")
+  (-kill-process-by-dtor! [pm process-dtor]
+    "Kill process with process-dtor if running."))
 
-{::start (fn [context])
- ::kill  (fn [process context])
- ::type ::manual-managed}
-{::get  (fn [context])
- ::type ::external}
+(defprotocol Process
+  (-send-message! [process msg] "Blocking send message to process. Returns true if put succeeded, false if process is not running.")
+  (-kill-process! [process] "Kills the process, returns whether a process was killed"))
 
-(defprotocol GetProcess
-  (-get-process [pm process-dtor] "given a process dtor return the process"))
+#?(:clj
 
-(defprotocol KillProcess
-  (-kill-process [pm process-dtor] "given a process dtor kill the process"))
-
-
-(deftype ProcessManager [pdtor->process reg context]
-  GetProcess
-  (-get-process [pm process-dtor]
-    (let [{impl-type ::type :as impl} (reg (:name pdtor->process))]
-      (case impl-type
-        ::manual-managed
-        (if-some [process (get @pdtor->process process-dtor)]
-          process
-          (let [process ((::start impl) context)]
-            (swap! pdtor->process assoc process-dtor process)
-            process))
-        ::external (let [getfn (::get impl)]
-                     (getfn context)))))
-  KillProcess
-  (-kill-process [pm process-dtor]
-    (let [{impl-type ::type :as impl} (reg (:name pdtor->process))]
-      (case impl-type
-        ::manual-managed
-        (if-some [process (get @pdtor->process process-dtor)]
-          (do
-            (swap! pdtor->process dissoc process-dtor)
-            ((::kill impl) context)
-            nil)
-          nil)
-        ::external nil))))
+(deftype ProcessManager [^ConcurrentHashMap pdtor->process reg]
+  ProcessManager
+  (-get-or-create-process! [pm process-dtor]
+    (if-some [ps (.get pdtor->process process-dtor)]
+      ps
+      (.computeIfAbsent pdtor->process process-dtor
+        (reify Function
+          (apply [_ pd] (reg pd))))))
+  (-kill-process-by-dtor! [pm process-dtor]
+    (if-some [ps (.remove pdtor->process process-dtor)]
+      (do (-kill-process! ps) true)
+      false
+      ))))
 
 (defn ->pm [reg context]
-  (ProcessManager. (atom {}) reg context))
+  (ProcessManager. (atom {}) reg))
