@@ -22,7 +22,9 @@
   (-kill-process-by-dtor! [pm process-dtor]
     "Kill process with process-dtor if running. Returns whether this invocation
     is what killed the process (= true) or if it was already dead or didn't
-    exist in the process manager (= false)"))
+    exist in the process manager (= false)")
+  (-shutdown! [pm]
+    "kill all process and return a IPending that will be derefable in Clojure"))
 
 (defprotocol IProcess
   (-send-message! [process msg]
@@ -63,19 +65,42 @@
        (vswap! m dissoc pdtor)
        ps)))
 
+#?(:clj
+   (defn- shutdown! [^ConcurrentHashMap m]
+     (run!
+       (fn [pdtor]
+          (let [ps (proc-dissoc! m pdtor)]
+            (-kill-process! ps)))
+       (.keySet m)))
+   :cljs
+   (defn- shutdown! [m]
+     (let [pss @m]
+       (reset! m {})
+       (run!
+         (fn [[k ps]]
+           (-kill-process! ps))
+         pss))))
 
-(deftype ProcessManager [pdtor->process process-factory #?(:clj creator)]
+
+(deftype ProcessManager [pdtor->process process-factory running? #?(:clj creator)]
   IProcessManager
   (-get-or-create-process! [_ process-dtor]
     (if-some [ps (proc-get! pdtor->process process-dtor)]
       ps
-      (proc-create! pdtor->process #?(:clj creator :cljs process-factory)
-        process-dtor)))
+      (when @running?
+        (proc-create! pdtor->process #?(:clj creator :cljs process-factory)
+          process-dtor))))
   (-kill-process-by-dtor! [_ process-dtor]
     (if-some [ps (proc-dissoc! pdtor->process process-dtor)]
-      (-kill-process! ps)
-      false)))
+      (if @running?
+        (-kill-process! ps)
+        false)
+      false))
+  (-shutdown! [_]
+    (vreset! running? false)
+    (shutdown! pdtor->process)))
 
 (defn ->pm [process-factory]
   (->ProcessManager (proc-map) process-factory
+    (volatile! true)
     #?(:clj (reify Function (apply [_ pd] (process-factory pd))))))
