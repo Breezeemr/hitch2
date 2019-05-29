@@ -716,9 +716,10 @@
       ;(prn p-dtor msg)
       (assert p-dtor)
       (when-some [ps (process-manager/-get-or-create-process! pm p-dtor)]
-        (process-manager/-send-message! ps {:gm      gm
-                                            :gv      (g/-graph-value new-gmv)
-                                            :effects [msg]})))
+        (process-manager/-send-message! ps (assoc msg
+                                             :gm      gm
+                                             :graph-value      (g/-graph-value new-gmv)
+                                             ))))
     messages))
 (def recursion-limit 1000000)
 

@@ -13,26 +13,26 @@
    (def default-dispatch-process
      (reify
        pm/IProcess
-       (-send-message! [process {:keys [gm gv effects]}]
-         (run! (fn [effect] (g/run-effect gm effect)) effects))
+       (-send-message! [process {:keys [gm] :as effect}]
+         (g/run-effect gm effect))
        (-kill-process! [process]
          true)))
    :cljs
    (def default-dispatch-process
      (reify
        pm/IProcess
-       (-send-message! [process {:keys [gm gv effects]}]
+       (-send-message! [process {:keys [gm] :as effect}]
          (goog.async.run
            (fn []
-             (run! (fn [effect] (g/run-effect gm effect)) effects))))
+             (g/run-effect gm effect))))
        (-kill-process! [process]
          true))))
 
 (def eager-default-dispatch-process
    (reify
      pm/IProcess
-     (-send-message! [process {:keys [gm gv effects]}]
-       (run! (fn [effect] (g/run-effect gm (assoc effect :graph-value gv))) effects))
+     (-send-message! [process {:keys [gm] :as effect}]
+       (g/run-effect gm effect))
      (-kill-process! [process]
        true)))
 
