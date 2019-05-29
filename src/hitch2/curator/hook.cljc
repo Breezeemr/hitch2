@@ -12,8 +12,6 @@
   {:hitch2.descriptor/name ::hook
    :hitch2.descriptor.spec/kind :curator})
 
-(defrecord node-state [state change-focus set-projections
-                       async-effects sync-effects])
 (def initial-node (assoc curator-proto/initial-curator-state :state {}))
 
 (defn remove-called-hooks [state descriptors]
