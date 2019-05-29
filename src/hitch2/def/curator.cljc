@@ -14,7 +14,7 @@
 ;     ::async-effects ::sync-effects]))
 ;
 (defrecord curator-state [state change-focus set-projections
-                          async-effects sync-effects])
+                          async-effects messages])
 
 (def initial-curator-state (->curator-state nil {} {} [] []))
 ;

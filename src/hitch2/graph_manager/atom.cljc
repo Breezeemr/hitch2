@@ -1,21 +1,10 @@
 (ns hitch2.graph-manager.atom
   (:require  [clojure.spec.alpha :as s]
              [hitch2.protocols.graph-manager :as g]
-             [hitch2.scheduler.normal :refer [default-scheduler]]
+             [hitch2.scheduler.normal :refer [default-process-manager]]
              [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
-             [hitch2.graph-manager.core :refer [apply-command apply-commands ->GraphManagerValue]]))
-
-(defn schedule-effects [scheduler graph-manager effect-atom]
-  (when-some [{:keys [sync-effects
-                      async-effects]} @effect-atom]
-    (g/-run-sync scheduler graph-manager sync-effects)
-    (g/-run-async scheduler graph-manager async-effects)))
-
-(defn queue-effect-fn [effect-atom]
-  (fn [sync-effects async-effects]
-    (reset! effect-atom
-      {:sync-effects sync-effects
-       :async-effects async-effects})))
+             [hitch2.graph-manager.core :refer [apply-command apply-commands
+                                                ->GraphManagerValue send-messages!]]))
 
 (deftype gm [state scheduler resolver]
   g/Snapshot
@@ -23,16 +12,10 @@
     (:graph-value @state))
   g/GraphManagerSync
   (-transact! [graph-manager curator command]
-    (let [effects (atom nil)]
-      (swap! state apply-command resolver curator command
-        (queue-effect-fn effects))
-      (schedule-effects scheduler graph-manager effects))
+    (swap! state apply-command resolver curator command)
     (:graph-value @state))
   (-transact-commands! [graph-manager cmds]
-    (let [effects (atom nil)]
-      (swap! state apply-commands resolver cmds
-        (queue-effect-fn effects))
-      (schedule-effects scheduler graph-manager effects))
+    (swap! state apply-commands resolver cmds)
     (:graph-value @state))
   g/GraphManagerAsync
   (-transact-async! [graph-manager v command])
@@ -49,13 +32,20 @@
   (-get-resolver [gm] resolver))
 
 (defn make-gm
-  ([resolver] (make-gm resolver default-scheduler))
-  ([resolver scheduler]
-   (->gm (atom (->GraphManagerValue
-                {}
-                {}
-                (transient (hash-map))))
-         scheduler
-     resolver)))
+  ([resolver] (make-gm resolver default-process-manager))
+  ([resolver pm]
+   (let [gmv (atom (->GraphManagerValue
+                     {}
+                     {}
+                     (transient (hash-map))
+                     []))
+         gm (->gm gmv
+              pm
+              resolver)]
+     (add-watch gmv ::watch
+       (fn [_key atom-ref old-value new-value]
+         (when-some [messages (not-empty (:messages new-value))]
+           (send-messages! new-value pm gm messages))))
+     gm)))
 
 

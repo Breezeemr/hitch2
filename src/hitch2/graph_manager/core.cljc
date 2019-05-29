@@ -1,7 +1,8 @@
 (ns hitch2.graph-manager.core
   (:require  [clojure.spec.alpha :as s]
              [hitch2.protocols.graph-manager :as g]
-             [hitch2.scheduler.normal :refer [default-scheduler]]
+             [hitch2.process-manager :as process-manager]
+             [hitch2.scheduler.normal :as sched]
              [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
              [hitch2.def.curator :as curator-proto]
              [hitch2.descriptor :as descriptor]
@@ -39,7 +40,8 @@
 
 (defrecord GraphManagerValue [graph-value
                               node-state
-                              observed-by]
+                              observed-by
+                              messages]
   g/GraphValue
   (-graph-value [_] graph-value)
   g/Inspect
@@ -365,8 +367,7 @@
   (-propagate-value-change [node-state graph-manager-value descriptor parents resolver worklist]
     (let [                                                  ;_           (assert (instance? curator-state node-state) (pr-str node-state))
           n           (:node node-state)
-          {:keys               [sync-effects async-effects]
-           new-set-projections :set-projections
+          {new-set-projections :set-projections
            new-change-focus    :change-focus
            :as                 new-node-state}
           (if-some [observed-value-changes (::curator-proto/observed-value-changes (:dtor-impl node-state))]
@@ -560,8 +561,7 @@
   (-apply-child-change-command [node-state graph-manager-value  observed changes resolver worklist]
     (let [                                                  ;_                  (assert (instance? curator-state node-state) (pr-str node-state))
           n (:node node-state)
-          {:keys [sync-effects async-effects]
-           new-change-focus :change-focus
+          {new-change-focus :change-focus
            set-projections         :set-projections
            :as                new-node-state}
           (if-some [curation-changes (::curator-proto/curation-changes (:dtor-impl node-state))]
@@ -673,22 +673,21 @@
   (assert (empty? set-projections) descriptor-name))
 
 
-(defn remove-effects [{{:keys [sync-effects async-effects]
+(defn remove-effects [{{:keys [messages async-effects]
                         :as node} :node :as node-state}]
   (assoc node-state :node
                     (cond-> node
-                      (not-empty sync-effects)
-                      (assoc :sync-effects [])
+                      (not-empty messages)
+                      (assoc :messages [])
                       (not-empty async-effects)
                       (assoc :async-effects []))))
 
 (defn finalize-effects
-  [graph-manager-value resolver disturbed-curators queue-effects-fn]
-  (let [sync-effects-t  (transient [])
-        async-effects-t (transient [])
+  [graph-manager-value resolver disturbed-curators]
+  (let [messages-t  (transient [])
         new-gmv            (reduce
                              (fn [{:keys [node-state] :as graph-manager-value} descriptor]
-                               (let [{{:keys [sync-effects async-effects]}
+                               (let [{{:keys [messages async-effects]}
                                       :node :as new-state}
                                      (finalize-tx
                                        (get node-state descriptor)
@@ -696,10 +695,12 @@
                                        resolver
                                        descriptor)]
                                  ;(assert-valid-finalized-node-state new-state (:name descriptor))
-                                 (when (not-empty sync-effects)
-                                   (into! sync-effects-t sync-effects))
+                                 (when (not-empty messages)
+                                   (prn :messages)
+                                   (into! messages-t messages))
                                  (when (not-empty async-effects)
-                                   (into! async-effects-t async-effects))
+                                   (tinto! messages-t (map (fn [e] [sched/mmd-dtor e]))
+                                     async-effects))
                                  (assoc-in
                                    graph-manager-value
                                    [:node-state
@@ -707,9 +708,18 @@
                                    (remove-effects new-state))))
                              graph-manager-value
                              disturbed-curators)]
-    (queue-effects-fn (persistent! sync-effects-t) (persistent! async-effects-t))
-    new-gmv))
+    (assoc new-gmv :messages (persistent! messages-t))))
 
+(defn send-messages! [new-gmv pm gm messages]
+  (run!
+    (fn [[p-dtor msg]]
+      ;(prn p-dtor msg)
+      (assert p-dtor)
+      (when-some [ps (process-manager/-get-or-create-process! pm p-dtor)]
+        (process-manager/-send-message! ps {:gm      gm
+                                            :gv      (g/-graph-value new-gmv)
+                                            :effects [msg]})))
+    messages))
 (def recursion-limit 1000000)
 
 (defn -apply-command
@@ -770,7 +780,7 @@
 (defn apply-command
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
-  [graph-manager-value resolver descriptor command queue-effects-fn]
+  [graph-manager-value resolver descriptor command]
   (let [work-list (volatile! (make-work-list))
         graph-manager-value (-apply-command graph-manager-value resolver descriptor command @work-list)
 
@@ -781,14 +791,13 @@
                               recursion-limit)]
     (finalize-effects graph-manager-value
       resolver
-      (persistent! (:touched-curators @work-list))
-      queue-effects-fn)
+      (persistent! (:touched-curators @work-list)))
     ))
 
 (defn apply-commands
   "Apply command to curator and then allow the graph to settle. Returns
   the new graph manager value."
-  [graph-manager-value resolver cmds queue-effects-fn]
+  [graph-manager-value resolver cmds]
   (let [work-list (volatile! (make-work-list))
         work-listv @work-list
         graph-manager-value
@@ -805,7 +814,6 @@
                               recursion-limit)]
     (finalize-effects graph-manager-value
       resolver
-      (persistent! (:touched-curators @work-list))
-      queue-effects-fn)
+      (persistent! (:touched-curators @work-list)))
     ))
 

@@ -1,4 +1,4 @@
-(ns hitch2.graph-manager.mock-tests
+(ns hitch2.graph-manager.mock-test
   (:require
     #?(:cljs [cljs.pprint :as pprint]
        :clj [clojure.pprint :as pprint])

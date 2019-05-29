@@ -4,7 +4,8 @@
              :refer [def-descriptor-spec]]
             [hitch2.descriptor :as descriptor]
             [hitch2.protocols.graph-manager :as g]
-            [hitch2.descriptor-impl-registry :as reg]))
+            [hitch2.descriptor-impl-registry :as reg]
+            [hitch2.scheduler.normal :as sched]))
 
 (defn return-constant [gv-tracker {[v] :term}]
   v)
@@ -28,14 +29,4 @@
 (defn Constant [v]
   (descriptor/positional-dtor  constant-spec' v))
 
-(def sync-scheduler
-  #?(:clj (reify g/IScheduler
-            (-run-sync [_ gm effects]
-              (run! (fn [effect] (g/run-effect gm effect)) effects))
-            (-run-async [_ gm effects]
-              (run! (fn [effect] (g/run-effect gm effect)) effects)))
-     :cljs (reify g/IScheduler
-             (-run-sync [_ gm effects]
-               (run! (fn [effect] (g/run-effect gm effect)) effects))
-             (-run-async [_ gm effects]
-               (run! (fn [effect] (g/run-effect gm effect)) effects)))))
+(def sync-scheduler sched/eager-process-manager)

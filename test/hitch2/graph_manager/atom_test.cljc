@@ -1,4 +1,4 @@
-(ns hitch2.graph-manager.atom-tests
+(ns hitch2.graph-manager.atom-test
   (:require
     #?(:cljs [cljs.pprint :as pprint]
        :clj [clojure.pprint :as pprint])

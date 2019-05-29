@@ -4,6 +4,7 @@
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
             [hitch2.def.spec
              :refer [def-descriptor-spec]]
+            [hitch2.scheduler.normal :refer [mmd-dtor]]
             [hitch2.descriptor :as descriptor]
             [hitch2.descriptor-impl-registry :as reg]))
 
@@ -90,9 +91,10 @@
                  (update-in [:state descriptor] (fnil conj #{}) target)
                  (update :change-focus assoc descriptor true))
              (not (identical? current-descriptor-value NOT-FOUND-SENTINEL))
-             (update :sync-effects conj {:type     :hook-changes-call
-                                         :target   target
-                                         :descriptor descriptor})))
+             (update :messages conj [mmd-dtor
+                                     {:type       :hook-changes-call
+                                      :target     target
+                                      :descriptor descriptor}])))
          :hook-change-unsubscribe
          (let [[_ descriptor target] command]
            (let [new-node (update-in node [:state descriptor] disj target)]
@@ -109,17 +111,17 @@
 
 (defmethod graph-proto/run-effect :hook-call [graph-manager
                                               {:as effect
+                                               graph-value :graph-value
                                                f :target
                                                sel :descriptor}]
-  (let [graph-value (graph-proto/-get-graph graph-manager)
-        v (get graph-value sel)]
+  (let [v (get graph-value sel)]
     (f v)))
 
 (defmethod graph-proto/run-effect :hook-changes-call [graph-manager
                                               {:as effect
+                                               graph-value :graph-value
                                                f :target
                                                sel :descriptor}]
-  (let [graph-value (graph-proto/-get-graph graph-manager)
-        v (get graph-value sel)]
+  (let [v (get graph-value sel)]
     (f v)))
 
