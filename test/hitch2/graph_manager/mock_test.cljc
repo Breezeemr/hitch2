@@ -53,13 +53,16 @@
     (hitch/pin graph-manager fib-dtor)
     (hitch/unpin graph-manager fib-dtor)
     #?(:cljs (async done
-                    (let [failure (js/setTimeout (fn [] (is false "test timeout") (done)) 500)]
-                      (hitch/hook-sel graph-manager
-                                      (fn [fib-result]
-                                        (js/clearTimeout failure)
-                                        (is (= fib-result 8))
-                                        (done))
-                                      (fibber 6))))
+                    (let [failure (volatile! nil)
+                          t (fn [fib-result]
+                              (js/clearTimeout @failure)
+                              (is (= fib-result 8))
+                              (done))
+                          _       (vreset! failure (js/setTimeout (fn [] (t :timed-out)) 500))]
+                      (hitch/hook-sel
+                        graph-manager
+                        t
+                        (fibber 6))))
        :clj (let [result (promise )]
               (hitch/hook-sel graph-manager
                               (fn [fib-result]

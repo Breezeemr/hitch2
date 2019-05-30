@@ -10,7 +10,7 @@
 
 (defn test-run []
   (cljs.test/run-tests
-   (cljs-test-display.core/init! "app")
+   (cljs-test-display.core/init! "app-tests")
    'hitch2.defdescriptor-test
    'hitch2.graph-manager.atom-test
    'hitch2.graph-test
