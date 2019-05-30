@@ -89,10 +89,11 @@
                  (update-in [:state descriptor] (fnil conj #{}) target)
                  (update :change-focus assoc descriptor true))
              (not (identical? current-descriptor-value NOT-FOUND-SENTINEL))
-             (update :messages conj [mmd-dtor
-                                     {:type       :hook-changes-call
-                                      :target     target
-                                      :descriptor descriptor}])))
+             (update-in [:outbox mmd-dtor]
+               conj
+               {:type       :hook-changes-call
+                :target     target
+                :descriptor descriptor})))
          :hook-change-unsubscribe
          (let [[_ descriptor target] command]
            (let [new-node (update-in node [:state descriptor] disj target)]

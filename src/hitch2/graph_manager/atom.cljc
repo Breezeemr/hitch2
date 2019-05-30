@@ -44,7 +44,7 @@
               resolver)]
      (add-watch gmv ::watch
        (fn [_key atom-ref old-value new-value]
-         (when-some [messages (not-empty (:messages new-value))]
+         (when-some [messages (not-empty (:outbox new-value))]
            (send-messages! new-value pm gm messages))))
      gm)))
 

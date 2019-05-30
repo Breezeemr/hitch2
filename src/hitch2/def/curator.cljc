@@ -14,9 +14,9 @@
 ;     ::async-effects ::sync-effects]))
 ;
 (defrecord curator-state [state change-focus set-projections
-                          async-effects messages])
+                          async-effects outbox])
 
-(def initial-curator-state (->curator-state nil {} {} [] []))
+(def initial-curator-state (->curator-state nil {} {} [] {}))
 ;
 ;:hitch2.def.curator/init
 ;:hitch2.def.curator/tx-init

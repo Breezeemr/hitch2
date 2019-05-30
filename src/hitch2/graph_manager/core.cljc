@@ -41,7 +41,7 @@
 (defrecord GraphManagerValue [graph-value
                               node-state
                               observed-by
-                              messages]
+                              outbox]
   g/GraphValue
   (-graph-value [_] graph-value)
   g/Inspect
@@ -673,21 +673,21 @@
   (assert (empty? set-projections) descriptor-name))
 
 
-(defn remove-effects [{{:keys [messages async-effects]
+(defn remove-effects [{{:keys [outbox async-effects]
                         :as node} :node :as node-state}]
   (assoc node-state :node
                     (cond-> node
-                      (not-empty messages)
-                      (assoc :messages [])
+                      (not-empty outbox)
+                      (assoc :outbox {})
                       (not-empty async-effects)
                       (assoc :async-effects []))))
 
 (defn finalize-effects
   [graph-manager-value resolver disturbed-curators]
-  (let [messages-t  (transient [])
+  (let [messages-t  (transient {})
         new-gmv            (reduce
                              (fn [{:keys [node-state] :as graph-manager-value} descriptor]
-                               (let [{{:keys [messages async-effects]}
+                               (let [{{:keys [outbox async-effects]}
                                       :node :as new-state}
                                      (finalize-tx
                                        (get node-state descriptor)
@@ -695,11 +695,29 @@
                                        resolver
                                        descriptor)]
                                  ;(assert-valid-finalized-node-state new-state (:name descriptor))
-                                 (when (not-empty messages)
-                                   (prn :messages)
-                                   (into! messages-t messages))
+                                 (when (not-empty outbox)
+                                   (reduce-kv
+                                     (fn [acc proc e]
+                                       (assoc! acc
+                                         proc
+                                         (if (sequential? e)
+                                           (into (get acc proc [])
+                                             e)
+                                           (conj (get acc proc [])
+                                             e))))
+                                     messages-t
+                                     outbox))
                                  (when (not-empty async-effects)
-                                   (tinto! messages-t (map (fn [e] [sched/mmd-dtor e]))
+                                   (reduce
+                                     (fn [acc e]
+                                       (assoc! acc
+                                         sched/mmd-dtor
+                                         (if (sequential? e)
+                                           (into (get acc sched/mmd-dtor [])
+                                             e)
+                                           (conj (get acc sched/mmd-dtor [])
+                                             e))))
+                                     messages-t
                                      async-effects))
                                  (assoc-in
                                    graph-manager-value
@@ -708,7 +726,7 @@
                                    (remove-effects new-state))))
                              graph-manager-value
                              disturbed-curators)]
-    (assoc new-gmv :messages (persistent! messages-t))))
+    (assoc new-gmv :outbox (persistent! messages-t))))
 
 (defn send-messages! [new-gmv pm gm messages]
   (run!
@@ -716,10 +734,20 @@
       ;(prn p-dtor msg)
       (assert p-dtor)
       (when-some [ps (process-manager/-get-or-create-process! pm p-dtor)]
-        (process-manager/-send-message! ps (assoc msg
-                                             :gm      gm
-                                             :graph-value      (g/-graph-value new-gmv)
-                                             ))))
+        (if (sequential? msg)
+          (run! #(process-manager/-send-message!
+                   ps
+                   (assoc %
+                     :gm gm
+                     :graph-value (g/-graph-value new-gmv)
+                     ))
+            msg)
+          (process-manager/-send-message!
+            ps
+            (assoc msg
+              :gm gm
+              :graph-value (g/-graph-value new-gmv)
+              )))))
     messages))
 (def recursion-limit 1000000)
 
