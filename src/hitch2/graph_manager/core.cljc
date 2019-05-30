@@ -565,11 +565,10 @@
            set-projections         :set-projections
            :as                new-node-state}
           (if-some [curation-changes (::curator-proto/curation-changes (:dtor-impl node-state))]
-            (let [pchanges (persistent! changes)]
-              (curation-changes observed graph-manager-value
-                (tx-init-curator n graph-manager-value observed worklist)
-                (into #{} keep-adds pchanges)
-                (into #{} keep-dels pchanges)))
+            (curation-changes observed graph-manager-value
+              (tx-init-curator n graph-manager-value observed worklist)
+              (into #{} keep-adds changes)
+              (into #{} keep-dels changes))
             (assert false))]
       ;(s/assert ::curator-proto/curator-state new-node-state)
       (when (not-empty set-projections)
@@ -658,7 +657,7 @@
   (reduce-kv
     (fn [graph-manager-value observed changes]
       (-apply-child-change-command (get-init-node graph-manager-value resolver observed worklist)
-        graph-manager-value observed  changes resolver worklist))
+        graph-manager-value observed (persistent! changes) resolver worklist))
     graph-manager-value
     focus-changes))
 
