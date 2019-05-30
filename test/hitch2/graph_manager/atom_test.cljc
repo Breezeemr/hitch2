@@ -29,7 +29,7 @@
                                node)})
 
 (deftest atom-tests
-  (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
+  (let [graph-manager (g/make-gm registry-resolver #_common/sync-scheduler)
         test-atom (atom nil)]
     ;needs to be async
     (hitch/hook-sel graph-manager (fn [val]
@@ -59,7 +59,7 @@
         :else   (+ 1 @(hitch/select! G depends-on (dec n)))))
 
 (deftest instrument-tests
-  (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
+  (let [graph-manager (g/make-gm registry-resolver #_common/sync-scheduler)
         test-atom (atom nil)
         fibber (fn [n] (descriptor/positional-dtor  fibb-graph n))]
                                         ;needs to be async
@@ -68,7 +68,7 @@
            (gm-proto/-observes graph-manager (fibber 30))))))
 
 (deftest redepend-on-descriptor-bug
-  (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
+  (let [graph-manager (g/make-gm registry-resolver #_common/sync-scheduler)
         test-atom (atom nil)
         fibber (fn [n] (descriptor/positional-dtor  fibb-graph n))
         fib-dtor   (fibber 2)]
@@ -92,7 +92,7 @@
 
 
 (deftest depend-on-descriptor
-  (let [graph-manager (g/make-gm registry-resolver common/sync-scheduler)
+  (let [graph-manager (g/make-gm registry-resolver #_common/sync-scheduler)
         test-atom (atom nil)
         depends-on (fn [n] (descriptor/positional-dtor  depends-on n))
         depends-on-dtor   (depends-on 5)]

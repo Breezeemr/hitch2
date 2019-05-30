@@ -711,11 +711,11 @@
                                    (reduce
                                      (fn [acc e]
                                        (assoc! acc
-                                         sched/mmd-dtor
+                                         sched/async-mmd-dtor
                                          (if (sequential? e)
-                                           (into (get acc sched/mmd-dtor [])
+                                           (into (get acc sched/async-mmd-dtor [])
                                              e)
-                                           (conj (get acc sched/mmd-dtor [])
+                                           (conj (get acc sched/async-mmd-dtor [])
                                              e))))
                                      messages-t
                                      async-effects))

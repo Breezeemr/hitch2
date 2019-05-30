@@ -33,7 +33,7 @@
   )
 
 (defn make-gm
-  ([resolver] (make-gm resolver default-process-manager))
+  ([resolver] (make-gm resolver (default-process-manager resolver)))
   ([resolver pm]
    (let [gmv (agent (->GraphManagerValue
                      {}

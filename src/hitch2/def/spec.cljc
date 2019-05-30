@@ -59,3 +59,4 @@ Should be a keyword for dispatching. Values are from:"
 :hitch2.descriptor.kind/curator
 :hitch2.descriptor.kind/sentinel
 :hitch2.descriptor.kind/halting
+:hitch2.descriptor.kind/process

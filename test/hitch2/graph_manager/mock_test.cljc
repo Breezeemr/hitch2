@@ -33,7 +33,7 @@
                         (mock-registry-resolver
                           #{'hitch2.curator.pin/pin-curator-spec}
                           #{})
-                        common/sync-scheduler)
+                        #_common/sync-scheduler)
         fibber (fn [n] (descriptor/positional-dtor  fibb-graph n))]
                                         ;needs to be async
     (hitch/pin graph-manager (fibber 30))
@@ -46,7 +46,7 @@
                           #{'hitch2.curator.pin/pin-curator-spec
                             'hitch2.curator.hook/hook-curator-spec}
                           #{})
-                        common/sync-scheduler)
+                        #_common/sync-scheduler)
         fibber (fn [n] (descriptor/positional-dtor  fibb-graph n))
         fib-dtor   (fibber 2)]
                                         ;needs to be async

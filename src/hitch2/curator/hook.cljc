@@ -4,9 +4,11 @@
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
             [hitch2.def.spec
              :refer [def-descriptor-spec]]
-            [hitch2.scheduler.normal :refer [mmd-dtor]]
+    ;[hitch2.scheduler.normal :refer [mmd-dtor]]
             [hitch2.descriptor :as descriptor]
-            [hitch2.descriptor-impl-registry :as reg]))
+            [hitch2.descriptor-impl-registry :as reg]
+            [hitch2.process-manager :as pm]
+            [hitch2.protocols.graph-manager :as g]))
 
 (def hook-spec
   {:hitch2.descriptor/name ::hook
@@ -17,8 +19,13 @@
 (defn remove-called-hooks [state descriptors]
   (reduce dissoc state descriptors))
 
+(def-descriptor-spec hook-manager-proc-spec
+  :process)
+
 (def-descriptor-spec hook-curator-spec
   :curator)
+
+(def hook-manager-proc-dtor (descriptor/->dtor hook-manager-proc-spec nil))
 
 (def hook-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
@@ -27,8 +34,8 @@
                              (fn [curator-descriptor graph-value node parent-descriptors]
                                (let [descriptor->targets (:state node)]
                                  (-> node
-                                     (update :async-effects
-                                       into
+                                     (update-in [:outbox hook-manager-proc-dtor]
+                                       (fnil into [])
                                        (mapcat (fn [descriptor]
                                                  (for [target (seq (descriptor->targets descriptor))]
                                                    {:type     :hook-call
@@ -69,8 +76,8 @@
    (fn [curator-descriptor graph-value node parent-descriptors]
      (let [descriptor->targets (:state node)]
        (-> node
-           (update :async-effects
-             into
+           (update-in [:outbox hook-manager-proc-dtor]
+             (fnil into [])
              (mapcat (fn [descriptor]
                        (for [target (seq (descriptor->targets descriptor))]
                          {:type     :hook-changes-call
@@ -89,8 +96,8 @@
                  (update-in [:state descriptor] (fnil conj #{}) target)
                  (update :change-focus assoc descriptor true))
              (not (identical? current-descriptor-value NOT-FOUND-SENTINEL))
-             (update-in [:outbox mmd-dtor]
-               conj
+             (update-in [:outbox hook-manager-proc-dtor]
+               (fnil conj [])
                {:type       :hook-changes-call
                 :target     target
                 :descriptor descriptor})))
@@ -108,19 +115,17 @@
 (def hook-change-curator
   (descriptor/->dtor  hook-change-curator-spec' nil))
 
-(defmethod graph-proto/run-effect :hook-call [graph-manager
-                                              {:as effect
-                                               graph-value :graph-value
-                                               f :target
-                                               sel :descriptor}]
-  (let [v (get graph-value sel)]
-    (f v)))
+(def hook-manager-proc-spec-impl
+  (reify
+    pm/IProcess
+    (-send-message! [process {:keys [graph-value
+                                     target
+                                     descriptor]
+                              :as effect}]
+      (let [v (get graph-value descriptor)]
+        (target v)))
+    (-kill-process! [process]
+      true)))
 
-(defmethod graph-proto/run-effect :hook-changes-call [graph-manager
-                                              {:as effect
-                                               graph-value :graph-value
-                                               f :target
-                                               sel :descriptor}]
-  (let [v (get graph-value sel)]
-    (f v)))
+(reg/def-registered-descriptor hook-manager-proc-spec' hook-manager-proc-spec hook-manager-proc-spec-impl)
 

@@ -28,5 +28,3 @@
 (reg/def-registered-descriptor constant-spec' constant-spec constant-impl)
 (defn Constant [v]
   (descriptor/positional-dtor  constant-spec' v))
-
-(def sync-scheduler sched/eager-process-manager)

@@ -10,7 +10,7 @@
      :refer [registry-resolver]]))
 
 (def gctors
-  [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver common/sync-scheduler))]])
+  [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver #_common/sync-scheduler))]])
 
 (def mvdtor (mutable-var :mvdtor))
 

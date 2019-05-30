@@ -9,6 +9,7 @@
              :refer [def-descriptor-spec]]
             [hitch2.descriptor :as descriptor]
             [hitch2.descriptor-impl-registry :as reg]
+            [hitch2.process-manager :as pm]
             [clojure.set :as set])
   #?(:clj
      (:import [java.util UUID])))
@@ -20,8 +21,13 @@
                  :dtor->id       {}
                  :dirty-ids     #{}}))
 
+(def-descriptor-spec hitch-callback-proc-spec
+  :process)
+
 (def-descriptor-spec react-hook-spec
   :curator)
+
+(def hitch-callback-proc-dtor (descriptor/->dtor hitch-callback-proc-spec nil))
 
 (defn update-reverse-indexes
   [node id new-parents]
@@ -70,7 +76,7 @@
        :hitch-callback-reset-parents
        (let [[_ halt-fn cb new-parents] command
              id #?(:cljs (random-uuid)
-                   :clj  (UUID/randomUUID))]
+                   :clj (UUID/randomUUID))]
          (-> node
              (assoc-in [:state :id->info id] {:halt-fn  halt-fn
                                               :callback cb})
@@ -83,10 +89,10 @@
          (-> node
              (update-in [:state :id->info] dissoc id)
              (update-reverse-indexes id #{})))))
-   
+
    ::curator-proto/observed-value-changes
    (fn [curator-descriptor graph-value node parent-descriptors]
-     (let [dtor->id   (-> node :state :dtor->id)
+     (let [dtor->id  (-> node :state :dtor->id)
            dirty-id  (-> node :state :dirty-ids)
            dirty-id' (transduce
                        (map dtor->id)
@@ -98,9 +104,10 @@
      (let [dirty-ids (-> node :state :dirty-ids)]
        (cond-> (assoc-in node [:state :dirty-ids] #{})
          (pos? (count dirty-ids))
-         (update :async-effects conj
-                 {:type  :hitch-callback-rerun-body
-                  :infos (select-keys (-> node :state :id->info) dirty-ids)}))))})
+         (update-in [:outbox hitch-callback-proc-dtor]
+           (fnil conj [])
+           {:type  :hitch-callback-rerun-body
+            :infos (select-keys (-> node :state :id->info) dirty-ids)}))))})
 
 (reg/def-registered-descriptor hitch-callback-curator react-hook-spec react-hook-impl)
 
@@ -118,9 +125,8 @@
       (cb result))))
 
 (defn name-later
-  [gm id {:keys [callback halt-fn] :as info}]
-  (let [gv              (graph-proto/-get-graph gm)
-        rtx             (halting/halting-manager gv)
+  [gm graph-value id {:keys [callback halt-fn] :as info}]
+  (let [rtx             (halting/halting-manager graph-value)
         result          (halt/maybe-halt (halt-fn rtx) NOT-FOUND-SENTINEL)
         focus-descriptors (tx-manager/finish-tx! rtx)]
     (if (= result NOT-FOUND-SENTINEL)
@@ -131,7 +137,16 @@
                                 [:hitch-callback-unsubscribe id])
         (callback result)))))
 
-(defmethod graph-proto/run-effect :hitch-callback-rerun-body
-  [gm effect]
-  (doseq [[id info] (:infos effect)]
-    (name-later gm id info)))
+(def hitch-callback-proc-impl
+  (reify
+    pm/IProcess
+    (-send-message! [process {:keys [graph-value
+                                     infos
+                                     gm]
+                              :as effect}]
+      (doseq [[id info] infos]
+        (name-later gm graph-value id info)))
+    (-kill-process! [process]
+      true)))
+
+(reg/def-registered-descriptor hitch-callback-proc-spec' hitch-callback-proc-spec hitch-callback-proc-impl)
