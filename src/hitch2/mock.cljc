@@ -96,6 +96,8 @@
             mock-var-impl
             impl)
           :hitch2.descriptor.kind/curator
-          mock-curator-impl
+          impl
           :hitch2.descriptor.kind/var
-          mock-var-impl)))))
+          impl
+          :hitch2.descriptor.kind/process
+          impl)))))

@@ -116,16 +116,19 @@
   (descriptor/->dtor  hook-change-curator-spec' nil))
 
 (def hook-manager-proc-spec-impl
-  (reify
-    pm/IProcess
-    (-send-message! [process {:keys [graph-value
-                                     target
-                                     descriptor]
-                              :as effect}]
-      (let [v (get graph-value descriptor)]
-        (target v)))
-    (-kill-process! [process]
-      true)))
+  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/process
+   ::pm/create
+   (fn [pdtor]
+     (reify
+       pm/IProcess
+       (-send-message! [process {:keys [graph-value
+                                        target
+                                        descriptor]
+                                 :as   effect}]
+         (let [v (get graph-value descriptor)]
+           (target v)))
+       (-kill-process! [process]
+         true)))})
 
 (reg/def-registered-descriptor hook-manager-proc-spec' hook-manager-proc-spec hook-manager-proc-spec-impl)
 

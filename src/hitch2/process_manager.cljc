@@ -52,7 +52,8 @@
      (.computeIfAbsent m pdtor creator))
    :cljs
    (defn- proc-create! [m process-factory pdtor]
-     (let [ps (process-factory pdtor)]
+     (let [creator  (::create (process-factory pdtor))
+           ps (creator pdtor)]
        (vswap! m assoc pdtor ps)
        ps)))
 
@@ -103,4 +104,6 @@
 (defn ->pm [process-factory]
   (->ProcessManager (proc-map) process-factory
     (volatile! true)
-    #?(:clj (reify Function (apply [_ pd] (process-factory pd))))))
+    #?(:clj (reify Function (apply [_ pd]
+                              (let [creator (::create (process-factory pd))]
+                                (creator pd)))))))

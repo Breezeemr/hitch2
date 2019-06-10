@@ -17,31 +17,43 @@
 
 #?(:clj
    (def default-dispatch-process
-     (reify
-       pm/IProcess
-       (-send-message! [process {:keys [gm] :as effect}]
-         (future
-           (g/run-effect gm effect)))
-       (-kill-process! [process]
-         true)))
+     {:hitch2.descriptor.impl/kind
+      :hitch2.descriptor.kind/process
+      ::pm/create
+      (fn [pdtor]
+        (reify
+          pm/IProcess
+          (-send-message! [process {:keys [gm] :as effect}]
+            (future
+              (g/run-effect gm effect)))
+          (-kill-process! [process]
+            true)))})
    :cljs
    (def default-dispatch-process
+     {:hitch2.descriptor.impl/kind
+      :hitch2.descriptor.kind/process
+      ::pm/create
+      (fn [pdtor]
+        (reify
+          pm/IProcess
+          (-send-message! [process {:keys [gm] :as effect}]
+            (goog.async.run
+              (fn []
+                (g/run-effect gm effect))))
+          (-kill-process! [process]
+            true)))}))
+
+(def eager-default-dispatch-process
+  {:hitch2.descriptor.impl/kind
+   :hitch2.descriptor.kind/process
+   ::pm/create
+   (fn [pdtor]
      (reify
        pm/IProcess
        (-send-message! [process {:keys [gm] :as effect}]
-         (goog.async.run
-           (fn []
-             (g/run-effect gm effect))))
+         (g/run-effect gm effect))
        (-kill-process! [process]
-         true))))
-
-(def eager-default-dispatch-process
-   (reify
-     pm/IProcess
-     (-send-message! [process {:keys [gm] :as effect}]
-       (g/run-effect gm effect))
-     (-kill-process! [process]
-       true)))
+         true)))})
 
 
 (reg/def-registered-descriptor async-multi-method-dispatch-spec' async-multi-method-dispatch-spec default-dispatch-process)

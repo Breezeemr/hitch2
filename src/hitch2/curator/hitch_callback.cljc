@@ -138,15 +138,19 @@
         (callback result)))))
 
 (def hitch-callback-proc-impl
-  (reify
-    pm/IProcess
-    (-send-message! [process {:keys [graph-value
-                                     infos
-                                     gm]
-                              :as effect}]
-      (doseq [[id info] infos]
-        (name-later gm graph-value id info)))
-    (-kill-process! [process]
-      true)))
+  {:hitch2.descriptor.impl/kind
+   :hitch2.descriptor.kind/process
+   ::pm/create
+   (fn [pdtor]
+     (reify
+       pm/IProcess
+       (-send-message! [process {:keys [graph-value
+                                        infos
+                                        gm]
+                                 :as   effect}]
+         (doseq [[id info] infos]
+           (name-later gm graph-value id info)))
+       (-kill-process! [process]
+         true)))})
 
 (reg/def-registered-descriptor hitch-callback-proc-spec' hitch-callback-proc-spec hitch-callback-proc-impl)
