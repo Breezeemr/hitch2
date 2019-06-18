@@ -309,12 +309,13 @@
         new-value (halting descriptor simpl tx-manager)
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (not= new-value old-value)
+        value-resolved? (not (identical? new-value NOT-FOUND-SENTINEL))
         gv (:graph-value graph-manager-value)
         waiting-deps   (tinto! (transient (hash-set))
                          (remove #(contains? gv %))
                          deps)
         change-focus (make-change-focus deps old-deps worklist descriptor)]
-    (when (and value-changed? (not (identical? new-value NOT-FOUND-SENTINEL)))
+    (when (and value-changed? value-resolved?)
       (schedule-value-changes worklist observed-by descriptor))
     (cond-> (assoc-in
               graph-manager-value
@@ -326,7 +327,7 @@
                 (assoc
                   :waiting
                   waiting-deps)))
-      value-changed?
+      (and value-changed? value-resolved?)
       (update
         :graph-value
         update-graph-value descriptor new-value)
