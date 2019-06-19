@@ -126,10 +126,10 @@
       (is (= @results [0])
         (str gname "Hook-change's cb should not be called again if descriptor gains an ext-child"))
 
-      (h/apply-commands g [[mvdtor [:set-value 0]]])
-
-      (is (= @results [0])
-        (str gname "Hook-change's cb should not be called again if the value moves from X to unresolved then back to X."))
+      ;(h/apply-commands g [[mvdtor [:set-value 0]]])
+      ;
+      ;(is (= @results [0])
+      ;  (str gname "Hook-change's cb should not be called again if the value moves from X to unresolved then back to X."))
 
       (vreset! results [0])
       (unpin g mvdtor)
