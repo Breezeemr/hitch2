@@ -46,22 +46,26 @@
   :curator)
 
 (def http-curator-impl
-  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
-   ::curator-proto/init (fn [curator-descriptor] initial-node)
+  {:hitch2.descriptor.impl/kind
+   :hitch2.descriptor.kind/curator
+   ::curator-proto/init
+   (fn [curator-descriptor] initial-node)
    ::curator-proto/curation-changes
-                             (fn [curator-descriptor graph-value node children-added children-removed]
-                               (update node :async-effects into (map (fn [child] {:type     ::request
-                                                                                  :descriptor child})
-                                                                  children-added)))
+   (fn [curator-descriptor]
+     (fn [graph-value node children-added children-removed]
+       (update node :async-effects into (map (fn [child] {:type       ::request
+                                                          :descriptor child})
+                                             children-added))))
    ::curator-proto/apply-command
-                             (fn [curator-descriptor graph-value node command]
-                               (case (nth command 0)
-                                 ::value (let [[_ descriptor response] command]
-                                           (assoc-in node [:set-projections descriptor] response))
-                                 ::refresh (let [[_ descriptor] command]
-                                             (assert descriptor (str (pr-str ::refresh) " must provide a descriptor"))
-                                             (update node :async-effects conj {:type     ::request
-                                                                               :descriptor descriptor}))))})
+   (fn [curator-descriptor]
+     (fn [graph-value node command]
+       (case (nth command 0)
+         ::value (let [[_ descriptor response] command]
+                   (assoc-in node [:set-projections descriptor] response))
+         ::refresh (let [[_ descriptor] command]
+                     (assert descriptor (str (pr-str ::refresh) " must provide a descriptor"))
+                     (update node :async-effects conj {:type       ::request
+                                                       :descriptor descriptor})))))})
 
 (reg/def-registered-descriptor http-curator-spec' http-curator-spec http-curator-impl)
 (def http-curator (descriptor/->dtor  http-curator-spec' nil))

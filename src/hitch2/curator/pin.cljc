@@ -12,30 +12,34 @@
   :curator)
 
 (def pin-curator-impl
-  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
-   ::curator-proto/init (fn [curator-descriptor] initial-node)
+  {:hitch2.descriptor.impl/kind
+   :hitch2.descriptor.kind/curator
+   ::curator-proto/init
+   (fn [curator-descriptor] initial-node)
    ::curator-proto/observed-value-changes
-                             (fn [curator-descriptor graph-value node parent-descriptors]
-                               node)
+   (fn [curator-descriptor]
+     (fn [graph-value node parent-descriptors]
+       node))
    ::curator-proto/apply-command
-                             (fn [curator-descriptor graph-value node command]
-                               (case (nth command 0)
-                                 :pin
-                                 (let [[_ descriptor] command
-                                       there? (get-in node [:state descriptor])]
-                                   (if there?
-                                     node
-                                     (-> node
-                                         (update :state conj descriptor)
-                                         (update :change-focus assoc descriptor true))))
-                                 :unpin
-                                 (let [[_ descriptor] command
-                                       there? (get-in node [:state descriptor])]
-                                   (if there?
-                                     (-> node
-                                         (update :state disj descriptor)
-                                         (update :change-focus assoc descriptor false))
-                                     node))))})
+   (fn [curator-descriptor]
+     (fn [graph-value node command]
+       (case (nth command 0)
+         :pin
+         (let [[_ descriptor] command
+               there? (get-in node [:state descriptor])]
+           (if there?
+             node
+             (-> node
+                 (update :state conj descriptor)
+                 (update :change-focus assoc descriptor true))))
+         :unpin
+         (let [[_ descriptor] command
+               there? (get-in node [:state descriptor])]
+           (if there?
+             (-> node
+                 (update :state disj descriptor)
+                 (update :change-focus assoc descriptor false))
+             node)))))})
 
 (reg/def-registered-descriptor pin-curator-spec' pin-curator-spec pin-curator-impl)
 

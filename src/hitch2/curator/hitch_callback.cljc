@@ -71,43 +71,46 @@
    (fn [curator-descriptor] initial-node)
 
    ::curator-proto/apply-command
-   (fn [curator-descriptor graph-value node command]
-     (case (nth command 0)
-       :hitch-callback-reset-parents
-       (let [[_ halt-fn cb new-parents] command
-             id #?(:cljs (random-uuid)
-                   :clj (UUID/randomUUID))]
-         (-> node
-             (assoc-in [:state :id->info id] {:halt-fn  halt-fn
-                                              :callback cb})
-             (update-reverse-indexes id new-parents)))
-       :hitch-callback-reset-parents-id
-       (let [[_ id new-parents] command]
-         (update-reverse-indexes node id new-parents))
-       :hitch-callback-unsubscribe
-       (let [[_ id] command]
-         (-> node
-             (update-in [:state :id->info] dissoc id)
-             (update-reverse-indexes id #{})))))
+   (fn [curator-descriptor]
+     (fn [graph-value node command]
+       (case (nth command 0)
+         :hitch-callback-reset-parents
+         (let [[_ halt-fn cb new-parents] command
+               id #?(:cljs (random-uuid)
+                     :clj (UUID/randomUUID))]
+           (-> node
+               (assoc-in [:state :id->info id] {:halt-fn  halt-fn
+                                                :callback cb})
+               (update-reverse-indexes id new-parents)))
+         :hitch-callback-reset-parents-id
+         (let [[_ id new-parents] command]
+           (update-reverse-indexes node id new-parents))
+         :hitch-callback-unsubscribe
+         (let [[_ id] command]
+           (-> node
+               (update-in [:state :id->info] dissoc id)
+               (update-reverse-indexes id #{}))))))
 
    ::curator-proto/observed-value-changes
-   (fn [curator-descriptor graph-value node parent-descriptors]
-     (let [dtor->id  (-> node :state :dtor->id)
-           dirty-id  (-> node :state :dirty-ids)
-           dirty-id' (transduce
-                       (map dtor->id)
-                       into dirty-id parent-descriptors)]
-       (assoc-in node [:state :dirty-ids] dirty-id')))
+   (fn [curator-descriptor]
+     (fn [graph-value node parent-descriptors]
+       (let [dtor->id  (-> node :state :dtor->id)
+             dirty-id  (-> node :state :dirty-ids)
+             dirty-id' (transduce
+                         (map dtor->id)
+                         into dirty-id parent-descriptors)]
+         (assoc-in node [:state :dirty-ids] dirty-id'))))
 
    ::curator-proto/finalize
-   (fn [_ graph-value node]
-     (let [dirty-ids (-> node :state :dirty-ids)]
-       (cond-> (assoc-in node [:state :dirty-ids] #{})
-         (pos? (count dirty-ids))
-         (update-in [:outbox hitch-callback-proc-dtor]
-           (fnil conj [])
-           {:type  :hitch-callback-rerun-body
-            :infos (select-keys (-> node :state :id->info) dirty-ids)}))))})
+   (fn [_]
+     (fn [graph-value node]
+       (let [dirty-ids (-> node :state :dirty-ids)]
+         (cond-> (assoc-in node [:state :dirty-ids] #{})
+                 (pos? (count dirty-ids))
+                 (update-in [:outbox hitch-callback-proc-dtor]
+                            (fnil conj [])
+                            {:type  :hitch-callback-rerun-body
+                             :infos (select-keys (-> node :state :id->info) dirty-ids)})))))})
 
 (reg/def-registered-descriptor hitch-callback-curator react-hook-spec react-hook-impl)
 

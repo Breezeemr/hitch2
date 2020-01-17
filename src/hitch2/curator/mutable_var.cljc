@@ -16,29 +16,33 @@
   :positional-params [:var-name])
 
 (def curator-impl
-  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
-   ::curator-proto/init      (fn [curator-descriptor] initial-node)
+  {:hitch2.descriptor.impl/kind
+   :hitch2.descriptor.kind/curator
+   ::curator-proto/init
+   (fn [curator-descriptor] initial-node)
    ::curator-proto/curation-changes
-                             (fn [curator-descriptor graph-value node children-added children-removed]
-                               (assoc node
-                                 :set-projections
-                                 (-> (:set-projections node)
-                                     (into
-                                       (keep
-                                         (fn [x]
-                                           (when-not (identical? (:state node) NOT-FOUND-SENTINEL)
-                                             [(mutable-var (:var-name (:term curator-descriptor))) (:state node)])))
-                                       children-added))))
+   (fn [curator-descriptor]
+     (fn [graph-value node children-added children-removed]
+       (assoc node
+         :set-projections
+         (-> (:set-projections node)
+             (into
+               (keep
+                 (fn [x]
+                   (when-not (identical? (:state node) NOT-FOUND-SENTINEL)
+                     [(mutable-var (:var-name (:term curator-descriptor))) (:state node)])))
+               children-added)))))
    ::curator-proto/apply-command
-                             (fn [curator-descriptor graph-value node command]
-                               (case (nth command 0)
-                                 :set-value (let [[_ val] command]
-                                              (-> node
-                                                  (assoc :state val)
-                                                  (update :set-projections assoc (mutable-var (:var-name (:term curator-descriptor))) val)))
-                                 :clear (-> node
-                                            (assoc :state NOT-FOUND-SENTINEL)
-                                            (update :set-projections assoc (mutable-var (:var-name (:term curator-descriptor))) NOT-FOUND-SENTINEL))))})
+   (fn [curator-descriptor]
+     (fn [graph-value node command]
+       (case (nth command 0)
+         :set-value (let [[_ val] command]
+                      (-> node
+                          (assoc :state val)
+                          (update :set-projections assoc (mutable-var (:var-name (:term curator-descriptor))) val)))
+         :clear (-> node
+                    (assoc :state NOT-FOUND-SENTINEL)
+                    (update :set-projections assoc (mutable-var (:var-name (:term curator-descriptor))) NOT-FOUND-SENTINEL)))))})
 
 (reg/def-registered-descriptor mutable-var-curator-spec' mutable-var-curator-spec curator-impl)
 
