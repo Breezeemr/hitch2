@@ -6,7 +6,7 @@
              [hitch2.graph-manager.core :refer [apply-command apply-commands
                                                 ->GraphManagerValue send-messages!]]))
 
-(deftype gm [state scheduler resolver]
+(deftype gm [state resolver]
   g/Snapshot
   (-get-graph [graph-manager]
     (:graph-value @state))
@@ -40,7 +40,6 @@
                      (transient (hash-map))
                      []))
          gm (->gm gmv
-              pm
               resolver)]
      (add-watch gmv ::watch
        (fn [_key atom-ref old-value new-value]
