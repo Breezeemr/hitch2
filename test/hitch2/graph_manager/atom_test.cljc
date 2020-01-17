@@ -44,19 +44,21 @@
 
 (declare fibb-graph)
 
-(defhalting fibb-graph [G n]
-  (cond (= n 0) 0
-        (= n 1) 1
-        :else
-        (let [n-1 (hitch/select! G fibb-graph (dec n))
-              n-2 (hitch/select! G fibb-graph (dec (dec n)))]
-          (+ @n-1 @n-2))))
+(defhalting fibb-graph [n]
+  (fn [G]
+    (cond (= n 0) 0
+          (= n 1) 1
+          :else
+          (let [n-1 (hitch/select! G fibb-graph (dec n))
+                n-2 (hitch/select! G fibb-graph (dec (dec n)))]
+            (+ @n-1 @n-2)))))
 
 
 (declare depends-on)
-(defhalting depends-on [G n]
-  (cond (= 0 n) @(hitch/select-sel! G (mv/mutable-var :bench))
-        :else   (+ 1 @(hitch/select! G depends-on (dec n)))))
+(defhalting depends-on [n]
+  (fn [G]
+    (cond (= 0 n) @(hitch/select-sel! G (mv/mutable-var :bench))
+          :else (+ 1 @(hitch/select! G depends-on (dec n))))))
 
 (deftest instrument-tests
   (let [graph-manager (g/make-gm registry-resolver #_common/sync-scheduler)

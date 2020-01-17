@@ -7,8 +7,9 @@
             [hitch2.descriptor-impl-registry :as reg]
             [hitch2.scheduler.normal :as sched]))
 
-(defn return-constant [gv-tracker {[v] :term}]
-  v)
+(defn return-constant [ {[v] :term}]
+  (fn [gv-tracker]
+    v))
 (def-descriptor-spec constant-spec
   :not-curator
   :hitch2.descriptor.spec/canonical-form  :hitch2.descriptor.spec.canonical-form/vector

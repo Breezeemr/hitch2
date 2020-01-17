@@ -66,7 +66,7 @@
 
 
 (defrecord curator-state [node dtor-impl observes])
-(defrecord deriving-state [waiting dtor-impl observes])
+(defrecord deriving-state [waiting halting-fn observes])
 (defrecord var-state [dtor-impl observes])
 
 (def #?(:cljs    ^:dynamic ^boolean *trace*
@@ -224,7 +224,8 @@
           v)
         :hitch2.descriptor.kind/halting
         (->deriving-state
-          (transient (hash-set)) dtor-impl #{})
+          (transient (hash-set)) ((:hitch2.descriptor.impl/halting dtor-impl)
+                                  descriptor) #{})
         ))))
 
 
@@ -264,10 +265,9 @@
     graph-manager-value
     set-projections))
 
-(defn halting [descriptor simpl tx-manager]
+(defn halting [halting-fn tx-manager]
   (halt/maybe-halt
-    ((:hitch2.descriptor.impl/halting simpl) tx-manager
-      descriptor)
+    (halting-fn tx-manager)
     NOT-FOUND-SENTINEL))
 ;todo partial evaluate the destructuring and return an clojure that takes a graph.
 
@@ -306,7 +306,7 @@
         old-deps  (-> node-state :observes)
         tx-manager (halting-tx/halting-manager (:graph-value graph-manager-value))
         ;;; NOTE: change this line to switch halting implementations
-        new-value (halting descriptor simpl tx-manager)
+        new-value (halting (:halting-fn node-state) tx-manager)
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (not= new-value old-value)
         value-resolved? (not (identical? new-value NOT-FOUND-SENTINEL))
