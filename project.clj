@@ -1,4 +1,4 @@
-(defproject com.breezeehr/hitch2 "0.3.5"
+(defproject com.breezeehr/hitch2 "0.4.0-SNAPSHOT"
   :description ""
   :url "https://github.com/Breezeemr/hitch2/tree/master/"
   :repositories [["snapshots" {:url "s3p://breezepackages/snapshots" :creds :gpg}]
