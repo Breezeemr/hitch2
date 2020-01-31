@@ -7,7 +7,7 @@
            :fig       {:extra-deps
                        {com.bhauman/figwheel-main {:mvn/version "0.1.9"}
                         criterium                 {:mvn/version "0.4.4"}}
-                       :extra-paths ["dev-resources" "test" "bench"]}
+                       :extra-paths ["dev-resources" "test" "bench" "target"]}
            :bench     {:extra-paths ["bench"]
                        :extra-deps  {criterium {:mvn/version "0.4.4"}}
                        :main-opts   ["-m" "hitch2.graph-bench"]}
@@ -28,8 +28,4 @@
                        :main-opts   ["-m" "hitch2.clojure-runner"]}
            :cljs-test {:extra-paths ["dev-resources" "test" "target"]
                        :extra-deps  {com.bhauman/figwheel-main {:mvn/version "0.2.0"}}
-                       :main-opts   ["-m" "figwheel.main" "-b" "test" "-r"]}
-
-           :build     {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
-           :min       {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]}
-           }}
+                       :main-opts   ["-m" "figwheel.main" "-b" "test" "-r"]}}}
