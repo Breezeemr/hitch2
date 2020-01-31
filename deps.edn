@@ -28,4 +28,8 @@
                        :main-opts   ["-m" "hitch2.clojure-runner"]}
            :cljs-test {:extra-paths ["dev-resources" "test" "target"]
                        :extra-deps  {com.bhauman/figwheel-main {:mvn/version "0.2.0"}}
-                       :main-opts   ["-m" "figwheel.main" "-b" "test" "-r"]}}}
+                       :main-opts   ["-m" "figwheel.main" "-b" "test" "-r"]}
+
+           :example {:extra-paths ["dev-resources" "example" "target"]
+                     :extra-deps  {com.bhauman/figwheel-main {:mvn/version "0.2.0"}}
+                     :main-opts   ["-m" "figwheel.main" "-b" "example" "-r"]}}}

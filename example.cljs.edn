@@ -1,0 +1,16 @@
+^{:watch-dirs ["src" "example"]
+  ;:css-dirs ["dev-resources/public/css"]
+  :auto-testing false
+  :open-url "http://[[server-hostname]]:[[server-port]]/figwheel-extra-main/example"
+  :extra-main-files {:example {:main hitch2.example.example-runner}}}
+{:main hitch2.example.example-runner}
+;^{
+;  ;; use an alternative landing page for the tests so that we don't
+;  ;; launch the application
+;  :open-url "http://[[server-hostname]]:[[server-port]]/test.html"
+;
+;  ;; uncomment to launch tests in a headless environment
+;  ;; you will have to figure out the path to chrome on your system
+;  ;; :launch-js ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" "--headless" "--disable-gpu" "--repl" :open-url]
+;  }
+

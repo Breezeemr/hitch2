@@ -1,0 +1,10 @@
+(ns hitch2.example.example-runner
+    (:require [clojure.test :refer :all]
+            [hitch2.graph-manager.atom-test]
+            [hitch2.defdescriptor-test]
+            [hitch2.graph-test]))
+
+
+(defn -main [& args]
+  (.log js/console "hello"))
+
