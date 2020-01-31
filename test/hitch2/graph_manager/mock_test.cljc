@@ -19,13 +19,14 @@
 
 (declare fibb-graph)
 
-(defhalting fibb-graph [G n]
-  (cond (= n 0) 0
-        (= n 1) 1
-        :else
-        (let [n-1 (hitch/select! G fibb-graph (dec n))
-              n-2 (hitch/select! G fibb-graph (dec (dec n)))]
-          (+ @n-1 @n-2))))
+(defhalting fibb-graph [n]
+  (fn [G]
+    (cond (= n 0) 0
+          (= n 1) 1
+          :else
+          (let [n-1 (hitch/select! G fibb-graph (dec n))
+                n-2 (hitch/select! G fibb-graph (dec (dec n)))]
+            (+ @n-1 @n-2)))))
 
 
 (deftest mock-instrument-tests

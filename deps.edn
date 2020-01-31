@@ -26,7 +26,7 @@
            ;; test runners
            :test      {:extra-paths ["test"]
                        :main-opts   ["-m" "hitch2.clojure-runner"]}
-           :cljs-test {:extra-paths ["dev-resources" "test"]
+           :cljs-test {:extra-paths ["dev-resources" "test" "target"]
                        :extra-deps  {com.bhauman/figwheel-main {:mvn/version "0.2.0"}}
                        :main-opts   ["-m" "figwheel.main" "-b" "test" "-r"]}
 
