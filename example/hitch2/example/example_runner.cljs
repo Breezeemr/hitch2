@@ -13,6 +13,7 @@
             [react-hitch.hooks :as hitch-hook]
             [react-hitch.graph :as hitch-graph]
 
+            ["@material-ui/core/Popper" :default Popper]            
             ["@material-ui/core/Button" :default Button]
             ["@material-ui/core/Grid" :default Grid]
             ["@material-ui/core/TextField" :default TextField]
@@ -96,21 +97,7 @@
                                                  :city-line    (.. city-line-ref -current -value)
                                                  :state-line   (.. state-line-ref -current -value)
                                                  :zip-line     (.. zip-line-ref -current -value)}]]]))
-                                 #js [graph ov])} "submit")))
-      #_(RE Grid {:container true :spacing 2}
-          (RE Grid {:item true}
-            (RE InputLabel {:id "-label"} "hair color")
-            (RE Select {:labelid  "-label"
-                        :id       "hair"
-                        :value    "green"
-                        :onChange (fn [e] (prn "duck soup") (.log js/console e))}
-              (map (fn [[k v]] (RE MenuItem {:value k :key k} v))
-                [["blue" "Blue"
-                  "green" "Green"
-                  "blonde" "Blonde"
-                  "brunette" "Brunette"]])))
-          )
-      )))
+                                 #js [graph ov])} "submit"))))))
 
 (defn raw-form-example [{:keys [] :as props}]
   (let [[graph setGraph] (react/useState (fn [] (atom-gm/make-gm registry-resolver)))]
@@ -119,9 +106,75 @@
      (RE hitch-graph/GraphContext-Provider {:value graph}
        (CE basic-storage-form {:graph graph})))))
 
+(defn curator-storage-form [{:keys [graph] :as props}]
+  (let [ov (hitch-hook/useSelected (store/localstorage :basic-form-example))
+        [addressLine setAddressLine] (react/useState "")
+        [cityLine setCityLine] (react/useState "")
+        [stateLine setStateLine] (react/useState "")
+        [zipLine setZipLine] (react/useState "")]
+    (RE Paper {:style #js {"border"  "1px solid black"
+                           "padding" "10px"}}
+      (if (hitch-hook/loaded? ov)
+        (RE Paper {}
+          (RE Grid {:container true :spacing 2}
+            (RE Grid {:item true}
+              (RE TextField {:label        "Address line"
+                             ;; :InputProps #js {:onKeyDown (fn [e] 
+                             ;;                               (let [kc (.. e -keyCode)]
+                             ;;                                 (.log js/console kc)
+                             ;;                                 (setAddressLine (fn [v] (str v (char kc)))))
+                             ;;                            )}
+                             :onChange (fn [e] (.log js/console (.. e -target -value)) (setAddressLine (.. e -target -value)))
+                             :value addressLine})))
+          (RE Grid {:container true :spacing 2}
+            (RE Grid {:item true}
+              (RE TextField {:label        "City"
+                             :value (get ov :city-line "")})))
+          (RE Grid {:container true :spacing 2}
+            (RE Grid {:item true}
+              (RE TextField {:label        "State"
+                             :value (get ov :state-line "")})))
+          (RE Grid {:container true :spacing 2}
+            (RE Grid {:item true}
+              (RE TextField {:label        "Zip"
+                             :value (get ov :zip-line "")}))))
+        (d/div {} "loading ..."))
+      (RE Grid {:container true :spacing 2}
+        (RE Grid {:item true}
+          (RE Button {:style   #js {:margin "10px"}
+                      ;; :onClick (react/useCallback
+                      ;;            (fn []
+                      ;;              (set! (.. address-line-ref -current -value) "")
+                      ;;              (set! (.. city-line-ref -current -value) "")
+                      ;;              (set! (.. state-line-ref -current -value) "")
+                      ;;              (set! (.. zip-line-ref -current -value) "")
+                      ;;              (hitch/apply-commands graph [[storage [::store/assoc :basic-form-example {}]]]))
+                      ;;            #js [graph ov])
+                      } "clear"))
+        (RE Grid {:item true}
+          (RE Button {:style   #js {:margin "10px"}
+                      ;; :onClick (react/useCallback
+                      ;;            (fn [] 
+                      ;;              (hitch/apply-commands graph
+                      ;;                [[storage [::store/assoc :basic-form-example
+                      ;;                           {:address-line (.. address-line-ref -current -value)
+                      ;;                            :city-line    (.. city-line-ref -current -value)
+                      ;;                            :state-line   (.. state-line-ref -current -value)
+                      ;;                            :zip-line     (.. zip-line-ref -current -value)}]]]))
+                      ;;            #js [graph ov])
+                      } "submit"))))))
+
+(defn curator-form-example [{:keys [] :as props}]
+  (let [[graph setGraph] (react/useState (fn [] (atom-gm/make-gm registry-resolver)))]
+    (d/div {:style #js {"border" "1px solid black"
+                        "padding" "10px"}}
+     (RE hitch-graph/GraphContext-Provider {:value graph}
+       (CE curator-storage-form {:graph graph})))))
+
 (defn -main [& args]
   (render
     (d/div {}
       (CE minimal-example {})
-      (CE raw-form-example {}))
+      (CE raw-form-example {})
+      (CE curator-form-example {}))
     (.. js/document (getElementById "app"))))
