@@ -28,8 +28,13 @@
            :test      {:extra-paths ["test"]
                        :main-opts   ["-m" "hitch2.clojure-runner"]}
            :cljs-test {:extra-paths ["dev-resources" "test" "target"]
-                       :extra-deps  {com.bhauman/figwheel-main {:mvn/version "0.2.0"}}
+                       :extra-deps  {com.bhauman/figwheel-main {:mvn/verSION "0.2.0"}}
                        :main-opts   ["-m" "figwheel.main" "-b" "test" "-r"]}
 
            :example {:extra-paths ["dev-resources" "example" "target"]
-                     :extra-deps  {crinkle {:mvn/version "2.0.0"}}}}}
+                     :extra-deps  {crinkle {:mvn/version "2.0.0"}
+                                   com.breezeehr/quiescent {:mvn/version "0.3.0"
+                                                            :exclusions [cljsjs/react-dom cljsjs/react cljsjs/create-react-class]}
+                                   com.breezeehr/react-hitch {:mvn/version "0.5.0-SNAPSHOT"
+                                                              :exclusions [cljsjs/react-dom cljsjs/react org.clojure/clojurescript]}
+                                   com.breezeehr/hitch2 {:mvn/version "0.4.0-SNAPSHOT" :exclusions [org.clojure/clojurescript]}}}}}

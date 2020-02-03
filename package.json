@@ -1,0 +1,27 @@
+{
+
+    "comments": {"dependencies":  {"jss": "ignore warning, use '10.0.0-alpha.23' with '6.2.0'"}},
+    "license": "UNLICENSED",
+    "scripts": {
+        "deps": "yarn install",
+        "deps-full": "yarn install --check-files",
+        "watch": "shadow-cljs watch app;",
+        "release": "shadow-cljs release app;",
+        "report": "shadow-cljs run shadow.cljs.build-report app report.html",
+        "server": "shadow-cljs server;",
+        "clean": "rm -rf target; rm -rf public/js/compiled"
+    },
+    "dependencies": {
+        "@material-ui/core": "4.3.1",
+        "@material-ui/icons": "4.2.1",
+        "@material-ui/styles": "4.3.0",
+        "jss": "10.0.0-alpha.23",
+        "jss-extend": "6.2.0",
+        "keycloak-js": "^8.0.0",
+        "react": "16.8.6",
+        "react-dom": "16.8.6",
+        "react-keycloak": "^8.0.0-191118",
+	"create-react-class": "^15.6.3",
+        "shadow-cljs": "^2.0.80"
+    }
+}
