@@ -47,8 +47,8 @@ Every time the a curator's vars change or a command is applied hitch will call
 this lifecyles method many more curation changes or commands may be applied
 before the transaction is flushed
 ### :hitch2.def.curator/curation-changes
-This function is called every time a var is demanded returns this curator with 
-its `get-curator` call. Most of the time when a var selects you as it's curator
+This function is called every time a var is demanded and the var returns this curator with 
+its `get-curator` call.  When a var selects you as it's curator
 it expects that you will set it's value through `set-projections` field of the node
 ### :hitch2.def.curator/observed-value-changes
 This function is called every time the value of a demanded descriptor changes.
