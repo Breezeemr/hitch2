@@ -110,6 +110,21 @@
      (RE hitch-graph/GraphContext-Provider {:value graph}
        (CE basic-storage-form {:graph graph})))))
 
+(defn update-var-state [children-added children-removed]
+  (fn [state]
+    (assoc state :vars
+     (-> (reduce disj
+           (get state :vars)
+           children-removed)
+       (into children-added)))))
+
+(defn dtor->key [dtor]
+  (case (-> dtor :name)
+    hitch2.example.example-runner/address-line-spec
+    :address-line))
+
+(defn value-getter [local-storage-value dtor]
+  (get local-storage-value (dtor->key dtor)))
 
 (def-descriptor-spec address-form-machine-spec
   :curator
@@ -183,37 +198,63 @@
   (hitch/->dtor address-line-spec' {:keyspace keyspace}))
 
 (defn curator-storage-form [{:keys [graph] :as props}]
-  (let [ov (hitch-hook/useSelected (store/localstorage :basic-form-example))
-        [addressLine setAddressLine] (react/useState "")
+  (let [address-line-dtor (address-line :basic-form-example)
+        address-line-val (hitch-hook/useSelected address-line-dtor)
+        [addressLine setAddressLine] (react/useState false)
         [cityLine setCityLine] (react/useState "")
         [stateLine setStateLine] (react/useState "")
         [zipLine setZipLine] (react/useState "")]
     (RE Paper {:style #js {"border"  "1px solid black"
                            "padding" "10px"}}
-      (if (hitch-hook/loaded? ov)
+      (if (hitch-hook/loaded? address-line-val)
         (RE Paper {}
           (RE Grid {:container true :spacing 2}
             (RE Grid {:item true}
-              (RE TextField {:label        "Address line"
+              (RE TextField {:id "addressLine"
+                             :label        "Address line"
                              ;; :InputProps #js {:onKeyDown (fn [e] 
                              ;;                               (let [kc (.. e -keyCode)]
                              ;;                                 (.log js/console kc)
                              ;;                                 (setAddressLine (fn [v] (str v (char kc)))))
                              ;;                            )}
-                             :onChange (fn [e] (.log js/console (.. e -target -value)) (setAddressLine (.. e -target -value)))
-                             :value addressLine})))
+                             :error addressLine
+                             :onChange (fn [e]
+                                         (.log js/console e)
+                                         (let [numeric? (-> (.. e -target -value) (clojure.string/split " ") first (->> (re-matches #"\d+")) nil?)]
+                                           (setAddressLine (if numeric? (.. e -currentTarget) false)))
+                                         (hitch/apply-commands graph [[address-line-dtor [:value-change (.. e -target -value)
+                                                                                          address-line-dtor]]]))
+                             :value (or address-line-val "")})
+              ;; form button for "keep" / "discard"
+              (RE Popper {:open (not (false? addressLine))
+                          :anchorEl addressLine
+                          :placement "right-end"
+                          :modifiers #js  {"arrow" {"enabled" true "element" "arrowRef"}
+                                           }}
+                (d/div {:style #js {"border" "1px solid black"
+                                    "backgroundColor" "white"}}
+                  (d/div {} (str "Changes:  " address-line-val))
+                  (RE Grid {:container true :spacing 2}
+                    (RE Grid {:item true} (RE Button {} "Discard"))
+                    (RE Grid {:item true} (RE Button {} "Keep")))))))
           (RE Grid {:container true :spacing 2}
             (RE Grid {:item true}
               (RE TextField {:label        "City"
-                             :value (get ov :city-line "")})))
+                             :onChange (fn [e] ;(setCityLine (.. e -target -value))
+                                         )
+                             :value cityLine})))
           (RE Grid {:container true :spacing 2}
             (RE Grid {:item true}
               (RE TextField {:label        "State"
-                             :value (get ov :state-line "")})))
+                             :onChange (fn [e] ;(setStateLine (.. e -target -value))
+                                         )
+                             :value stateLine})))
           (RE Grid {:container true :spacing 2}
             (RE Grid {:item true}
               (RE TextField {:label        "Zip"
-                             :value (get ov :zip-line "")}))))
+                             :onChange (fn [e] ;(setZipLine (.. e -target -value))
+                                         )
+                             :value zipLine}))))
         (d/div {} "loading ..."))
       (RE Grid {:container true :spacing 2}
         (RE Grid {:item true}
