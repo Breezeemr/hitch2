@@ -6,8 +6,12 @@
             [hitch2.graph :as hitch]
             [hitch2.curator.webstorage :as store]
             [hitch2.graph-manager.atom :as atom-gm]
+            [hitch2.def.curator :as curator]
+            [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
+            [hitch2.def.spec :refer-macros [def-descriptor-spec]]
             [hitch2.descriptor-impl-registry :as reg
              :refer [registry-resolver]]
+            [hitch2.protocols.graph-manager :as graph-proto]
             react-hitch.curator.react-hook
             react-hitch.qui-tracker
             [react-hitch.hooks :as hitch-hook]
@@ -105,6 +109,78 @@
                         "padding" "10px"}}
      (RE hitch-graph/GraphContext-Provider {:value graph}
        (CE basic-storage-form {:graph graph})))))
+
+
+(def-descriptor-spec address-form-machine-spec
+  :curator
+  :canonical-form :map
+  :positional-params [:keyspace])
+(def address-form-machine-impl
+  {:hitch2.descriptor.impl/kind     :hitch2.descriptor.kind/curator
+   ::curator/init
+   (fn [machine-selector]
+     (prn :change-focus {(store/localstorage (-> machine-selector :term :keyspace)) true})
+     (assoc curator/initial-curator-state
+       :state {:local-storage :not-loaded
+               :transient-input {}
+               :vars #{}}
+       :change-focus {(store/localstorage (-> machine-selector :term :keyspace)) true}))
+   ::curator/observed-value-changes (fn [machine-selector]
+                                      (fn [graph-manager-value node parent-descriptors]
+                                        (let [graph-value (graph-proto/-graph-value graph-manager-value)]
+                                          (let [updated-node
+                                                (reduce (fn [n dtor]
+                                                          (let [local-storage-value (get graph-value dtor :not-loaded)]
+                                                            (if (= :not-loaded local-storage-value)
+                                                              n
+                                                              (update n :state assoc :local-storage local-storage-value))))
+                                                  node
+                                                  parent-descriptors)]
+                                            (update updated-node
+                                              :set-projections
+                                              into
+                                              (map (fn [added]
+                                                     [added (value-getter (-> updated-node :state :transient-input) added)]))
+                                              (get-in updated-node [:state :vars]))))))
+   ::curator/curation-changes
+   (fn [machine-selector]
+     (fn [gmv node children-added children-removed]
+       (let [updated-node (update node :state (update-var-state children-added children-removed))]
+         (if (= :not-loaded (-> node :state :local-storage))
+           updated-node
+           (update updated-node
+             :set-projections
+             into
+             (map (fn [added]
+                    [added (value-getter (-> updated-node :state :transient-input) added)]))
+             children-added)))))
+   ::curator/apply-command
+   (fn [machine-selector]
+     (fn [gmv node command]
+       (let [[cmd arg arg2] command]
+         (case cmd
+           :value-change (let [value arg
+                               dtor arg2]
+                           (-> node
+                             (update :set-projections assoc dtor value)
+                             (update-in [:state :transient-input] assoc (dtor->key dtor) value)))
+           :submit [] ; commit to local storage
+           ))))})
+
+(reg/def-registered-descriptor address-form-machine-spec' address-form-machine-spec address-form-machine-impl)
+
+(def-descriptor-spec address-line-spec
+  :not-machine
+  :canonical-form :map
+  :positional-params [:keyspace])
+(def address-line-impl
+  {:hitch2.descriptor.impl/kind        :hitch2.descriptor.kind/var
+   :hitch2.descriptor.impl/get-curator (fn [descriptor]
+                                         (hitch/->dtor address-form-machine-spec'
+                                           {:keyspace (-> descriptor :term :keyspace)}))}) ;; ->dtor pronounced "create descriptor"
+(reg/def-registered-descriptor address-line-spec' address-line-spec address-line-impl)
+(defn address-line [keyspace]
+  (hitch/->dtor address-line-spec' {:keyspace keyspace}))
 
 (defn curator-storage-form [{:keys [graph] :as props}]
   (let [ov (hitch-hook/useSelected (store/localstorage :basic-form-example))
