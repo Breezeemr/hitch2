@@ -120,11 +120,16 @@
 
 (defn dtor->key [dtor]
   (case (-> dtor :name)
-    hitch2.example.example-runner/address-line-spec
-    :address-line))
+    hitch2.example.example-runner/address-line-spec :address-line
+    hitch2.example.example-runner/address-line-stored-spec :address-line))
 
-(defn value-getter [local-storage-value dtor]
-  (get local-storage-value (dtor->key dtor)))
+(defn value-getter [value dtor]
+  (get value (dtor->key dtor)))
+
+(def local-storage-curator?
+  #{`address-line-stored-spec'})
+(def transient-state-curator?
+  #{`address-line-spec'})
 
 (def-descriptor-spec address-form-machine-spec
   :curator
@@ -155,7 +160,7 @@
                                               :set-projections
                                               into
                                               (map (fn [added]
-                                                     [added (value-getter (-> updated-node :state :transient-input) added)]))
+                                                     [added (value-getter (-> updated-node :state :local-storage) added)]))
                                               (get-in updated-node [:state :vars]))))))
    ::curator/curation-changes
    (fn [machine-selector]
@@ -166,20 +171,30 @@
            (update updated-node
              :set-projections
              into
-             (map (fn [added]
-                    [added (value-getter (-> updated-node :state :transient-input) added)]))
+             (keep (fn [added]
+                     (let [descriptor-name (:name added)]
+                       (if (local-storage-curator? descriptor-name)
+                         [added (value-getter (-> updated-node :state :transient-input) added)]
+                         [added (-> updated-node :state :transient-input)]))))
              children-added)))))
    ::curator/apply-command
    (fn [machine-selector]
      (fn [gmv node command]
-       (let [[cmd arg arg2] command]
+       (let [[cmd arg arg2] command
+             ;; graph-value (graph-proto/-graph-value gmv)]
          (case cmd
            :value-change (let [value arg
                                dtor arg2]
                            (-> node
                              (update :set-projections assoc dtor value)
                              (update-in [:state :transient-input] assoc (dtor->key dtor) value)))
-           :submit [] ; commit to local storage
+           :submit [] #_(hitch/apply-commands graph-value
+                        [[storage [::store/assoc :curator-storage-form-example
+                                   {:address-line "dooduk"
+                                    ;; :city-line    (.. city-line-ref -current -value)
+                                    ;; :state-line   (.. state-line-ref -current -value)
+                                    ;; :zip-line     (.. zip-line-ref -current -value)
+                                    }]]])
            ))))})
 
 (reg/def-registered-descriptor address-form-machine-spec' address-form-machine-spec address-form-machine-impl)
@@ -197,9 +212,24 @@
 (defn address-line [keyspace]
   (hitch/->dtor address-line-spec' {:keyspace keyspace}))
 
+(def-descriptor-spec address-line-stored-spec
+  :not-machine
+  :canonical-form :map
+  :positional-params [:keyspace])
+(def address-line-stored-impl
+  {:hitch2.descriptor.impl/kind        :hitch2.descriptor.kind/var
+   :hitch2.descriptor.impl/get-curator (fn [descriptor]
+                                         (hitch/->dtor address-form-machine-spec'
+                                           {:keyspace (-> descriptor :term :keyspace)}))})
+(reg/def-registered-descriptor address-line-stored-spec' address-line-stored-spec address-line-stored-impl)
+(defn address-line-stored [keyspace]
+  (hitch/->dtor address-line-stored-spec' {:keyspace keyspace}))
+
 (defn curator-storage-form [{:keys [graph] :as props}]
-  (let [address-line-dtor (address-line :basic-form-example)
+  (let [address-line-dtor (address-line :curator-storage-form-example)
         address-line-val (hitch-hook/useSelected address-line-dtor)
+        address-line-stored-dtor (address-line-stored :curator-storage-form-example)
+        address-line-stored-val (hitch-hook/useSelected address-line-stored-dtor)
         [addressLine setAddressLine] (react/useState false)
         [cityLine setCityLine] (react/useState "")
         [stateLine setStateLine] (react/useState "")
@@ -212,25 +242,20 @@
             (RE Grid {:item true}
               (RE TextField {:id "addressLine"
                              :label        "Address line"
-                             ;; :InputProps #js {:onKeyDown (fn [e] 
-                             ;;                               (let [kc (.. e -keyCode)]
-                             ;;                                 (.log js/console kc)
-                             ;;                                 (setAddressLine (fn [v] (str v (char kc)))))
-                             ;;                            )}
                              :error addressLine
                              :onChange (fn [e]
-                                         (.log js/console e)
+                                         ;; (.log js/console "onChange" e)
                                          (let [numeric? (-> (.. e -target -value) (clojure.string/split " ") first (->> (re-matches #"\d+")) nil?)]
                                            (setAddressLine (if numeric? (.. e -currentTarget) false)))
-                                         (hitch/apply-commands graph [[address-line-dtor [:value-change (.. e -target -value)
-                                                                                          address-line-dtor]]]))
+                                         (hitch/apply-commands graph [[address-line-dtor [:value-change (.. e -target -value) address-line-dtor]]]))
                              :value (or address-line-val "")})
               ;; form button for "keep" / "discard"
-              (RE Popper {:open (not (false? addressLine))
+              ;; (d/div {} (pr-str address-line-val address-line-stored-val))
+              (RE Popper {:open (not= address-line-val address-line-stored-val)
                           :anchorEl addressLine
                           :placement "right-end"
-                          :modifiers #js  {"arrow" {"enabled" true "element" "arrowRef"}
-                                           }}
+                          ;; :modifiers #js  {"arrow" {"enabled" true "element" "arrowRef"}}
+                          }
                 (d/div {:style #js {"border" "1px solid black"
                                     "backgroundColor" "white"}}
                   (d/div {} (str "Changes:  " address-line-val))
@@ -270,14 +295,19 @@
                       } "clear"))
         (RE Grid {:item true}
           (RE Button {:style   #js {:margin "10px"}
+                      :onClick (react/useCallback
+                                 (fn []
+                                   (prn "we got" address-line-val)
+                                   (hitch/apply-commands graph [[address-line-dtor [:submit {}]]])))
                       ;; :onClick (react/useCallback
                       ;;            (fn [] 
                       ;;              (hitch/apply-commands graph
-                      ;;                [[storage [::store/assoc :basic-form-example
+                      ;;                [[storage [::store/assoc :curator-storage-form-example
                       ;;                           {:address-line (.. address-line-ref -current -value)
-                      ;;                            :city-line    (.. city-line-ref -current -value)
-                      ;;                            :state-line   (.. state-line-ref -current -value)
-                      ;;                            :zip-line     (.. zip-line-ref -current -value)}]]]))
+                      ;;                            ;; :city-line    (.. city-line-ref -current -value)
+                      ;;                            ;; :state-line   (.. state-line-ref -current -value)
+                      ;;                            ;; :zip-line     (.. zip-line-ref -current -value)
+                      ;;                            }]]]))
                       ;;            #js [graph ov])
                       } "submit"))))))
 
