@@ -167,7 +167,9 @@
                                                           (let [local-storage-value (get graph-value dtor :not-loaded)]
                                                             (if (= :not-loaded local-storage-value)
                                                               n
-                                                              (update n :state assoc :local-storage local-storage-value))))
+                                                              (-> n
+                                                                (update :state assoc :local-storage local-storage-value)
+                                                                (update :state assoc :transient-input local-storage-value)))))
                                                   node
                                                   parent-descriptors)]
                                             (update updated-node
