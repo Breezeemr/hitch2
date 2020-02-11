@@ -32,9 +32,10 @@ the value of a var.
 ###async-effect 
 deprecated
 
-###outbox
+###outbox (effects)
 outbox is a map of process-descriptor to an vector of messages to be sent to a 
-process
+process.  Messages can be a map of any shape.  The keys :gm and :graph-value will be 
+added by the graph to each message.
 
 ##LifeCycle Methods
 Each method except for init takes a curator-descriptor and returns a function
