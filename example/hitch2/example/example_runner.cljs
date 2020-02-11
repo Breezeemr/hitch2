@@ -196,9 +196,7 @@
    ::curator/apply-command
    (fn [machine-selector]
      (fn [gmv node command]
-       (let [[cmd arg arg2] command
-             ;; graph-value (graph-proto/-graph-value gmv)
-             ]
+       (let [[cmd arg arg2] command]
          (case cmd
            :value-change (let [value arg
                                dtor arg2]
@@ -211,6 +209,9 @@
                          (update-in node [:outbox local-store-proc-dtor]
                            (fnil conj [])
                            {:commands [[storage [::store/assoc :curator-storage-form-example new-state]]]}))
+           :clear (update-in node [:outbox local-store-proc-dtor]
+                    (fnil conj [])
+                    {:commands [[storage [::store/assoc :curator-storage-form-example {}]]]})
            :submit (update-in node [:outbox local-store-proc-dtor]
                          (fnil conj [])
                          {:commands [[storage [::store/assoc :curator-storage-form-example (-> node :state :transient-input)]]]})))))})
@@ -455,15 +456,9 @@
       (RE Grid {:container true :spacing 2}
         (RE Grid {:item true}
           (RE Button {:style   #js {:margin "10px"}
-                      ;; :onClick (react/useCallback
-                      ;;            (fn []
-                      ;;              (set! (.. address-line-ref -current -value) "")
-                      ;;              (set! (.. city-line-ref -current -value) "")
-                      ;;              (set! (.. state-line-ref -current -value) "")
-                      ;;              (set! (.. zip-line-ref -current -value) "")
-                      ;;              (hitch/apply-commands graph [[storage [::store/assoc :basic-form-example {}]]]))
-                      ;;            #js [graph ov])
-                      } "clear"))
+                      :onClick (react/useCallback
+                                 (fn [] (hitch/apply-commands graph [[address-line-dtor [:clear {}]]])))}
+            "clear"))
         (RE Grid {:item true}
           (RE Button {:style   #js {:margin "10px"}
                       :onClick (react/useCallback
