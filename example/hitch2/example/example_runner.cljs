@@ -205,11 +205,15 @@
                            (-> node
                              (update :set-projections assoc dtor value)
                              (update-in [:state :transient-input] assoc (dtor->key dtor) value)))
+           :submit-item (let [value arg
+                              dtor arg2
+                              new-state (into (-> node :state :local-storage) {(dtor->key dtor) value})]
+                         (update-in node [:outbox local-store-proc-dtor]
+                           (fnil conj [])
+                           {:commands [[storage [::store/assoc :curator-storage-form-example new-state]]]}))
            :submit (update-in node [:outbox local-store-proc-dtor]
                          (fnil conj [])
-                         {:commands [[storage [::store/assoc :curator-storage-form-example (into
-                                                                                             (-> node :state :local-storage)
-                                                                                             (-> node :state :transient-input))]]]})))))})
+                         {:commands [[storage [::store/assoc :curator-storage-form-example (-> node :state :transient-input)]]]})))))})
 
 (reg/def-registered-descriptor address-form-machine-spec' address-form-machine-spec address-form-machine-impl)
 
@@ -390,8 +394,8 @@
                                              "Discard"))
                      (RE Grid {:item true} (RE Button {:onClick (fn [e]
                                                                   (hitch/apply-commands graph
-                                                                    [[address-line-dtor [:submit {}]]]))}
-                                             "Keep"))))))))
+                                                                    [[address-line-dtor [:submit-item address-line-val address-line-dtor]]]))}
+                                             "Save"))))))))
           (RE Grid {:container true :spacing 2}
             (RE Grid {:item true}
               (RE TextField {:label        "City"
