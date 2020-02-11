@@ -339,24 +339,51 @@
 
 (defn numeric? [str-val] (-> str-val (clojure.string/split " ") first (->> (re-matches #"\d+")) nil?))
 
+(defn changes-popper [{:keys [graph field-transient-val field-stored-val field-dtor anchor-elem] :as props}]
+  (RE Popper {:open      (not= field-transient-val field-stored-val)
+              :anchorEl  (.-current anchor-elem)
+              :placement "right-end"
+              ;; :modifiers #js  {"arrow" {"enabled" true "element" "arrowRef"}}
+              }
+    (d/div {:style #js {"border"          "1px solid black"
+                        "backgroundColor" "white"}}
+      (d/div {} (str "Current Value:  " field-stored-val))
+      (d/div {} (str "New Value:  " field-transient-val))
+      (RE Grid {:container true :spacing 2}
+        (RE Grid {:item true} (RE Button {:onClick (fn [e]
+                                                     (hitch/apply-commands graph
+                                                       [[field-dtor [:value-change field-stored-val field-dtor]]]))}
+                                "Discard"))
+        (RE Grid {:item true} (RE Button {:onClick (fn [e]
+                                                     (hitch/apply-commands graph
+                                                       [[field-dtor [:submit-item field-transient-val field-dtor]]]))}
+                                "Save"))))))
+
 (defn curator-storage-form [{:keys [graph] :as props}]
-  (let [address-line-dtor (address-line :curator-storage-form-example)
-        address-line-val (hitch-hook/useSelected address-line-dtor)
+  (let [address-line-dtor        (address-line :curator-storage-form-example)
+        address-line-val         (hitch-hook/useSelected address-line-dtor)
         address-line-stored-dtor (address-line-stored :curator-storage-form-example)
-        address-line-stored-val (hitch-hook/useSelected address-line-stored-dtor)
+        address-line-stored-val  (hitch-hook/useSelected address-line-stored-dtor)
 
         city-line-dtor (city-line :curator-storage-form-example)
-        city-line-val (hitch-hook/useSelected city-line-dtor)
-        ;; city-line-stored-dtor (city-line-stored :curator-storage-form-example)
-        ;; city-line-stored-val (hitch-hook/useSelected city-line-stored-dtor)
+        city-line-val  (hitch-hook/useSelected city-line-dtor)
+        city-line-stored-dtor (city-line-stored :curator-storage-form-example)
+        city-line-stored-val (hitch-hook/useSelected city-line-stored-dtor)
 
         state-line-dtor (state-line :curator-storage-form-example)
-        state-line-val (hitch-hook/useSelected state-line-dtor)
-
+        state-line-val  (hitch-hook/useSelected state-line-dtor)
+        state-line-stored-dtor (state-line-stored :curator-storage-form-example)
+        state-line-stored-val (hitch-hook/useSelected state-line-stored-dtor)
+        
         zip-line-dtor (zip-line :curator-storage-form-example)
-        zip-line-val (hitch-hook/useSelected zip-line-dtor)
-
+        zip-line-val  (hitch-hook/useSelected zip-line-dtor)
+        zip-line-stored-dtor (zip-line-stored :curator-storage-form-example)
+        zip-line-stored-val (hitch-hook/useSelected zip-line-stored-dtor)
+        
         addressLineR (react/useRef)
+        cityLineR (react/useRef)
+        stateLineR (react/useRef)
+        zipLineR (react/useRef)
         
         [addressLine setAddressLine] (react/useState false)]
     (RE Paper {:style #js {"border"  "1px solid black"
@@ -365,8 +392,7 @@
         (RE Paper {}
           (RE Grid {:container true :spacing 2}
             (RE Grid {:item true}
-              (RE TextField {:id "addressLine"
-                             :label        "Address line"
+              (RE TextField {:label        "Address line"
                              :inputRef addressLineR
                              :error addressLine
                              :onChange (fn [e]
@@ -375,45 +401,51 @@
                                          ;;   (setAddressLine (if numeric? (.. e -currentTarget) false)))
                                          (hitch/apply-commands graph [[address-line-dtor [:value-change (.. e -target -value) address-line-dtor]]]))
                              :value (or address-line-val "")})
-              ;; form button for "keep" / "discard"
-              ;; (d/div {} (pr-str address-line-val address-line-stored-val))
               (when (.-current addressLineR)
-               (RE Popper {:open (not= address-line-val address-line-stored-val)
-                           :anchorEl (.-current addressLineR)
-                           :placement "right-end"
-                           ;; :modifiers #js  {"arrow" {"enabled" true "element" "arrowRef"}}
-                           }
-                 (d/div {:style #js {"border" "1px solid black"
-                                     "backgroundColor" "white"}}
-                   (d/div {} (str "Current Value:  " address-line-stored-val))
-                   (d/div {} (str "New Value:  " address-line-val))
-                   (RE Grid {:container true :spacing 2}
-                     (RE Grid {:item true} (RE Button {:onClick (fn [e]
-                                                                  (hitch/apply-commands graph
-                                                                    [[address-line-dtor [:value-change address-line-stored-val address-line-dtor]]]))}
-                                             "Discard"))
-                     (RE Grid {:item true} (RE Button {:onClick (fn [e]
-                                                                  (hitch/apply-commands graph
-                                                                    [[address-line-dtor [:submit-item address-line-val address-line-dtor]]]))}
-                                             "Save"))))))))
+                (CE changes-popper {:field-transient-val address-line-val
+                                    :field-stored-val address-line-stored-val
+                                    :field-dtor address-line-dtor
+                                    :anchor-elem addressLineR
+                                    :graph graph}))))
           (RE Grid {:container true :spacing 2}
             (RE Grid {:item true}
               (RE TextField {:label        "City"
+                             :inputRef cityLineR
                              :onChange (fn [e]
                                          (hitch/apply-commands graph [[city-line-dtor [:value-change (.. e -target -value) city-line-dtor]]]))
-                             :value (or city-line-val "")})))
+                             :value (or city-line-val "")})
+              (when (.-current cityLineR)
+                (CE changes-popper {:field-transient-val city-line-val
+                                    :field-stored-val city-line-stored-val
+                                    :field-dtor city-line-dtor
+                                    :anchor-elem cityLineR
+                                    :graph graph}))))
           (RE Grid {:container true :spacing 2}
             (RE Grid {:item true}
               (RE TextField {:label        "State"
+                             :inputRef stateLineR
                              :onChange (fn [e]
                                          (hitch/apply-commands graph [[state-line-dtor [:value-change (.. e -target -value) state-line-dtor]]]))
-                             :value (or state-line-val "")})))
+                             :value (or state-line-val "")})
+              (when (.-current stateLineR)
+                (CE changes-popper {:field-transient-val state-line-val
+                                    :field-stored-val    state-line-stored-val
+                                    :field-dtor          state-line-dtor
+                                    :anchor-elem         stateLineR
+                                    :graph               graph}))))
           (RE Grid {:container true :spacing 2}
             (RE Grid {:item true}
               (RE TextField {:label        "Zip"
+                             :inputRef zipLineR
                              :onChange (fn [e]
                                          (hitch/apply-commands graph [[zip-line-dtor [:value-change (.. e -target -value) zip-line-dtor]]]))
-                             :value (or zip-line-val "")}))))
+                             :value (or zip-line-val "")})
+              (when (.-current zipLineR)
+                (CE changes-popper {:field-transient-val zip-line-val
+                                    :field-stored-val    zip-line-stored-val
+                                    :field-dtor          zip-line-dtor
+                                    :anchor-elem         zipLineR
+                                    :graph               graph})))))
         (d/div {} "loading ..."))
       (RE Grid {:container true :spacing 2}
         (RE Grid {:item true}
