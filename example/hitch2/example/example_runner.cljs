@@ -138,9 +138,15 @@
   (get value (dtor->key dtor)))
 
 (def local-storage-curator?
-  #{`address-line-stored-spec'})
+  #{`address-line-stored-spec
+    `city-line-stored-spec
+    `state-line-stored-spec
+    `zip-line-stored-spec})
 (def transient-state-curator?
-  #{`address-line-spec'})
+  #{`address-line-spec
+    `city-line-spec
+    `state-line-spec
+    `zip-line-spec})
 
 (def-descriptor-spec local-store-proc-spec :process)
 (def local-store-proc-dtor (hitch/->dtor local-store-proc-spec nil))
@@ -161,23 +167,31 @@
        :change-focus {(store/localstorage (-> machine-selector :term :keyspace)) true}))
    ::curator/observed-value-changes (fn [machine-selector]
                                       (fn [graph-manager-value node parent-descriptors]
-                                        (let [graph-value (graph-proto/-graph-value graph-manager-value)]
-                                          (let [updated-node
-                                                (reduce (fn [n dtor]
-                                                          (let [local-storage-value (get graph-value dtor :not-loaded)]
-                                                            (if (= :not-loaded local-storage-value)
-                                                              n
+                                        (let [graph-value (graph-proto/-graph-value graph-manager-value)
+                                              previous-local-storage-not-loaded? (= :not-loaded (-> node :state :local-storage))
+                                              updated-node
+                                              (reduce (fn [n dtor]
+                                                        (let [local-storage-value (get graph-value dtor :not-loaded)]
+                                                          (if (= :not-loaded local-storage-value)
+                                                            n
+                                                            (if previous-local-storage-not-loaded?
                                                               (-> n
                                                                 (update :state assoc :local-storage local-storage-value)
-                                                                (update :state assoc :transient-input local-storage-value)))))
-                                                  node
-                                                  parent-descriptors)]
-                                            (update updated-node
-                                              :set-projections
-                                              into
-                                              (map (fn [added]
-                                                     [added (value-getter (-> updated-node :state :local-storage) added)]))
-                                              (get-in updated-node [:state :vars]))))))
+                                                                (update :state assoc :transient-input local-storage-value))
+                                                              (update n :state assoc :local-storage local-storage-value)))))
+                                                node
+                                                parent-descriptors)]
+                                          
+                                          (update updated-node
+                                            :set-projections
+                                            into
+                                            (keep (fn [added]
+                                                    (prn "nuf" (:name added) (local-storage-curator? (:name added)))
+                                                    (if (local-storage-curator? (:name added))
+                                                      [added (value-getter (-> updated-node :state :local-storage) added)]
+                                                      (when previous-local-storage-not-loaded?
+                                                        [added (value-getter (-> updated-node :state :local-storage) added)]))))
+                                            (get-in updated-node [:state :vars])))))
    ::curator/curation-changes
    (fn [machine-selector]
      (fn [gmv node children-added children-removed]
@@ -190,8 +204,8 @@
              (keep (fn [added]
                      (let [descriptor-name (:name added)]
                        (if (local-storage-curator? descriptor-name)
-                         [added (value-getter (-> updated-node :state :transient-input) added)]
-                         [added (-> updated-node :state :transient-input)]))))
+                         [added (value-getter (-> updated-node :state :local-storage) added)]
+                         [added (value-getter (-> updated-node :state :transient-input) added)]))))
              children-added)))))
    ::curator/apply-command
    (fn [machine-selector]
@@ -357,8 +371,8 @@
               }
     (d/div {:style #js {"border"          "1px solid black"
                         "backgroundColor" "white"}}
-      (d/div {} (str "Current Value:  " field-stored-val))
-      (d/div {} (str "New Value:  " field-transient-val))
+      (d/div {} (str "Local Storage Value:  " field-stored-val))
+      (d/div {} (str "Input Value:  " field-transient-val))
       (RE Grid {:container true :spacing 2}
         (RE Grid {:item true} (RE Button {:onClick (fn [e]
                                                      (hitch/apply-commands graph
@@ -369,100 +383,64 @@
                                                        [[field-dtor [:submit-item field-transient-val field-dtor]]]))}
                                 "Save"))))))
 
+(defn form-field [{:keys [graph form-line-fn form-line-stored-fn label validation-fn] :as props}]
+  (let [form-line-dtor (form-line-fn :curator-storage-form-example)
+        form-line-val (hitch-hook/useSelected form-line-dtor)
+        form-line-stored-dtor (form-line-stored-fn :curator-storage-form-example)
+        form-line-stored-val (hitch-hook/useSelected form-line-stored-dtor)
+        formLineR (react/useRef)]
+    (if (hitch-hook/loaded? form-line-val)
+      (RE Grid {:container true :spacing 2}
+        (RE Grid {:item true}
+          (RE TextField {:label    label
+                         :inputRef formLineR
+                         :error    (if validation-fn (validation-fn form-line-val))
+                         :onChange (fn [e]
+                                     (hitch/apply-commands graph [[form-line-dtor [:value-change (.. e -target -value) form-line-dtor]]]))
+                         :value    (or form-line-val "")})
+          (when (.-current formLineR)
+            (CE changes-popper {:field-transient-val form-line-val
+                                :field-stored-val    form-line-stored-val
+                                :field-dtor          form-line-dtor
+                                :anchor-elem         formLineR
+                                :graph               graph}))))
+      (d/div {} "loading ..."))))
+
 (defn curator-storage-form [{:keys [graph] :as props}]
-  (let [address-line-dtor        (address-line :curator-storage-form-example)
-        address-line-val         (hitch-hook/useSelected address-line-dtor)
-        address-line-stored-dtor (address-line-stored :curator-storage-form-example)
-        address-line-stored-val  (hitch-hook/useSelected address-line-stored-dtor)
 
-        city-line-dtor (city-line :curator-storage-form-example)
-        city-line-val  (hitch-hook/useSelected city-line-dtor)
-        city-line-stored-dtor (city-line-stored :curator-storage-form-example)
-        city-line-stored-val (hitch-hook/useSelected city-line-stored-dtor)
-
-        state-line-dtor (state-line :curator-storage-form-example)
-        state-line-val  (hitch-hook/useSelected state-line-dtor)
-        state-line-stored-dtor (state-line-stored :curator-storage-form-example)
-        state-line-stored-val (hitch-hook/useSelected state-line-stored-dtor)
-        
-        zip-line-dtor (zip-line :curator-storage-form-example)
-        zip-line-val  (hitch-hook/useSelected zip-line-dtor)
-        zip-line-stored-dtor (zip-line-stored :curator-storage-form-example)
-        zip-line-stored-val (hitch-hook/useSelected zip-line-stored-dtor)
-        
-        addressLineR (react/useRef)
-        cityLineR (react/useRef)
-        stateLineR (react/useRef)
-        zipLineR (react/useRef)]
+  (let [form-dtor (address-line :curator-storage-form-example)
+        form-val         (hitch-hook/useSelected form-dtor)]
     (RE Paper {:style #js {"border"  "1px solid black"
                            "padding" "10px"}}
-      (if (hitch-hook/loaded? address-line-val)
-        (RE Paper {}
-          (RE Grid {:container true :spacing 2}
-            (RE Grid {:item true}
-              (RE TextField {:label        "Address line"
-                             :inputRef addressLineR
-                             :error (not (numeric? address-line-val))
-                             :onChange (fn [e]
-                                         (hitch/apply-commands graph [[address-line-dtor [:value-change (.. e -target -value) address-line-dtor]]]))
-                             :value (or address-line-val "")})
-              (when (.-current addressLineR)
-                (CE changes-popper {:field-transient-val address-line-val
-                                    :field-stored-val address-line-stored-val
-                                    :field-dtor address-line-dtor
-                                    :anchor-elem addressLineR
-                                    :graph graph}))))
-          (RE Grid {:container true :spacing 2}
-            (RE Grid {:item true}
-              (RE TextField {:label        "City"
-                             :inputRef cityLineR
-                             :onChange (fn [e]
-                                         (hitch/apply-commands graph [[city-line-dtor [:value-change (.. e -target -value) city-line-dtor]]]))
-                             :value (or city-line-val "")})
-              (when (.-current cityLineR)
-                (CE changes-popper {:field-transient-val city-line-val
-                                    :field-stored-val city-line-stored-val
-                                    :field-dtor city-line-dtor
-                                    :anchor-elem cityLineR
-                                    :graph graph}))))
-          (RE Grid {:container true :spacing 2}
-            (RE Grid {:item true}
-              (RE TextField {:label        "State"
-                             :error (false? (contains? (-> states vals set) state-line-val))
-                             :inputRef stateLineR
-                             :onChange (fn [e]
-                                         (hitch/apply-commands graph [[state-line-dtor [:value-change (.. e -target -value) state-line-dtor]]]))
-                             :value (or state-line-val "")})
-              (when (.-current stateLineR)
-                (CE changes-popper {:field-transient-val state-line-val
-                                    :field-stored-val    state-line-stored-val
-                                    :field-dtor          state-line-dtor
-                                    :anchor-elem         stateLineR
-                                    :graph               graph}))))
-          (RE Grid {:container true :spacing 2}
-            (RE Grid {:item true}
-              (RE TextField {:label        "Zip"
-                             :inputRef zipLineR
-                             :onChange (fn [e]
-                                         (hitch/apply-commands graph [[zip-line-dtor [:value-change (.. e -target -value) zip-line-dtor]]]))
-                             :value (or zip-line-val "")})
-              (when (.-current zipLineR)
-                (CE changes-popper {:field-transient-val zip-line-val
-                                    :field-stored-val    zip-line-stored-val
-                                    :field-dtor          zip-line-dtor
-                                    :anchor-elem         zipLineR
-                                    :graph               graph})))))
-        (d/div {} "loading ..."))
+      (RE Paper {}
+        (CE form-field {:graph               graph
+                        :form-line-fn        address-line
+                        :form-line-stored-fn address-line-stored
+                        :label               "Address"
+                        :validation-fn       (fn [address-line-val] (not (numeric? address-line-val)))})
+        (CE form-field {:graph               graph
+                        :form-line-fn        city-line
+                        :form-line-stored-fn city-line-stored
+                        :label               "City"})
+        (CE form-field {:graph               graph
+                        :form-line-fn        state-line
+                        :form-line-stored-fn state-line-stored
+                        :label               "State"
+                        :validation-fn       (fn [line-val] (false? (contains? (-> states vals set) line-val)))})
+        (CE form-field {:graph               graph
+                        :form-line-fn        zip-line
+                        :form-line-stored-fn zip-line-stored
+                        :label               "Zip"}))
       (RE Grid {:container true :spacing 2}
         (RE Grid {:item true}
           (RE Button {:style   #js {:margin "10px"}
                       :onClick (react/useCallback
-                                 (fn [] (hitch/apply-commands graph [[address-line-dtor [:clear {}]]])))}
+                                 (fn [] (hitch/apply-commands graph [[form-dtor [:clear {}]]])))}
             "clear"))
         (RE Grid {:item true}
           (RE Button {:style   #js {:margin "10px"}
                       :onClick (react/useCallback
-                                 (fn [] (hitch/apply-commands graph [[address-line-dtor [:submit {}]]])))}
+                                 (fn [] (hitch/apply-commands graph [[form-dtor [:submit {}]]])))}
             "submit"))))))
 
 (defn curator-form-example [{:keys [] :as props}]
