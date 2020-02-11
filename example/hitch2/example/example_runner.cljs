@@ -337,7 +337,16 @@
   (hitch/->dtor zip-line-stored-spec' {:keyspace keyspace}))
 
 
-(defn numeric? [str-val] (-> str-val (clojure.string/split " ") first (->> (re-matches #"\d+")) nil?))
+(defn numeric? [str-val] (-> str-val (clojure.string/split " ") first (->> (re-matches #"\d+")) nil? not))
+(def states
+ {:AL "Alabama" :AK "Alaska" :AZ "Arizona" :AR "Arkansas" :CA "California" :CO "Colorado" :CT "Connecticut"
+  :DE "Delaware" :DC "District of Columbia" :FL "Florida" :GA "Georgia" :HI "Hawaii" :ID "Idaho" :IL "Illinois"
+  :IN "Indiana" :IA "Iowa" :KS "Kansas" :KY "Kentucky" :LA "Louisiana" :ME "Maine" :MD "Maryland" :MA "Massachusetts"
+  :MI "Michigan" :MN "Minnesota" :MS "Mississippi" :MO "Missouri" :MT "Montana" :NE "Nebraska" :NV "Nevada" :NH "New Hampshire"
+  :NJ "New Jersey" :NM "New Mexico" :NY "New York" :NC "North Carolina" :ND "North Dakota" :OH "Ohio" :OK "Oklahoma"
+  :OR "Oregon" :PA "Pennsylvania" :PR "Puerto Rico" :RI "Rhode Island" :SC "South Carolina" :SD "South Dakota"
+  :TN "Tennessee" :TX "Texas" :UT "Utah" :VT "Vermont" :VA "Virginia" :WA "Washington" :WV "West Virginia" :WI "Wisconsin"
+  :WY "Wyoming"})
 
 (defn changes-popper [{:keys [graph field-transient-val field-stored-val field-dtor anchor-elem] :as props}]
   (RE Popper {:open      (not= field-transient-val field-stored-val)
@@ -383,9 +392,7 @@
         addressLineR (react/useRef)
         cityLineR (react/useRef)
         stateLineR (react/useRef)
-        zipLineR (react/useRef)
-        
-        [addressLine setAddressLine] (react/useState false)]
+        zipLineR (react/useRef)]
     (RE Paper {:style #js {"border"  "1px solid black"
                            "padding" "10px"}}
       (if (hitch-hook/loaded? address-line-val)
@@ -394,11 +401,8 @@
             (RE Grid {:item true}
               (RE TextField {:label        "Address line"
                              :inputRef addressLineR
-                             :error addressLine
+                             :error (not (numeric? address-line-val))
                              :onChange (fn [e]
-                                         ;; (.log js/console "onChange" e)
-                                         ;; (let [numeric? (-> (.. e -target -value) (clojure.string/split " ") first (->> (re-matches #"\d+")) nil?)]
-                                         ;;   (setAddressLine (if numeric? (.. e -currentTarget) false)))
                                          (hitch/apply-commands graph [[address-line-dtor [:value-change (.. e -target -value) address-line-dtor]]]))
                              :value (or address-line-val "")})
               (when (.-current addressLineR)
@@ -423,6 +427,7 @@
           (RE Grid {:container true :spacing 2}
             (RE Grid {:item true}
               (RE TextField {:label        "State"
+                             :error (false? (contains? (-> states vals set) state-line-val))
                              :inputRef stateLineR
                              :onChange (fn [e]
                                          (hitch/apply-commands graph [[state-line-dtor [:value-change (.. e -target -value) state-line-dtor]]]))
