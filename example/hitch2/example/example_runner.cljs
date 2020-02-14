@@ -269,11 +269,9 @@
                                                        [[field-dtor [:submit-item field-transient-val field-dtor]]]))}
                                 "Save"))))))
 
-(defn formField [{:keys [graph label validation-fn form-fld curator-dtor] :as props}]
+(defn formField [{:keys [graph label validation-fn form-line-dtor form-line-stored-dtor] :as props}]
   (let [
-        form-line-dtor (form-field curator-dtor [:transient form-fld])
         form-line-val (hitch-hook/useSelected form-line-dtor)
-        form-line-stored-dtor (form-field curator-dtor [:localstorage form-fld])
         form-line-stored-val (hitch-hook/useSelected form-line-stored-dtor)
         formLineR (react/useRef)]
     (if (hitch-hook/loaded? form-line-val)
@@ -300,24 +298,23 @@
                            "padding" "10px"}}
       (RE Paper {}
         (CE formField {:graph         graph
-                       :curator-dtor  form-dtor
-                       :form-fld      :address-line
+                       :form-line-dtor (form-field form-dtor [:transient :address-line])
+                       :form-line-stored-dtor (form-field form-dtor [:localstorage :address-line])
                        :label         "Address"
                        :validation-fn (fn [form-field-val] (not (numeric? form-field-val)))})
         (CE formField {:graph        graph
-                       :curator-dtor form-dtor
-                       :form-fld     :city-line
+                       :form-line-dtor (form-field form-dtor [:transient :city-line])
+                       :form-line-stored-dtor (form-field form-dtor [:localstorage :city-line])
                        :label        "City"})
         (CE formField {:graph         graph
-                       :curator-dtor  form-dtor
-                       :form-fld      :state-line
+                       :form-line-dtor (form-field form-dtor [:transient :state-line])
+                       :form-line-stored-dtor (form-field form-dtor [:localstorage :state-line])
                        :label         "State"
                        :validation-fn (fn [line-val] (false? (contains? (-> states vals set) line-val)))})
         (CE formField {:graph        graph
-                       :curator-dtor form-dtor
-                       :form-fld     :zip-line
-                       :label        "Zip"})
-        )
+                       :form-line-dtor (form-field form-dtor [:transient :zip-line])
+                       :form-line-stored-dtor (form-field form-dtor [:localstorage :zip-line])
+                       :label        "Zip"}))
       (RE Grid {:container true :spacing 2}
         (RE Grid {:item true}
           (RE Button {:style   #js {:margin "10px"}
