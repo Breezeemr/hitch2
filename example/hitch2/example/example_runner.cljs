@@ -137,15 +137,23 @@
   :curator
   :canonical-form :map
   :positional-params [:keyspace])
-(def address-form-machine-impl
+
+(defn get-local-storage-demand-descriptor [machine-descriptor]
+  (store/localstorage (-> machine-descriptor :term :keyspace)))
+(defn demanded-value->form-field-descriptor [value form-field-descriptor]
+  (assert (= :transient-input (-> form-field-descriptor :term :path first)))
+  (get value (-> form-field-descriptor :term :path second)))
+
+#_{:get-demand-descriptor (store/localstorage (-> machine-selector :term :keyspace))}
+(defn address-form-machine-impl [get-demand-descriptor]
   {:hitch2.descriptor.impl/kind     :hitch2.descriptor.kind/curator
    ::curator/init
    (fn [machine-selector]
      (assoc curator/initial-curator-state
-       :state {:local-storage   :not-loaded
-               :transient-input {}
+       :state {:local-storage   :not-loaded  ;;; durable-storage
+               :transient-input {}           ;;; local-storage
                :vars            #{}}
-       :change-focus {(store/localstorage (-> machine-selector :term :keyspace)) true}))
+       :change-focus {(get-demand-descriptor machine-selector) true}))
    ::curator/observed-value-changes (fn [machine-selector]
                                       (fn [graph-manager-value node parent-descriptors]
                                         (let [graph-value                        (graph-proto/-graph-value graph-manager-value)
@@ -212,7 +220,7 @@
                          (fnil conj [])
                          {:commands [[storage [::store/assoc :curator-storage-form-example (-> node :state :transient-input)]]]})))))})
 
-(reg/def-registered-descriptor address-form-machine-spec' address-form-machine-spec address-form-machine-impl)
+(reg/def-registered-descriptor address-form-machine-spec' address-form-machine-spec (address-form-machine-impl get-local-storage-demand-descriptor))
 
 (def local-store-proc-impl
     {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/process
