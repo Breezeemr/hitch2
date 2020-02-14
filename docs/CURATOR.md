@@ -21,6 +21,7 @@ method.
 State is a place where a curator can keep it's custom state.
 
 ###change-focus 
+Change Focus allows a curator to subscribe to changes from other descriptors in the graph.
 Is a map from descriptor to boolean. periodically hitch will remove the `change-focus`
 from the curator-node and make the curator demand/depend on selectors with true
 and not depend on selectors with false. 
@@ -48,10 +49,13 @@ Every time the a curator's vars change or a command is applied hitch will call
 this lifecyles method many more curation changes or commands may be applied
 before the transaction is flushed
 ### :hitch2.def.curator/curation-changes
+Curation changes is so that the curator knows which hitch vars (descriptors) to manage.
 This function is called every time a var is demanded and the var returns this curator with 
 its `get-curator` call.  When a var selects you as it's curator
 it expects that you will set it's value through `set-projections` field of the node
 ### :hitch2.def.curator/observed-value-changes
+Observed value changes is a notification that value of a descriptor which the curator is watching
+has changed.
 This function is called every time the value of a demanded descriptor changes.
 This will not be called until the curator has demanded other descriptors through
 the `change-focus` field of the curator node.
