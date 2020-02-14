@@ -141,17 +141,13 @@
   {:hitch2.descriptor.impl/kind     :hitch2.descriptor.kind/curator
    ::curator/init
    (fn [machine-selector]
-     #_(prn :change-focus {(store/localstorage (-> machine-selector :term :keyspace)) true})
      (assoc curator/initial-curator-state
        :state {:local-storage   :not-loaded
                :transient-input {}
                :vars            #{}}
        :change-focus {(store/localstorage (-> machine-selector :term :keyspace)) true}))
    ::curator/observed-value-changes (fn [machine-selector]
-                                      #_(prn "ovc 1" machine-selector)
                                       (fn [graph-manager-value node parent-descriptors]
-                                        #_(prn "ovc 2" machine-selector node ;[graph-manager-value node parent-descriptors]
-                                          )
                                         (let [graph-value                        (graph-proto/-graph-value graph-manager-value)
                                               previous-local-storage-not-loaded? (= :not-loaded (-> node :state :local-storage))
                                               updated-node
@@ -171,7 +167,6 @@
                                             :set-projections
                                             into
                                             (keep (fn [added]
-                                                    #_(prn "nuf" (:name added) (local-storage-descriptor? added))
                                                     (if (local-storage-descriptor? added)
                                                       [added (get (-> updated-node :state :local-storage) (dtor->key added))]
                                                       (when previous-local-storage-not-loaded?
@@ -179,10 +174,7 @@
                                             (get-in updated-node [:state :vars])))))
    ::curator/curation-changes
    (fn [machine-selector]
-     #_(prn "curator-changes 1" machine-selector)
      (fn [gmv node children-added children-removed]
-       #_(prn "curator-changes 2" machine-selector ;[gmv node children-added children-removed]
-         )
        (let [updated-node (update node :state (update-var-state children-added children-removed))]
          (if (= :not-loaded (-> node :state :local-storage))
            updated-node
@@ -280,10 +272,8 @@
 (defn formField [{:keys [graph label validation-fn form-fld curator-dtor] :as props}]
   (let [
         form-line-dtor (form-field curator-dtor [:transient form-fld])
-        ;; _ (prn "dtor t" form-line-dtor)
         form-line-val (hitch-hook/useSelected form-line-dtor)
         form-line-stored-dtor (form-field curator-dtor [:localstorage form-fld])
-        ;; _ (prn "dtor t" form-line-stored-dtor)
         form-line-stored-val (hitch-hook/useSelected form-line-stored-dtor)
         formLineR (react/useRef)]
     (if (hitch-hook/loaded? form-line-val)
