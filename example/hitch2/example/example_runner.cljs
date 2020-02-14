@@ -121,32 +121,14 @@
        (into children-added)))))
 
 (defn dtor->key [dtor]
-  (case (-> dtor :name)
-    hitch2.example.example-runner/address-line-spec :address-line
-    hitch2.example.example-runner/address-line-stored-spec :address-line
-
-    hitch2.example.example-runner/city-line-spec :city-line
-    hitch2.example.example-runner/city-line-stored-spec :city-line
-
-    hitch2.example.example-runner/state-line-spec :state-line
-    hitch2.example.example-runner/state-line-stored-spec :state-line
-    
-    hitch2.example.example-runner/zip-line-spec :zip-line
-    hitch2.example.example-runner/zip-line-stored-spec :zip-line))
+  (-> dtor :term :path second))
 
 (defn value-getter [value dtor]
-  (get value (dtor->key dtor)))
+  (get-in value (-> dtor :term :path)))
 
-(def local-storage-curator?
-  #{`address-line-stored-spec
-    `city-line-stored-spec
-    `state-line-stored-spec
-    `zip-line-stored-spec})
-(def transient-state-curator?
-  #{`address-line-spec
-    `city-line-spec
-    `state-line-spec
-    `zip-line-spec})
+(defn local-storage-descriptor? [dtor]
+  (let [[type field] (-> dtor :term :path)]
+    (= type :localstorage)))
 
 (def-descriptor-spec local-store-proc-spec :process)
 (def local-store-proc-dtor (hitch/->dtor local-store-proc-spec nil))
@@ -159,15 +141,18 @@
   {:hitch2.descriptor.impl/kind     :hitch2.descriptor.kind/curator
    ::curator/init
    (fn [machine-selector]
-     (prn :change-focus {(store/localstorage (-> machine-selector :term :keyspace)) true})
+     #_(prn :change-focus {(store/localstorage (-> machine-selector :term :keyspace)) true})
      (assoc curator/initial-curator-state
-       :state {:local-storage :not-loaded
+       :state {:local-storage   :not-loaded
                :transient-input {}
-               :vars #{}}
+               :vars            #{}}
        :change-focus {(store/localstorage (-> machine-selector :term :keyspace)) true}))
    ::curator/observed-value-changes (fn [machine-selector]
+                                      #_(prn "ovc 1" machine-selector)
                                       (fn [graph-manager-value node parent-descriptors]
-                                        (let [graph-value (graph-proto/-graph-value graph-manager-value)
+                                        #_(prn "ovc 2" machine-selector node ;[graph-manager-value node parent-descriptors]
+                                          )
+                                        (let [graph-value                        (graph-proto/-graph-value graph-manager-value)
                                               previous-local-storage-not-loaded? (= :not-loaded (-> node :state :local-storage))
                                               updated-node
                                               (reduce (fn [n dtor]
@@ -186,15 +171,18 @@
                                             :set-projections
                                             into
                                             (keep (fn [added]
-                                                    (prn "nuf" (:name added) (local-storage-curator? (:name added)))
-                                                    (if (local-storage-curator? (:name added))
-                                                      [added (value-getter (-> updated-node :state :local-storage) added)]
+                                                    #_(prn "nuf" (:name added) (local-storage-descriptor? added))
+                                                    (if (local-storage-descriptor? added)
+                                                      [added (get (-> updated-node :state :local-storage) (dtor->key added))]
                                                       (when previous-local-storage-not-loaded?
-                                                        [added (value-getter (-> updated-node :state :local-storage) added)]))))
+                                                        [added (get (-> updated-node :state :local-storage) (dtor->key added))]))))
                                             (get-in updated-node [:state :vars])))))
    ::curator/curation-changes
    (fn [machine-selector]
+     #_(prn "curator-changes 1" machine-selector)
      (fn [gmv node children-added children-removed]
+       #_(prn "curator-changes 2" machine-selector ;[gmv node children-added children-removed]
+         )
        (let [updated-node (update node :state (update-var-state children-added children-removed))]
          (if (= :not-loaded (-> node :state :local-storage))
            updated-node
@@ -202,10 +190,7 @@
              :set-projections
              into
              (keep (fn [added]
-                     (let [descriptor-name (:name added)]
-                       (if (local-storage-curator? descriptor-name)
-                         [added (value-getter (-> updated-node :state :local-storage) added)]
-                         [added (value-getter (-> updated-node :state :transient-input) added)]))))
+                     [added (value-getter (-> updated-node :state) added)]))
              children-added)))))
    ::curator/apply-command
    (fn [machine-selector]
@@ -223,9 +208,14 @@
                          (update-in node [:outbox local-store-proc-dtor]
                            (fnil conj [])
                            {:commands [[storage [::store/assoc :curator-storage-form-example new-state]]]}))
-           :clear (update-in node [:outbox local-store-proc-dtor]
-                    (fnil conj [])
-                    {:commands [[storage [::store/assoc :curator-storage-form-example {}]]]})
+           :clear (let [updated-node (update node
+                                            :set-projections
+                                            into
+                                            (map (fn [added] [added nil]))
+                                            (get-in node [:state :vars]))]
+                   (update-in updated-node [:outbox local-store-proc-dtor]
+                     (fnil conj [])
+                     {:commands [[storage [::store/assoc :curator-storage-form-example {}]]]})) ;; should dissoc not assoc?
            :submit (update-in node [:outbox local-store-proc-dtor]
                          (fnil conj [])
                          {:commands [[storage [::store/assoc :curator-storage-form-example (-> node :state :transient-input)]]]})))))})
@@ -233,8 +223,7 @@
 (reg/def-registered-descriptor address-form-machine-spec' address-form-machine-spec address-form-machine-impl)
 
 (def local-store-proc-impl
-    {:hitch2.descriptor.impl/kind
-     :hitch2.descriptor.kind/process
+    {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/process
      ;; process manager/create
      ::pm/create (fn [pdtor] ;; process-descriptor
                    (reify pm/IProcess
@@ -243,113 +232,18 @@
                      (-kill-process! [process] true)))})
 (reg/def-registered-descriptor local-store-proc-spec' local-store-proc-spec local-store-proc-impl)
 
-;;;;;;; address line
-(def-descriptor-spec address-line-spec
+;;;;;;; POS descriptor
+(def-descriptor-spec form-field-spec
   :not-machine
   :canonical-form :map
-  :positional-params [:keyspace])
-(def address-line-impl
+  :positional-params [:curator-dtor :path])
+(def form-field-impl
   {:hitch2.descriptor.impl/kind        :hitch2.descriptor.kind/var
    :hitch2.descriptor.impl/get-curator (fn [descriptor]
-                                         (hitch/->dtor address-form-machine-spec'
-                                           {:keyspace (-> descriptor :term :keyspace)}))}) ;; ->dtor pronounced "create descriptor"
-(reg/def-registered-descriptor address-line-spec' address-line-spec address-line-impl)
-(defn address-line [keyspace]
-  (hitch/->dtor address-line-spec' {:keyspace keyspace}))
-
-(def-descriptor-spec address-line-stored-spec
-  :not-machine
-  :canonical-form :map
-  :positional-params [:keyspace])
-(def address-line-stored-impl
-  {:hitch2.descriptor.impl/kind        :hitch2.descriptor.kind/var
-   :hitch2.descriptor.impl/get-curator (fn [descriptor]
-                                         (hitch/->dtor address-form-machine-spec'
-                                           {:keyspace (-> descriptor :term :keyspace)}))})
-(reg/def-registered-descriptor address-line-stored-spec' address-line-stored-spec address-line-stored-impl)
-(defn address-line-stored [keyspace]
-  (hitch/->dtor address-line-stored-spec' {:keyspace keyspace}))
-
-;;;;;;;;;;;; city 
-(def-descriptor-spec city-line-spec
-  :not-machine
-  :canonical-form :map
-  :positional-params [:keyspace])
-(def city-line-impl
-  {:hitch2.descriptor.impl/kind        :hitch2.descriptor.kind/var
-   :hitch2.descriptor.impl/get-curator (fn [descriptor]
-                                         (hitch/->dtor address-form-machine-spec'
-                                           {:keyspace (-> descriptor :term :keyspace)}))}) ;; ->dtor pronounced "create descriptor"
-(reg/def-registered-descriptor city-line-spec' city-line-spec city-line-impl)
-(defn city-line [keyspace]
-  (hitch/->dtor city-line-spec' {:keyspace keyspace}))
-
-(def-descriptor-spec city-line-stored-spec
-  :not-machine
-  :canonical-form :map
-  :positional-params [:keyspace])
-(def city-line-stored-impl
-  {:hitch2.descriptor.impl/kind        :hitch2.descriptor.kind/var
-   :hitch2.descriptor.impl/get-curator (fn [descriptor]
-                                         (hitch/->dtor address-form-machine-spec'
-                                           {:keyspace (-> descriptor :term :keyspace)}))})
-(reg/def-registered-descriptor city-line-stored-spec' city-line-stored-spec city-line-stored-impl)
-(defn city-line-stored [keyspace]
-  (hitch/->dtor city-line-stored-spec' {:keyspace keyspace}))
-
-;;; state
-(def-descriptor-spec state-line-spec
-  :not-machine
-  :canonical-form :map
-  :positional-params [:keyspace])
-(def state-line-impl
-  {:hitch2.descriptor.impl/kind        :hitch2.descriptor.kind/var
-   :hitch2.descriptor.impl/get-curator (fn [descriptor]
-                                         (hitch/->dtor address-form-machine-spec'
-                                           {:keyspace (-> descriptor :term :keyspace)}))}) ;; ->dtor pronounced "create descriptor"
-(reg/def-registered-descriptor state-line-spec' state-line-spec state-line-impl)
-(defn state-line [keyspace]
-  (hitch/->dtor state-line-spec' {:keyspace keyspace}))
-
-(def-descriptor-spec state-line-stored-spec
-  :not-machine
-  :canonical-form :map
-  :positional-params [:keyspace])
-(def state-line-stored-impl
-  {:hitch2.descriptor.impl/kind        :hitch2.descriptor.kind/var
-   :hitch2.descriptor.impl/get-curator (fn [descriptor]
-                                         (hitch/->dtor address-form-machine-spec'
-                                           {:keyspace (-> descriptor :term :keyspace)}))})
-(reg/def-registered-descriptor state-line-stored-spec' state-line-stored-spec state-line-stored-impl)
-(defn state-line-stored [keyspace]
-  (hitch/->dtor state-line-stored-spec' {:keyspace keyspace}))
-
-;;; zip
-(def-descriptor-spec zip-line-spec
-  :not-machine
-  :canonical-form :map
-  :positional-params [:keyspace])
-(def zip-line-impl
-  {:hitch2.descriptor.impl/kind        :hitch2.descriptor.kind/var
-   :hitch2.descriptor.impl/get-curator (fn [descriptor]
-                                         (hitch/->dtor address-form-machine-spec'
-                                           {:keyspace (-> descriptor :term :keyspace)}))}) ;; ->dtor pronounced "create descriptor"
-(reg/def-registered-descriptor zip-line-spec' zip-line-spec zip-line-impl)
-(defn zip-line [keyspace]
-  (hitch/->dtor zip-line-spec' {:keyspace keyspace}))
-
-(def-descriptor-spec zip-line-stored-spec
-  :not-machine
-  :canonical-form :map
-  :positional-params [:keyspace])
-(def zip-line-stored-impl
-  {:hitch2.descriptor.impl/kind        :hitch2.descriptor.kind/var
-   :hitch2.descriptor.impl/get-curator (fn [descriptor]
-                                         (hitch/->dtor address-form-machine-spec'
-                                           {:keyspace (-> descriptor :term :keyspace)}))})
-(reg/def-registered-descriptor zip-line-stored-spec' zip-line-stored-spec zip-line-stored-impl)
-(defn zip-line-stored [keyspace]
-  (hitch/->dtor zip-line-stored-spec' {:keyspace keyspace}))
+                                         (-> descriptor :term :curator-dtor))}) ;; ->dtor pronounced "create descriptor"
+(reg/def-registered-descriptor form-field-spec' form-field-spec form-field-impl)
+(defn form-field [curator-dtor path]
+  (hitch/->dtor form-field-spec' {:curator-dtor curator-dtor :path path}))
 
 
 (defn numeric? [str-val] (-> str-val (clojure.string/split " ") first (->> (re-matches #"\d+")) nil? not))
@@ -383,10 +277,13 @@
                                                        [[field-dtor [:submit-item field-transient-val field-dtor]]]))}
                                 "Save"))))))
 
-(defn form-field [{:keys [graph form-line-fn form-line-stored-fn label validation-fn] :as props}]
-  (let [form-line-dtor (form-line-fn :curator-storage-form-example)
+(defn formField [{:keys [graph label validation-fn form-fld curator-dtor] :as props}]
+  (let [
+        form-line-dtor (form-field curator-dtor [:transient form-fld])
+        ;; _ (prn "dtor t" form-line-dtor)
         form-line-val (hitch-hook/useSelected form-line-dtor)
-        form-line-stored-dtor (form-line-stored-fn :curator-storage-form-example)
+        form-line-stored-dtor (form-field curator-dtor [:localstorage form-fld])
+        ;; _ (prn "dtor t" form-line-stored-dtor)
         form-line-stored-val (hitch-hook/useSelected form-line-stored-dtor)
         formLineR (react/useRef)]
     (if (hitch-hook/loaded? form-line-val)
@@ -408,29 +305,29 @@
 
 (defn curator-storage-form [{:keys [graph] :as props}]
 
-  (let [form-dtor (address-line :curator-storage-form-example)
-        form-val         (hitch-hook/useSelected form-dtor)]
+  (let [form-dtor (hitch/->dtor address-form-machine-spec' {:keyspace :curator-storage-form-example})]
     (RE Paper {:style #js {"border"  "1px solid black"
                            "padding" "10px"}}
       (RE Paper {}
-        (CE form-field {:graph               graph
-                        :form-line-fn        address-line
-                        :form-line-stored-fn address-line-stored
-                        :label               "Address"
-                        :validation-fn       (fn [address-line-val] (not (numeric? address-line-val)))})
-        (CE form-field {:graph               graph
-                        :form-line-fn        city-line
-                        :form-line-stored-fn city-line-stored
-                        :label               "City"})
-        (CE form-field {:graph               graph
-                        :form-line-fn        state-line
-                        :form-line-stored-fn state-line-stored
-                        :label               "State"
-                        :validation-fn       (fn [line-val] (false? (contains? (-> states vals set) line-val)))})
-        (CE form-field {:graph               graph
-                        :form-line-fn        zip-line
-                        :form-line-stored-fn zip-line-stored
-                        :label               "Zip"}))
+        (CE formField {:graph         graph
+                       :curator-dtor  form-dtor
+                       :form-fld      :address-line
+                       :label         "Address"
+                       :validation-fn (fn [form-field-val] (not (numeric? form-field-val)))})
+        (CE formField {:graph        graph
+                       :curator-dtor form-dtor
+                       :form-fld     :city-line
+                       :label        "City"})
+        (CE formField {:graph         graph
+                       :curator-dtor  form-dtor
+                       :form-fld      :state-line
+                       :label         "State"
+                       :validation-fn (fn [line-val] (false? (contains? (-> states vals set) line-val)))})
+        (CE formField {:graph        graph
+                       :curator-dtor form-dtor
+                       :form-fld     :zip-line
+                       :label        "Zip"})
+        )
       (RE Grid {:container true :spacing 2}
         (RE Grid {:item true}
           (RE Button {:style   #js {:margin "10px"}
