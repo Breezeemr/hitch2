@@ -40,6 +40,11 @@
                       (-> node
                           (assoc :state val)
                           (update :set-projections assoc (mutable-var (:var-name (:term curator-descriptor))) val)))
+         :swap! (let [[_ f] command]
+                  (let [val (f (:state node))]
+                    (-> node
+                        (assoc :state val)
+                        (update :set-projections assoc (mutable-var (:var-name (:term curator-descriptor))) val))))
          :clear (-> node
                     (assoc :state NOT-FOUND-SENTINEL)
                     (update :set-projections assoc (mutable-var (:var-name (:term curator-descriptor))) NOT-FOUND-SENTINEL)))))})
