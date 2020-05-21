@@ -3,8 +3,11 @@
             [hitch2.halt :as halt]))
 
 
-(deftype HaltingManager [graph-value #?(:cljs    ^:mutable requests
-                                        :default ^:unsynchronized-mutable requests)]
+(deftype HaltingManager [graph-value
+                         #?(:cljs    ^:mutable requests
+                            :default ^:unsynchronized-mutable requests)
+                         #?(:cljs    ^:mutable blocking
+                            :default ^:unsynchronized-mutable blocking)]
   tx-manager/IDependTrack
   (dget-sel!  [this data-descriptor nf]
     (set! requests (conj! requests data-descriptor))
@@ -12,7 +15,10 @@
   (finish-tx! [this]
     (let [reqs (persistent! requests)]
       (set! requests (transient #{}))
-      reqs)))
+      reqs))
+  tx-manager/IBlockingLoad
+  (get-blocking [this] blocking)
+  (set-blocking! [this descriptor] (set! blocking descriptor)))
 
 (defn halting-manager [graph-value]
   (HaltingManager. graph-value (transient #{})))
