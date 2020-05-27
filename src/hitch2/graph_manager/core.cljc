@@ -68,7 +68,7 @@
 (defrecord curator-state [node apply-command curation-changes
                           tx-init observed-value-changes
                           flush-tx finalize observes])
-(defrecord deriving-state [waiting halting-fn observes])
+(defrecord deriving-state [blocking halting-fn observes])
 (defrecord var-state [observes])
 
 (def #?(:cljs    ^:dynamic ^boolean *trace*
@@ -315,23 +315,18 @@
         deps (tx-manager-proto/finish-tx! tx-manager)
         value-changed? (not= new-value old-value)
         value-resolved? (not (identical? new-value NOT-FOUND-SENTINEL))
-        gv (:graph-value graph-manager-value)
-        waiting-deps   (tinto! (transient (hash-set))
-                         (remove #(contains? gv %))
-                         deps)
+        blocking-dep   (tx-manager-proto/get-blocking tx-manager)
         change-focus (make-change-focus deps old-deps worklist descriptor)]
     (when (and value-changed? value-resolved?)
       (schedule-value-changes worklist observed-by descriptor))
     (cond-> (assoc-in
               graph-manager-value
               [:node-state descriptor]
-              (cond->
-                (assoc node-state
-                  :observes deps)
-                (pos? (count waiting-deps))
-                (assoc
-                  :waiting
-                  waiting-deps)))
+              (assoc node-state
+                :observes deps
+                :blocking
+                blocking-dep
+                ))
       (and value-changed? value-resolved?)
       (update
         :graph-value
@@ -400,14 +395,21 @@
         (not-empty new-set-projections)
         (propagate-set-projections new-set-projections worklist))))
   deriving-state
-  (-propagate-value-change [{:keys [waiting] :as node-state}
+  (-propagate-value-change [{:keys [blocking] :as node-state}
                             graph-manager-value descriptor parents worklist]
     ;(assert node-state)
-    (takeout! waiting parents)
-    (when (zero? (count waiting))
+    ;(takeout! waiting parents)
+    ;(prn blocking)
+    (if blocking
+      (if (get parents blocking)
+        (let [{:keys [recalc]} worklist]
+          (conj! recalc descriptor)
+          (assoc-in graph-manager-value
+                    [:node-state descriptor :node :blocking] nil))
+        graph-manager-value)
       (let [{:keys [recalc]} worklist]
-        (conj! recalc descriptor)))
-    graph-manager-value)
+        (conj! recalc descriptor)
+        graph-manager-value)))
   ;var-state
   ;(-propagate-value-change [node-state ])
   )

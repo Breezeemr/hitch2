@@ -21,4 +21,4 @@
   (set-blocking! [this descriptor] (set! blocking descriptor)))
 
 (defn halting-manager [graph-value]
-  (HaltingManager. graph-value (transient #{})))
+  (HaltingManager. graph-value (transient #{}) nil))

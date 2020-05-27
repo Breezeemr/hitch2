@@ -1,4 +1,5 @@
 (ns hitch2.halt
+  #?(:cljs (:require [hitch2.protocols.tx-manager :as tx-manager]))
   #?(:cljs
      (:require-macros
        [hitch2.halt]
@@ -55,7 +56,9 @@
     IPending
     (-realized? [_] false)))
 
-(defonce halt-box
+(defn halt-box [tx-manager descriptor]
+  (->HaltBox tx-manager descriptor))
+#_(defonce halt-box
   (if-clj-target
     (reify
       IDeref
