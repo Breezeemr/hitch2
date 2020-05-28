@@ -263,7 +263,7 @@
   ([tx-manager descriptor]
    (let [v (dget-sel! tx-manager descriptor NOT-IN-GRAPH-SENTINEL)]
      (if (identical? v NOT-IN-GRAPH-SENTINEL)
-       halt/halt-box
+       (halt/halt-box tx-manager descriptor)
        (halt/select-box v)))))
 
 (defn select!
@@ -273,45 +273,45 @@
   transaction context will catch. You can test if a value is available
   using `(realized? box)`."
   ([tx-manager descriptor-spec]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec)]
-     (if (identical? v NOT-IN-GRAPH-SENTINEL)
-       halt/halt-box
-       (halt/select-box v))))
+   (let [descriptor (if (fn? descriptor-spec)
+                      (descriptor-spec)
+                      (positional-dtor descriptor-spec))]
+     (select-sel! tx-manager descriptor)))
   ([tx-manager descriptor-spec a]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a)]
-     (if (identical? v NOT-IN-GRAPH-SENTINEL)
-       halt/halt-box
-       (halt/select-box v))))
+   (let [descriptor (if (fn? descriptor-spec)
+                      (descriptor-spec a)
+                      (positional-dtor descriptor-spec a))]
+     (select-sel! tx-manager descriptor)))
   ([tx-manager descriptor-spec a b]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a b)]
-     (if (identical? v NOT-IN-GRAPH-SENTINEL)
-       halt/halt-box
-       (halt/select-box v))))
+   (let [descriptor (if (fn? descriptor-spec)
+                      (descriptor-spec  a b)
+                      (positional-dtor descriptor-spec  a b))]
+     (select-sel! tx-manager descriptor)))
   ([tx-manager descriptor-spec a b c]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a b c)]
-     (if (identical? v NOT-IN-GRAPH-SENTINEL)
-       halt/halt-box
-       (halt/select-box v))))
+   (let [descriptor (if (fn? descriptor-spec)
+                      (descriptor-spec a b c)
+                      (positional-dtor descriptor-spec a b c))]
+     (select-sel! tx-manager descriptor)))
   ([tx-manager descriptor-spec a b c d]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a b c d)]
-     (if (identical? v NOT-IN-GRAPH-SENTINEL)
-       halt/halt-box
-       (halt/select-box v))))
+   (let [descriptor (if (fn? descriptor-spec)
+                      (descriptor-spec a b c d)
+                      (positional-dtor descriptor-spec a b c d))]
+     (select-sel! tx-manager descriptor)))
   ([tx-manager descriptor-spec a b c d e]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a b c d e)]
-     (if (identical? v NOT-IN-GRAPH-SENTINEL)
-       halt/halt-box
-       (halt/select-box v))))
+   (let [descriptor (if (fn? descriptor-spec)
+                      (descriptor-spec a b c d e)
+                      (positional-dtor descriptor-spec a b c d e))]
+     (select-sel! tx-manager descriptor)))
   ([tx-manager descriptor-spec a b c d e f]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a b c d e f)]
-     (if (identical? v NOT-IN-GRAPH-SENTINEL)
-       halt/halt-box
-       (halt/select-box v))))
+   (let [descriptor (if (fn? descriptor-spec)
+                      (descriptor-spec a b c d e f)
+                      (positional-dtor descriptor-spec a b c d e f))]
+     (select-sel! tx-manager descriptor)))
   ([tx-manager descriptor-spec a b c d e f g]
-   (let [v (dget! tx-manager NOT-IN-GRAPH-SENTINEL descriptor-spec a b c d e f g)]
-     (if (identical? v NOT-IN-GRAPH-SENTINEL)
-       halt/halt-box
-       (halt/select-box v)))))
+   (let [descriptor (if (fn? descriptor-spec)
+                      (descriptor-spec a b c d e f g)
+                      (positional-dtor descriptor-spec a b c d e f g))]
+     (select-sel! tx-manager descriptor))))
 
 (defn snapshot [graph]
   (graph-proto/-get-graph graph))

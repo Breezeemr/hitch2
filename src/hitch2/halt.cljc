@@ -1,10 +1,12 @@
 (ns hitch2.halt
+  #?(:cljs (:require [hitch2.protocols.tx-manager :as tx-manager]))
   #?(:cljs
      (:require-macros
        [hitch2.halt]
        [hitch2.cljc-utils :refer [if-clj-target]])
      :default
      (:require
+       [hitch2.protocols.tx-manager :as tx-manager]
        [hitch2.cljc-utils :refer [if-clj-target]])))
 
 ;; NOTE: In order to import these only when the target lang is clj, we need to
@@ -38,7 +40,25 @@
     #?(:clj (HaltException/isHalt x) :default nil)
     (identical? HALT x)))
 
-(defonce halt-box
+(if-clj-target
+  (deftype HaltBox [tx-manager descriptor]
+    IDeref
+    (deref [_]
+      (tx-manager/set-blocking! tx-manager descriptor)
+      (halt!))
+    IPending
+    (isRealized [_] false))
+  (deftype HaltBox [tx-manager descriptor]
+    IDeref
+    (-deref [_]
+      (tx-manager/set-blocking! tx-manager descriptor)
+      (halt!))
+    IPending
+    (-realized? [_] false)))
+
+(defn halt-box [tx-manager descriptor]
+  (->HaltBox tx-manager descriptor))
+#_(defonce halt-box
   (if-clj-target
     (reify
       IDeref
@@ -50,6 +70,7 @@
       (-deref [_] (halt!))
       IPending
       (-realized? [_] false))))
+
 
 (if-clj-target
   (deftype SelectBox [value]
