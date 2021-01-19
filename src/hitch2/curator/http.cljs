@@ -30,10 +30,10 @@
       (.setWithCredentials xhr true))
     (events/listen xhr EventType/SUCCESS
       (if deserializer
-        (fn [e] (cb [:ok (deserializer (.. e -target (getResponseText)))]))
-        (fn [e] (cb [:ok (.. e -target (getResponseText))]))))
+        (fn [^js e] (cb [:ok (deserializer (.. e -target (getResponseText)))]))
+        (fn [^js e] (cb [:ok (.. e -target (getResponseText))]))))
     (events/listen xhr EventType/ERROR
-      (fn [e] (cb [:error (.. e -target (getLastError))])))
+      (fn [^js e] (cb [:error (.. e -target (getLastError))])))
     (.send xhr (str url) (meths method method)
            (if serializer
              (serializer content)
