@@ -48,7 +48,7 @@
   (let [sname (:name descriptor)]
     (or
       (get-descriptor-impl sname)
-      (throw (ex-info (str "Could not find implementation in descriptor registry " sname)
+      (throw (ex-info (str "Could not find implementation in descriptor registry " (pr-str sname))
                {::ca/category  ::ca/not-found
                 :descriptor-name sname
                 :descriptor      descriptor})))))
