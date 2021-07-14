@@ -1,9 +1,8 @@
 {:deps    {org.clojure/clojure       {:mvn/version "1.10.1"}
            org.clojure/clojurescript {:mvn/version "1.10.597"}
-           rads/anomalies   {:mvn/version "0.1.13"}
-           thheller/shadow-cljs      {:mvn/version "2.8.83"}}
+           rads/anomalies   {:mvn/version "0.1.13"}}
  :paths   ["src" "src-java" "target/classes"]
- :aliases {
+ :aliases {:shadow {:extra-deps {thheller/shadow-cljs      {:mvn/version "2.8.83"}}}
            ;; figwheel cljs dev
            :fig       {:extra-deps
                        {com.bhauman/figwheel-main {:mvn/version "0.1.9"}
