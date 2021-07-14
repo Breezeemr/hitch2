@@ -7,13 +7,13 @@
            ;; figwheel cljs dev
            :fig       {:extra-deps
                        {com.bhauman/figwheel-main {:mvn/version "0.1.9"}
-                        criterium                 {:mvn/version "0.4.4"}}
+                        criterium/criterium                 {:mvn/version "0.4.4"}}
                        :extra-paths ["dev-resources" "test" "bench" "target"]}
            :compile {:extra-deps  {badigeon/badigeon {:mvn/version "0.0.12"}}
                      :extra-paths ["support"]
                      :main-opts ["-m" "com.breezeehr.hitch2.compile-java" ]}
            :bench     {:extra-paths ["bench"]
-                       :extra-deps  {criterium {:mvn/version "0.4.4"}}
+                       :extra-deps  {criterium/criterium {:mvn/version "0.4.4"}}
                        :main-opts   ["-m" "hitch2.graph-bench"]}
            :bench-cljs {:extra-paths ["dev-resources" "bench"]
                        :extra-deps  {com.bhauman/figwheel-main {:mvn/version "0.2.0"}}
@@ -35,7 +35,7 @@
                        :main-opts   ["-m" "figwheel.main" "-b" "test" "-r"]}
 
            :example {:extra-paths ["dev-resources" "example" "target"]
-                     :extra-deps  {crinkle {:mvn/version "2.0.0"}
+                     :extra-deps  {crinkle/crinkle {:mvn/version "2.0.0"}
                                    com.breezeehr/quiescent {:mvn/version "0.3.0"
                                                             :exclusions [cljsjs/react-dom cljsjs/react cljsjs/create-react-class]}
                                    com.breezeehr/react-hitch {:mvn/version "0.5.0-SNAPSHOT"
