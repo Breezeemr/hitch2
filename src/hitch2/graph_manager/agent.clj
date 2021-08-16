@@ -3,7 +3,8 @@
              [hitch2.protocols.graph-manager :as g]
              [hitch2.scheduler.normal :refer [default-process-manager]]
              [hitch2.sentinels :refer [NOT-FOUND-SENTINEL NOT-IN-GRAPH-SENTINEL]]
-             [hitch2.graph-manager.core :refer [apply-command apply-commands ->GraphManagerValue]]))
+             [hitch2.graph-manager.core :refer [apply-command apply-commands ->GraphManagerValue
+                                                send-messages!]]))
 
 (defn queue-effect-fn [graph-manager]
   (fn [sync-effects async-effects]
