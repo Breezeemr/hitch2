@@ -29,7 +29,8 @@
 (defprotocol IProcess
   (-send-message! [process msg]
     "Blocking send message to process. Returns true if send succeeded,
-    false if process is not running.")
+    false if process is not running.
+    In the future you should also be able to return a function as a coninuation")
   (-kill-process! [process]
     "Kills the process, returns whether this invocation is what killed the
     process (= true) or if it was already dead (= false). Must be idempotent as
@@ -85,10 +86,12 @@
 
 (deftype ProcessManager [pdtor->process process-factory running? #?(:clj creator)]
   IProcessManager
-  (-get-or-create-process! [_ process-dtor]
+  (-get-or-create-process! [self process-dtor]
     (if-some [ps (proc-get! pdtor->process process-dtor)]
       ps
       (when @running?
+        (when-some [deps (::deps (process-factory process-dtor))]
+          (run! #(-get-or-create-process! self %) (deps self process-dtor)))
         (proc-create! pdtor->process #?(:clj creator :cljs process-factory)
           process-dtor))))
   (-kill-process-by-dtor! [_ process-dtor]
